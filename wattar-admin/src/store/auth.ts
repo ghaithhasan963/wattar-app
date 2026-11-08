@@ -1,0 +1,130 @@
+/**
+ * Wattar Admin — متجر المصادقة (Zustand)
+ */
+import { create } from 'zustand';
+import { Session, User } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
+
+interface AuthState {
+  session: Session | null;
+  user: User | null;
+  profile: AdminProfile | null;
+  initialized: boolean;
+  loading: boolean;
+  error: string | null;
+  initialize: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  loadProfile: () => Promise<void>;
+}
+
+interface AdminProfile {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  role: 'admin' | 'super_admin';
+  status: string;
+}
+
+async function loadAdminProfile(userId: string): Promise<AdminProfile> {
+  const { data: profile, error } = await supabase
+    .from('users')
+    .select('id, username, display_name, avatar_url, role, status')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    throw new Error(
+      error.code === 'PGRST116'
+        ? 'لم يُعثر على ملف هذا المستخدم في جدول users.'
+        : `تعذر تحميل صلاحيات الحساب: ${error.message}`,
+    );
+  }
+  if (!profile || !['admin', 'super_admin'].includes(profile.role)) {
+    throw new Error('هذا الحساب ليس مسؤولًا. يلزم أن يكون دوره admin أو super_admin في public.users.');
+  }
+  if (profile.status === 'banned' || profile.status === 'blacklisted') {
+    throw new Error('هذا الحساب موقوف.');
+  }
+  return profile as AdminProfile;
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  session: null,
+  user: null,
+  profile: null,
+  initialized: false,
+  loading: false,
+  error: null,
+
+  initialize: async () => {
+    set({ loading: true, error: null });
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      if (!session) {
+        set({ session: null, user: null, profile: null });
+        return;
+      }
+
+      const profile = await loadAdminProfile(session.user.id);
+      set({ session, user: session.user, profile });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'تعذر التحقق من حساب الإدارة.';
+      await supabase.auth.signOut();
+      set({ session: null, user: null, profile: null, error: message });
+    } finally {
+      set({ initialized: true, loading: false });
+    }
+  },
+
+  signIn: async (email, password) => {
+    set({ loading: true, error: null });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+
+      const profile = await loadAdminProfile(data.user.id);
+
+      set({ session: data.session, user: data.user, profile, initialized: true });
+    } catch (err: unknown) {
+      await supabase.auth.signOut();
+      const message = err instanceof Error ? err.message : 'تعذر تسجيل الدخول إلى لوحة الإدارة.';
+      set({ session: null, user: null, profile: null, initialized: true, error: message });
+      throw err;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  requestPasswordReset: async (email) => {
+    set({ loading: true, error: null });
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'تعذر إرسال رابط إعادة تعيين كلمة المرور.';
+      set({ error: message });
+      throw err;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  signOut: async () => {
+    await supabase.auth.signOut();
+    set({ session: null, user: null, profile: null, error: null });
+  },
+
+  loadProfile: async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const profile = await loadAdminProfile(session.user.id);
+    set({ session, user: session.user, profile });
+  },
+}));

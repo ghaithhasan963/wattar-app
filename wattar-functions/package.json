@@ -1,0 +1,13 @@
+{
+  "name": "wattar-functions",
+  "version": "1.0.0",
+  "description": "Wattar Edge Functions for Supabase — wallet engine, game engine, admin tools",
+  "scripts": {
+    "test": "echo 'Tests are run via Supabase local dev'",
+    "serve": "supabase functions serve --no-verify-jwt",
+    "deploy": "supabase functions deploy --no-verify-jwt"
+  },
+  "license": "Proprietary",
+  "_comment": "Edge Functions use Deno runtime — no npm install needed",
+  "_comment2": "Deploy via: supabase functions deploy <function-name>"
+}

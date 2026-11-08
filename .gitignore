@@ -1,18 +1,28 @@
-node_modules/
-.expo/
-dist/
-web-build/
-coverage/
-android/
-ios/
+# Local environment and credentials
+**/.env
+**/.env.*
+!**/.env.example
+**/credentials.json
+**/google-services.json
+**/*.jks
+**/*.keystore
+**/*.p8
+**/*.p12
 
-.env
-.env.*
-!.env.example
+# Dependencies, generated builds, and local caches
+**/node_modules/
+**/.expo/
+**/.temp/
+**/.cache/
+**/dist/
+**/build/
+**/coverage/
+**/web-build/
+**/android/
+**/ios/
+**/*.apk
+**/*.aab
+**/*.log
 
-*.jks
-*.keystore
-*.p8
-*.p12
-credentials.json
-google-services.json
+# Duplicate local project snapshot; active components live at the project root.
+/التعديل الجديد للمشروع/

@@ -1,0 +1,11 @@
+{
+  "name": "@wattar/shared",
+  "version": "1.0.0",
+  "description": "Wattar shared types, constants, and utilities",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "Proprietary"
+}
