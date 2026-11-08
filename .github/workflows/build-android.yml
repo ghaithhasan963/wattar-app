@@ -62,6 +62,21 @@ jobs:
           for (const name of ['EXPO_PUBLIC_SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_ANON_KEY']) {
             if (!process.env[name]) throw new Error(`Missing GitHub Actions secret: ${name}`);
           }
+          let supabaseUrl;
+          try {
+            supabaseUrl = new URL(process.env.EXPO_PUBLIC_SUPABASE_URL);
+          } catch {
+            throw new Error('EXPO_PUBLIC_SUPABASE_URL must be a valid HTTPS Supabase project URL.');
+          }
+          if (
+            supabaseUrl.protocol !== 'https:' ||
+            /your_project|placeholder/i.test(supabaseUrl.hostname)
+          ) {
+            throw new Error('EXPO_PUBLIC_SUPABASE_URL must point to the real HTTPS Supabase project, not a placeholder.');
+          }
+          if (/^(placeholder|your_)/i.test(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY.trim())) {
+            throw new Error('EXPO_PUBLIC_SUPABASE_ANON_KEY contains a placeholder value.');
+          }
           NODE
           printf '%s' "$GOOGLE_SERVICES_JSON" > google-services.json
 
@@ -78,6 +93,9 @@ jobs:
         run: npx expo prebuild --platform android --no-install
 
       - name: Build APK
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
         run: bash ./gradlew --no-daemon assembleRelease
         working-directory: wattar-app/android
 
