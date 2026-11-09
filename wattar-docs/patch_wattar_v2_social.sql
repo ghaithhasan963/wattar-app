@@ -1302,6 +1302,7 @@ AS $$
 DECLARE
   v_user public.users%ROWTYPE;
   v_agent_id uuid;
+  v_affected_agent_ids uuid[];
 BEGIN
   IF auth.role() IS DISTINCT FROM 'service_role' OR p_user_id IS NULL THEN
     RAISE EXCEPTION 'غير مصرح بحذف الحساب';
@@ -1322,11 +1323,11 @@ BEGIN
   SELECT a.id INTO v_agent_id FROM public.agents a WHERE a.user_id = p_user_id;
 
   DELETE FROM public.stories WHERE user_id = p_user_id;
-  WITH removed_memberships AS (
-    DELETE FROM public.agent_group_memberships
-    WHERE user_id = p_user_id
-    RETURNING group_id
-  )
+  SELECT array_agg(DISTINCT g.agent_id) INTO v_affected_agent_ids
+  FROM public.agent_group_memberships m
+  JOIN public.agent_groups g ON g.id = m.group_id
+  WHERE m.user_id = p_user_id AND m.status = 'active';
+  DELETE FROM public.agent_group_memberships WHERE user_id = p_user_id;
   UPDATE public.agents a
   SET total_users = (
     SELECT count(*)::integer
@@ -1334,11 +1335,7 @@ BEGIN
     JOIN public.agent_groups g ON g.id = m.group_id
     WHERE g.agent_id = a.id AND m.status = 'active'
   )
-  WHERE a.id IN (
-    SELECT g.agent_id
-    FROM public.agent_groups g
-    JOIN removed_memberships rm ON rm.group_id = g.id
-  );
+  WHERE a.id = ANY(coalesce(v_affected_agent_ids, ARRAY[]::uuid[]));
   DELETE FROM public.agent_group_reports WHERE reporter_id = p_user_id;
   UPDATE public.agent_group_messages SET body = 'رسالة محذوفة'
   WHERE sender_id = p_user_id;

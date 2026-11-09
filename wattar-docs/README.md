@@ -2,7 +2,9 @@
 
 تطبيق صوتي اجتماعي بهوية عربية مستقلة يجمع:
 - 🎙️ **غرف صوتية** (4 أو 8 مقاعد)
-- 🎮 **ألعاب Coins مجانية** (عجلة الحظ، نرد، Aviator، Plinko)
+- 🎮 **ألعاب نقاط مجانية** (عجلة الحظ، نرد، Aviator، Plinko، Slots)
+- 🎯 **مهمات يومية** بمكافآت نقاط مجانية وXP يتحقق منها الخادم
+- 🎁 **متجر هدايا** مرتبط بإرسال الهدايا والأرصدة المنفصلة
 - 💰 **محفظة متعددة الأرصدة** (Coins مدفوعة ومحوّلة، Diamonds قابلة للسحب وترويجية)
 - 🤝 **نظام وكلاء** (إحالات متعددة المستويات)
 - 🛡️ **لوحة تحكم إدارية كاملة** (تحكّم بكل شيء)
@@ -62,6 +64,8 @@ wattar/
 │   ├── app/                 # شاشات التطبيق (expo-router)
 │   │   ├── (auth)/          # شاشات التسجيل
 │   │   ├── (tabs)/          # التبويبات الرئيسية
+│   │   ├── missions.tsx     # مهمات يومية بمكافآت نقاط مجانية وXP
+│   │   ├── store.tsx        # كتالوج الهدايا والإرسال
 │   │   ├── room/            # غرف صوتية
 │   │   └── game/            # صفحات الألعاب
 │   ├── src/                 # مكتبات و stores
@@ -95,8 +99,10 @@ wattar/
 │       ├── game-dice/                    # نرد
 │       ├── game-aviator/                 # طيارة المضاعفات
 │       ├── game-plinko/                  # بلانغو
+│       ├── game-slots/                   # Slots بنقاط لعب مجانية
 │       ├── admin-create-agent/           # إنشاء وكيل
 │       ├── admin-set-rtp/                # ضبط RTP لمستخدم
+│       ├── admin-set-user-status/        # إيقاف/حظر مستخدم مع تسجيل السبب
 │       ├── admin-force-outcome/          # إجبار فوز/خسارة
 │       ├── admin-credit-agent/            # شحن رصيد وكيل
 │       ├── social-push/                   # إشعارات اجتماعية معتمدة من الخادم
@@ -122,12 +128,15 @@ wattar/
 2. افتح **SQL Editor** في لوحة Supabase
 3. انسخ محتوى `wattar-docs/wattar_schema.sql` كاملاً والصقه ثم نفّذ
    - إذا كانت قاعدة البيانات مُهيأة مسبقًا، نفّذ ملفات `patch_auth_profile_trigger.sql` و`patch_admin_rls.sql` و`patch_room_access.sql` و`patch_financial_rls.sql` من مجلد `wattar-docs`؛ لا تعِد تشغيل السكيمة كاملة.
-4. أنشئ Storage Buckets:
+4. بعد ترحيل اقتصاد المحفظة، نفّذ `patch_store_missions.sql` لإضافة مهمات يومية يتحقق منها الخادم ومكافآت نقاط لعب مجانية وXP، مع واجهة متجر للهدايا الموجودة.
+5. نفّذ `patch_slots_enum.sql` منفصلًا، ثم بعد نجاحه نفّذ `patch_slots_game_config.sql` لتسجيل Slots كنقاط مجانية فقط.
+6. بعد اكتمال جميع ترحيلات قاعدة البيانات، نفّذ `wattar-docs/patch_admin_audit_controls.sql` لتفعيل سجل تغييرات الإدارة وإجراءات حالة المستخدم المسجلة وتدقيق إعداد المهمات.
+7. أنشئ Storage Buckets:
    - `avatars` (عام)
    - `deposit-proofs` (خاص)
    - `withdrawal-proofs` (خاص)
    - `gift-icons` (عام)
-5. أنشئ مستخدم Auth (Email/Password) للأدمن الأول:
+8. أنشئ مستخدم Auth (Email/Password) للأدمن الأول:
    - في Authentication → Users → Add user
    - بعد إنشائه، نفّذ في SQL Editor:
      ```sql

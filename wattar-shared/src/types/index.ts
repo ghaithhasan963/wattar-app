@@ -209,7 +209,7 @@ export interface Agent {
 // ============================================================================
 // الألعاب
 // ============================================================================
-export type GameType = 'wheel' | 'dice' | 'aviator' | 'plinko';
+export type GameType = 'wheel' | 'dice' | 'aviator' | 'plinko' | 'slots';
 
 export interface GameConfig {
   id: string;

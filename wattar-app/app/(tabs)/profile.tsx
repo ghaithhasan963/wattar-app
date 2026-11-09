@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Coins, Gem, Gift, LogOut, Pencil, Settings, Star, User, Users, Wallet } from 'lucide-react-native';
+import { ChevronLeft, Coins, Gem, Gift, LockKeyhole, LogOut, Pencil, Settings, Star, User, Users, Wallet } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 
@@ -37,9 +37,10 @@ const palette = {
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { profile, signOut } = useAuthStore();
+  const { profile, signOut, updateProfileVisibility } = useAuthStore();
   const [progress, setProgress] = useState<SocialProgress | null>(null);
   const [progressError, setProgressError] = useState<string | null>(null);
+  const [privacyBusy, setPrivacyBusy] = useState(false);
 
   const loadProgress = useCallback(async () => {
     if (!profile?.id) return;
@@ -80,6 +81,19 @@ export default function ProfileScreen() {
     }
   };
 
+  const toggleProfileVisibility = async () => {
+    if (!profile || privacyBusy) return;
+    const nextVisibility = profile.profile_visibility === 'friends' ? 'public' : 'friends';
+    setPrivacyBusy(true);
+    try {
+      await updateProfileVisibility(nextVisibility);
+    } catch (error: unknown) {
+      Alert.alert('تعذر تحديث الخصوصية', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+    } finally {
+      setPrivacyBusy(false);
+    }
+  };
+
   const level = Math.max(1, progress?.level ?? profile?.level ?? 1);
   const experience = Math.max(0, progress?.experience_points ?? profile?.experience_points ?? 0);
   const levelStart = (level - 1) ** 2 * 100;
@@ -110,6 +124,11 @@ export default function ProfileScreen() {
         <Text style={styles.displayName}>{profile?.display_name || profile?.username || 'مستخدم Wattar'}</Text>
         <Text style={styles.username}>@{profile?.username}</Text>
         {profile?.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
+        {profile?.gender ? (
+          <Text style={styles.profileMeta}>
+            {profile.gender === 'female' ? 'أنثى' : profile.gender === 'male' ? 'ذكر' : 'أفضل وصفًا آخر'}
+          </Text>
+        ) : null}
         <TouchableOpacity
           style={styles.editButton}
           onPress={() => router.push('/profile/edit')}
@@ -117,6 +136,18 @@ export default function ProfileScreen() {
         >
           <Pencil size={15} color="#FFFFFF" />
           <Text style={styles.editButtonText}>تعديل الملف</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.privacyButton}
+          onPress={toggleProfileVisibility}
+          disabled={privacyBusy}
+          accessibilityRole="button"
+          accessibilityLabel="تغيير خصوصية الملف الشخصي"
+        >
+          <LockKeyhole size={14} color={palette.gold} />
+          <Text style={styles.privacyButtonText}>
+            {privacyBusy ? 'جارٍ الحفظ...' : profile?.profile_visibility === 'friends' ? 'الملف للأصدقاء فقط' : 'الملف عام'}
+          </Text>
         </TouchableOpacity>
         {profile?.referral_code ? (
           <TouchableOpacity style={styles.referral} onPress={handleShare} accessibilityRole="button">
@@ -251,8 +282,11 @@ const styles = StyleSheet.create({
   displayName: { color: palette.text, fontSize: 20, fontWeight: '800', marginTop: 13 },
   username: { color: palette.muted, fontSize: 12, marginTop: 4 },
   bio: { color: palette.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 9, maxWidth: 280 },
+  profileMeta: { color: palette.muted, fontSize: 11, marginTop: 8 },
   editButton: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 15, paddingVertical: 10, borderRadius: 12, backgroundColor: palette.primary, marginTop: 14 },
   editButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  privacyButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, minHeight: 34, paddingHorizontal: 12, marginTop: 8, borderRadius: 12, backgroundColor: '#211B2C', borderWidth: 1, borderColor: palette.border },
+  privacyButtonText: { color: palette.gold, fontSize: 11, fontWeight: '700' },
   referral: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 13, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 10, backgroundColor: '#302312' },
   referralText: { color: palette.gold, fontSize: 11, fontWeight: '600' },
   levelCard: { padding: 15, marginTop: 13, borderRadius: 19, backgroundColor: palette.surface, borderWidth: 1, borderColor: '#5B4324' },

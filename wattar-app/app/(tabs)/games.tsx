@@ -5,7 +5,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Easing, View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Gamepad2, Dice5, Plane, ChevronDown, Users, Gift } from 'lucide-react-native';
+import { ArrowLeft, Gamepad2, Dice5, Plane, ChevronDown, Users, Gift, Gem } from 'lucide-react-native';
 import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
 import { supabase } from '@/lib/supabase';
@@ -15,7 +15,7 @@ const games = [
   {
     id: 'wheel',
     name: 'عجلة الحظ',
-    description: 'العب بـCoins مجانية حتى x50',
+    description: 'العب بنقاط مجانية حتى x50',
     icon: Gamepad2,
     color: '#7C3AED',
     bgGradient: ['#7C3AED', '#5B21B6'],
@@ -24,7 +24,7 @@ const games = [
   {
     id: 'aviator',
     name: 'طيارة المضاعفات',
-    description: 'العب بـCoins مجانية قبل الانهيار',
+    description: 'العب بنقاط مجانية قبل الانهيار',
     icon: Plane,
     color: '#3B82F6',
     bgGradient: ['#3B82F6', '#1D4ED8'],
@@ -33,7 +33,7 @@ const games = [
   {
     id: 'plinko',
     name: 'بلانغو',
-    description: 'العب بـCoins مجانية واكتشف النتيجة',
+    description: 'العب بنقاط مجانية واكتشف النتيجة',
     icon: ChevronDown,
     color: '#F59E0B',
     bgGradient: ['#F59E0B', '#B45309'],
@@ -42,10 +42,19 @@ const games = [
   {
     id: 'dice',
     name: 'نرد',
-    description: 'اختر الهدف والعب بـCoins مجانية',
+    description: 'اختر الهدف والعب بنقاط مجانية',
     icon: Dice5,
     color: '#10B981',
     bgGradient: ['#10B981', '#047857'],
+    maxMult: 'x10',
+  },
+  {
+    id: 'slots',
+    name: 'Slots',
+    description: 'ثلاث بكرات وجوائز بنقاط لعب مجانية',
+    icon: Gem,
+    color: '#C026D3',
+    bgGradient: ['#C026D3', '#86198F'],
     maxMult: 'x10',
   },
 ];
@@ -88,7 +97,7 @@ export default function GamesScreen() {
       } else if (data?.at_cap) {
         Alert.alert('رصيدك ممتلئ', 'يمكنك المطالبة بالنقاط اليومية بعد استخدام بعض نقاطك.');
       } else {
-        Alert.alert('تم استخدام المطالبة اليومية', 'يمكنك المطالبة بـCoins مجانية مرة أخرى بعد مرور 24 ساعة.');
+        Alert.alert('تم استخدام المطالبة اليومية', 'يمكنك المطالبة بنقاط مجانية مرة أخرى بعد مرور 24 ساعة.');
       }
     } catch (error: unknown) {
       Alert.alert('تعذرت المطالبة بالنقاط', error instanceof Error ? error.message : 'حاول مرة أخرى.');
@@ -102,7 +111,7 @@ export default function GamesScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>الألعاب</Text>
         <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Coins مجانية للألعاب</Text>
+          <Text style={styles.balanceLabel}>نقاط مجانية للألعاب</Text>
           <Text style={styles.balanceValue}>{profile?.game_points?.toLocaleString() ?? 0}</Text>
         </View>
       </View>

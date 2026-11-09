@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 import { supabase, callFunction } from '@/lib/supabase';
-import { Search, Settings, Shield, X, Check, Loader2 } from 'lucide-react';
+import { Search, Settings, Shield, X, Check, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface UserRow {
@@ -27,6 +27,9 @@ export function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
+  const [statusUser, setStatusUser] = useState<UserRow | null>(null);
+  const [statusTarget, setStatusTarget] = useState<'active' | 'suspended' | 'banned'>('suspended');
+  const [statusReason, setStatusReason] = useState('');
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
@@ -45,9 +48,15 @@ export function UsersPage() {
       query = query.or(`username.ilike.%${search}%,display_name.ilike.%${search}%,phone.ilike.%${search}%`);
     }
 
-    const { data } = await query;
-    setUsers(data ?? []);
-    setLoading(false);
+    try {
+      const { data, error } = await query;
+      if (error) throw error;
+      setUsers(data ?? []);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'تعذر تحميل المستخدمين');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSetRtp = async (userId: string, rtp: number | null) => {
@@ -76,15 +85,27 @@ export function UsersPage() {
     }
   };
 
-  const handleToggleStatus = async (userId: string, currentStatus: string) => {
+  const handleSetUserStatus = async () => {
+    if (!statusUser) return;
     setProcessing(true);
     try {
-      const newStatus = currentStatus === 'active' ? 'banned' : 'active';
-      await supabase.from('users').update({ status: newStatus }).eq('id', userId);
-      toast.success(newStatus === 'banned' ? 'تم حظر المستخدم' : 'تم تفعيل المستخدم');
+      await callFunction('admin-set-user-status', {
+        user_id: statusUser.id,
+        status: statusTarget,
+        reason: statusReason.trim() || undefined,
+      });
+      toast.success(
+        statusTarget === 'banned'
+          ? 'تم الحظر الدائم وتسجيل الإجراء'
+          : statusTarget === 'suspended'
+            ? 'تم الإيقاف المؤقت وتسجيل الإجراء'
+            : 'تمت إعادة التفعيل وتسجيل الإجراء',
+      );
+      setStatusUser(null);
+      setStatusReason('');
       await load();
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err instanceof Error ? err.message : 'تعذر تحديث حالة الحساب');
     } finally {
       setProcessing(false);
     }
@@ -165,10 +186,14 @@ export function UsersPage() {
                       <Settings size={16} />
                     </button>
                     <button
-                      onClick={() => handleToggleStatus(u.id, u.status)}
-                      disabled={processing}
+                      onClick={() => {
+                        setStatusUser(u);
+                        setStatusTarget(u.status === 'active' ? 'suspended' : 'active');
+                        setStatusReason('');
+                      }}
+                      disabled={processing || !['user', 'guest'].includes(u.role)}
                       className={`rounded-lg p-2 ${u.status === 'active' ? 'text-red-400 hover:bg-red-500/10' : 'text-green-400 hover:bg-green-500/10'}`}
-                      title={u.status === 'active' ? 'حظر' : 'تفعيل'}
+                      title={u.status === 'active' ? 'إيقاف أو حظر مع تسجيل السبب' : 'إعادة التفعيل مع تسجيل الإجراء'}
                     >
                       <Shield size={16} />
                     </button>
@@ -190,6 +215,133 @@ export function UsersPage() {
           processing={processing}
         />
       )}
+      {statusUser && (
+        <UserStatusModal
+          user={statusUser}
+          status={statusTarget}
+          reason={statusReason}
+          processing={processing}
+          onStatusChange={setStatusTarget}
+          onReasonChange={setStatusReason}
+          onClose={() => {
+            if (processing) return;
+            setStatusUser(null);
+            setStatusReason('');
+          }}
+          onSubmit={() => void handleSetUserStatus()}
+        />
+      )}
+    </div>
+  );
+}
+
+function UserStatusModal({
+  user,
+  status,
+  reason,
+  processing,
+  onStatusChange,
+  onReasonChange,
+  onClose,
+  onSubmit,
+}: {
+  user: UserRow;
+  status: 'active' | 'suspended' | 'banned';
+  reason: string;
+  processing: boolean;
+  onStatusChange: (status: 'active' | 'suspended' | 'banned') => void;
+  onReasonChange: (reason: string) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  const needsReason = status !== 'active';
+  const canSubmit = !processing && (!needsReason || reason.trim().length > 0) && reason.length <= 500;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="user-status-title"
+        className="w-full max-w-lg rounded-xl border border-wattar-900 bg-dark-surface"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-wattar-900 p-5">
+          <div>
+            <h2 id="user-status-title" className="text-lg font-semibold text-white">إدارة حالة الحساب</h2>
+            <p className="mt-1 text-sm text-gray-400">@{user.username}</p>
+          </div>
+          <button onClick={onClose} disabled={processing} className="text-gray-400 disabled:opacity-50" aria-label="إغلاق">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="space-y-4 p-5">
+          <label className="block text-sm font-medium text-gray-300" htmlFor="user-status">
+            الإجراء
+          </label>
+          <select
+            id="user-status"
+            value={status}
+            onChange={(event) => onStatusChange(event.target.value as 'active' | 'suspended' | 'banned')}
+            disabled={processing}
+            className="w-full rounded-lg border border-wattar-900 bg-dark-elevated px-3 py-2.5 text-sm text-white"
+          >
+            {user.status !== 'active' && <option value="active">إعادة التفعيل</option>}
+            <option value="suspended">إيقاف مؤقت</option>
+            <option value="banned">حظر دائم</option>
+          </select>
+
+          {status === 'banned' ? (
+            <div className="flex gap-2 rounded-lg border border-red-500/25 bg-red-500/10 p-3 text-xs leading-5 text-red-200">
+              <AlertTriangle size={17} className="mt-0.5 shrink-0" />
+              الحظر دائم ولا يُرفع إلا بقرار إداري. تأكد من مراجعة الحالة والأدلة قبل المتابعة.
+            </div>
+          ) : null}
+
+          {needsReason ? (
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-300" htmlFor="user-status-reason">
+                سبب الإجراء <span className="text-red-400">*</span>
+              </label>
+              <textarea
+                id="user-status-reason"
+                value={reason}
+                onChange={(event) => onReasonChange(event.target.value)}
+                maxLength={500}
+                rows={4}
+                disabled={processing}
+                placeholder="اكتب سببًا واضحًا ليظهر في سجل الإدارة..."
+                className="w-full resize-y rounded-lg border border-wattar-900 bg-dark-elevated px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:border-wattar-500 focus:outline-none"
+              />
+              <p className="mt-1 text-left text-xs text-gray-500">{reason.length}/500</p>
+            </div>
+          ) : (
+            <p className="text-sm leading-6 text-gray-400">
+              سيُعاد تفعيل الحساب، وسيُسجّل الإجراء وبيانات الحالة السابقة في سجل الإدارة.
+            </p>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={onClose}
+              disabled={processing}
+              className="rounded-lg border border-wattar-900 px-4 py-2 text-sm text-gray-300 hover:bg-dark-elevated disabled:opacity-50"
+            >
+              إلغاء
+            </button>
+            <button
+              onClick={onSubmit}
+              disabled={!canSubmit}
+              className={`flex min-w-32 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 ${
+                status === 'active' ? 'bg-green-700 hover:bg-green-600' : status === 'banned' ? 'bg-red-700 hover:bg-red-600' : 'bg-amber-700 hover:bg-amber-600'
+              }`}
+            >
+              {processing ? <Loader2 size={16} className="animate-spin" /> : null}
+              {status === 'active' ? 'إعادة التفعيل' : status === 'banned' ? 'تأكيد الحظر الدائم' : 'إيقاف الحساب'}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

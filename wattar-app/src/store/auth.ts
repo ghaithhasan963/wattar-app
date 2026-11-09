@@ -33,6 +33,9 @@ interface UserProfile {
   total_gifts_received: number;
   referral_code: string;
   preferred_language: string;
+  gender: 'female' | 'male' | 'other' | null;
+  profile_visibility: 'public' | 'friends';
+  onboarding_completed_at: string | null;
 }
 
 interface AuthState {
@@ -50,9 +53,14 @@ interface AuthState {
   signUpWithEmail: (email: string, password: string) => Promise<boolean>;
   signInWithPhone: (phone: string) => Promise<void>;
   verifyOtp: (phone: string, code: string) => Promise<void>;
-  signInAsGuest: () => Promise<void>;
   signOut: (scope?: 'global' | 'local' | 'others') => Promise<void>;
   loadProfile: () => Promise<void>;
+  completeOnboarding: (input: {
+    gender: 'female' | 'male' | 'other';
+    birthDate: string;
+    profileVisibility: 'public' | 'friends';
+  }) => Promise<void>;
+  updateProfileVisibility: (visibility: 'public' | 'friends') => Promise<void>;
   updateProfile: (input: {
     username: string;
     displayName: string;
@@ -106,6 +114,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   init: async () => {
     if (!authSubscription) {
       authSubscription = supabase.auth.onAuthStateChange((_event, newSession) => {
+        if (newSession?.user.is_anonymous) {
+          set({
+            session: null,
+            user: null,
+            profile: null,
+            error: 'الحسابات المجهولة غير مدعومة. سجّل الدخول بحسابك للمتابعة.',
+          });
+          void supabase.auth.signOut({ scope: 'local' }).then(({ error }) => {
+            if (error) console.warn('[Wattar] Failed to clear an anonymous session:', error);
+          }).catch((error: unknown) => {
+            console.warn('[Wattar] Failed to clear an anonymous session:', error);
+          });
+          return;
+        }
         set({ session: newSession, user: newSession?.user ?? null });
         if (newSession) {
           set({ error: null });
@@ -128,9 +150,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error) throw error;
-      set({ session, user: session?.user ?? null });
+      if (session?.user.is_anonymous) {
+        const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+        if (signOutError) throw signOutError;
+        set({ session: null, user: null, profile: null, error: null });
+      } else {
+        set({ session, user: session?.user ?? null });
+      }
 
-      if (session) {
+      if (session && !session.user.is_anonymous) {
         try {
           await get().loadProfile();
         } catch (profileError: unknown) {
@@ -254,21 +282,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  signInAsGuest: async () => {
-    set({ loading: true, error: null });
-    try {
-      const { data, error } = await supabase.auth.signInAnonymously();
-      if (error) throw error;
-      set({ session: data.session, user: data.user });
-      await get().loadProfile();
-    } catch (err: unknown) {
-      set({ error: err instanceof Error ? err.message : 'تعذر تسجيل الدخول كزائر' });
-      throw err;
-    } finally {
-      set({ loading: false });
-    }
-  },
-
   signOut: async (scope = 'global') => {
     try {
       const { error } = await supabase.auth.signOut({ scope });
@@ -300,6 +313,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         'تم تسجيل الدخول لكن ملف المستخدم غير موجود. يلزم تطبيق patch_auth_profile_trigger.sql على قاعدة البيانات ثم إعادة المحاولة.',
       );
     }
+  },
+
+  completeOnboarding: async ({ gender, birthDate, profileVisibility }) => {
+    const { session } = get();
+    if (!session?.user) throw new Error('يجب تسجيل الدخول قبل إكمال الملف الشخصي');
+    const { error } = await supabase.rpc('complete_my_onboarding', {
+      p_gender: gender,
+      p_birth_date: birthDate,
+      p_profile_visibility: profileVisibility,
+    });
+    if (error) throw error;
+    await get().loadProfile();
+  },
+
+  updateProfileVisibility: async (visibility) => {
+    const { profile } = get();
+    if (!profile) throw new Error('يجب تسجيل الدخول قبل تعديل الخصوصية');
+    const { error } = await supabase.rpc('update_my_profile_visibility', {
+      p_profile_visibility: visibility,
+    });
+    if (error) throw error;
+    set({ profile: { ...profile, profile_visibility: visibility } });
   },
 
   updateProfile: async ({ username, displayName, bio, avatarUrl }) => {

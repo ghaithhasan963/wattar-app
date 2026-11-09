@@ -22,12 +22,14 @@ const gameLabels: Record<string, string> = {
   dice: 'نرد',
   aviator: 'طيارة المضاعفات',
   plinko: 'بلانغو',
+  slots: 'Slots',
 };
 
 export function GamesPage() {
   const [configs, setConfigs] = useState<GameConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     load();
@@ -35,15 +37,32 @@ export function GamesPage() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from('game_configs').select('*').order('game_type');
-    setConfigs(data ?? []);
-    setLoading(false);
+    setLoadError(null);
+    try {
+      const { data, error } = await supabase.from('game_configs').select('*').order('game_type');
+      if (error) throw error;
+      setConfigs(data ?? []);
+    } catch (error: unknown) {
+      setLoadError(error instanceof Error ? error.message : 'تعذر تحميل إعدادات الألعاب');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const save = async (id: string) => {
-    setSaving(id);
     const cfg = configs.find(c => c.id === id);
-    if (!cfg) return;
+    if (!cfg) {
+      toast.error('لم يتم العثور على إعداد اللعبة');
+      return;
+    }
+    if (!Number.isFinite(cfg.default_rtp) || cfg.default_rtp < 0 || cfg.default_rtp > 100
+      || !Number.isSafeInteger(cfg.min_bet_gold) || cfg.min_bet_gold < 1
+      || !Number.isSafeInteger(cfg.max_bet_gold) || cfg.max_bet_gold < cfg.min_bet_gold
+      || !Number.isFinite(cfg.max_multiplier) || cfg.max_multiplier <= 0) {
+      toast.error('تحقق من RTP وحدود نقاط اللعب والمضاعف الأقصى');
+      return;
+    }
+    setSaving(id);
     try {
       const { error } = await supabase
         .from('game_configs')
@@ -77,6 +96,11 @@ export function GamesPage() {
 
       {loading ? (
         <p className="text-gray-400">جاري التحميل...</p>
+      ) : loadError ? (
+        <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-300">
+          <p>تعذر تحميل إعدادات الألعاب: {loadError}</p>
+          <button onClick={load} className="mt-3 rounded-lg bg-red-500/20 px-4 py-2 text-sm">إعادة المحاولة</button>
+        </div>
       ) : (
         <div className="grid gap-4">
           {configs.map(cfg => (

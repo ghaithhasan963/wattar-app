@@ -24,8 +24,10 @@ $functions = @(
   'game-dice',
   'game-aviator',
   'game-plinko',
+  'game-slots',
   'admin-create-agent',
   'admin-set-rtp',
+  'admin-set-user-status',
   'admin-force-outcome',
   'admin-credit-agent',
   'social-push',
@@ -41,7 +43,7 @@ try {
     Write-Host "Deploying $functionName..."
     Push-Location $tempRoot
     try {
-      & npx --yes supabase@latest functions deploy $functionName --no-verify-jwt --project-ref $ProjectRef
+      & npx --yes supabase@latest functions deploy $functionName --no-verify-jwt --use-api --remote=$ProjectRef
       if ($LASTEXITCODE -ne 0) {
         throw "Supabase CLI failed while deploying $functionName (exit code $LASTEXITCODE)."
       }
@@ -51,7 +53,7 @@ try {
     }
   }
 
-  Write-Host 'All 20 Edge Functions deployed successfully.'
+  Write-Host "All $($functions.Count) Edge Functions deployed successfully."
   Write-Host "To enable LiveKit audio, configure LIVEKIT_URL, LIVEKIT_API_KEY, and LIVEKIT_API_SECRET with: npx --yes supabase@latest secrets set LIVEKIT_URL=... LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=... --project-ref $ProjectRef"
 }
 finally {

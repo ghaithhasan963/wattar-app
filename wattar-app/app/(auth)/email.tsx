@@ -56,7 +56,8 @@ export default function EmailAuthScreen() {
     try {
       if (mode === 'sign-in') {
         await signInWithEmail(email, password);
-        router.replace('/(tabs)');
+        const profile = useAuthStore.getState().profile;
+        router.replace(profile?.onboarding_completed_at ? '/(tabs)' : '/(auth)/complete-profile');
         return;
       }
 
@@ -69,7 +70,7 @@ export default function EmailAuthScreen() {
         );
         return;
       }
-      router.replace('/(tabs)');
+      router.replace('/(auth)/complete-profile');
     } catch (submitError: unknown) {
       setError(submitError instanceof Error ? submitError.message : 'تعذر إكمال العملية. حاول مرة أخرى.');
     }

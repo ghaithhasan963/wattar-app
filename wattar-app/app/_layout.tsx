@@ -161,7 +161,9 @@ export default function RootLayout() {
             },
           ]}
         />
-        <Text style={styles.loadingText}>نجهّز مساحتك الصوتية...</Text>
+        <Text style={styles.brandName}>وتر | Wattar</Text>
+        <Text style={styles.loadingText}>صوتك يلاقي مجتمعه</Text>
+        <Text style={styles.loadingHint}>نجهّز مساحتك الصوتية...</Text>
         <View style={styles.loadingTrack}>
           <Animated.View
             style={[
@@ -196,7 +198,9 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   brandImage: { width: 260, height: 260, borderRadius: 28 },
-  loadingText: { color: '#94A3B8', fontSize: 14, marginTop: 8 },
+  brandName: { color: colors.text, fontSize: 21, fontWeight: '900', marginTop: 5 },
+  loadingText: { color: colors.gold, fontSize: 13, fontWeight: '700', marginTop: 7 },
+  loadingHint: { color: '#94A3B8', fontSize: 11, marginTop: 5 },
   loadingTrack: { width: 92, height: 3, borderRadius: 2, overflow: 'hidden', backgroundColor: colors.roomElevated, marginTop: 24 },
   loadingBar: { width: 46, height: 3, borderRadius: 2, backgroundColor: colors.roomTeal },
 });

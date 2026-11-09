@@ -23,7 +23,6 @@ export default function LoginScreen() {
     signInWithPhone,
     signInWithGoogle,
     signInWithFacebook,
-    signInAsGuest,
     loading,
     error,
   } = useAuthStore();
@@ -46,26 +45,14 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGuestSignIn = async () => {
-    setLocalError(null);
-    try {
-      await signInAsGuest();
-      const { session, profile } = useAuthStore.getState();
-      if (!session || !profile) {
-        throw new Error('تعذر تجهيز حساب الزائر. تحقق من اتصال التطبيق ثم حاول مجددًا.');
-      }
-      router.replace('/(tabs)');
-    } catch (caught: unknown) {
-      setLocalError(caught instanceof Error ? caught.message : 'تعذر تسجيل الدخول كزائر.');
-    }
-  };
-
   const handleSocialSignIn = async (provider: 'google' | 'facebook') => {
     setLocalError(null);
     const signIn = provider === 'google' ? signInWithGoogle : signInWithFacebook;
     await signIn();
     const { session, profile, error: authError } = useAuthStore.getState();
-    if (session && profile) router.replace('/(tabs)');
+    if (session && profile) {
+      router.replace(profile.onboarding_completed_at ? '/(tabs)' : '/(auth)/complete-profile');
+    }
     else if (authError) setLocalError(authError);
   };
 
@@ -192,10 +179,6 @@ export default function LoginScreen() {
 
               {loading && <ActivityIndicator color={colors.primary} style={styles.loader} />}
 
-              <TouchableOpacity onPress={handleGuestSignIn} disabled={loading} style={styles.guestButton}>
-                <Text style={styles.guestText}>استكشف كزائر</Text>
-                <ArrowLeft size={15} color={colors.textSecondary} />
-              </TouchableOpacity>
             </>
           )}
 
@@ -360,8 +343,6 @@ const styles = StyleSheet.create({
   },
   socialButtonText: { color: colors.text, fontSize: 13, fontWeight: '700' },
   loader: { marginTop: 12 },
-  guestButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingTop: 15 },
-  guestText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
   phoneForm: { gap: 12 },
   phoneInput: {
     minHeight: 52,

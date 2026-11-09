@@ -28,6 +28,10 @@ export default function TabsLayout() {
     );
   }
 
+  if (!profile.onboarding_completed_at || !profile.gender) {
+    return <Redirect href="/(auth)/complete-profile" />;
+  }
+
   if (!profile.adult_confirmed_at) {
     return <Redirect href="/(auth)/age-confirmation" />;
   }

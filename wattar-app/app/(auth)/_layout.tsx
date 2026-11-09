@@ -12,7 +12,9 @@ export default function AuthLayout() {
 
   useEffect(() => {
     if (session && profile) {
-      if (profile.adult_confirmed_at) {
+      if (!profile.onboarding_completed_at || !profile.gender) {
+        router.replace('/(auth)/complete-profile');
+      } else if (profile.adult_confirmed_at) {
         router.replace('/(tabs)');
       } else {
         router.replace('/(auth)/age-confirmation');

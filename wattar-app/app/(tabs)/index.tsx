@@ -20,7 +20,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
-import { Mic, Users, Lock, Plus, ChevronLeft, Sparkles, CirclePlay } from 'lucide-react-native';
+import { Mic, Users, Lock, Plus, ChevronLeft, Sparkles, CirclePlay, ShoppingBag, Target } from 'lucide-react-native';
 import { colors } from '@/lib/theme';
 
 interface Room {
@@ -179,6 +179,19 @@ export default function HomeScreen() {
         <ChevronLeft size={18} color={colors.textSecondary} />
       </TouchableOpacity>
 
+      <View style={styles.featureLinks}>
+        <TouchableOpacity style={styles.featureLink} onPress={() => router.push('/store')}>
+          <View style={styles.featureIcon}><ShoppingBag size={18} color={colors.gold} /></View>
+          <Text style={styles.featureTitle}>متجر الهدايا</Text>
+          <Text style={styles.featureCaption}>أرسل دعمك للمجتمع</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.featureLink} onPress={() => router.push('/missions')}>
+          <View style={[styles.featureIcon, styles.missionIcon]}><Target size={18} color={colors.primary} /></View>
+          <Text style={styles.featureTitle}>مهمات اليوم</Text>
+          <Text style={styles.featureCaption}>اجمع نقاط لعب وXP</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.sectionHeader}>
         <View>
           <Text style={styles.sectionTitle}>الغرف الآن</Text>
@@ -306,6 +319,12 @@ const styles = StyleSheet.create({
   storiesCopy: { flex: 1, gap: 4 },
   storiesTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
   storiesCaption: { color: colors.textSecondary, fontSize: 11 },
+  featureLinks: { flexDirection: 'row', gap: 10, marginHorizontal: 16, marginTop: 10 },
+  featureLink: { flex: 1, minHeight: 105, alignItems: 'flex-end', justifyContent: 'center', paddingHorizontal: 13, paddingVertical: 11, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  featureIcon: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.goldSoft },
+  missionIcon: { backgroundColor: colors.primarySoft },
+  featureTitle: { color: colors.text, fontSize: 12, fontWeight: '800', marginTop: 7 },
+  featureCaption: { color: colors.textSecondary, fontSize: 10, marginTop: 3 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 24, paddingBottom: 10 },
   sectionTitle: { color: colors.text, fontSize: 19, fontWeight: '800' },
   sectionCaption: { color: colors.textSecondary, fontSize: 12, marginTop: 4 },

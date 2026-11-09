@@ -134,7 +134,7 @@ export default function AviatorGame() {
       <View style={styles.infoCard}>
         <View style={styles.infoRow}>
           <TrendingUp size={14} color="#9CA3AF" />
-          <Text style={styles.infoText}>Coins مجانية: {profile?.game_points?.toLocaleString() ?? 0}</Text>
+          <Text style={styles.infoText}>نقاط مجانية: {profile?.game_points?.toLocaleString() ?? 0}</Text>
         </View>
         <Text style={styles.infoHint}>كيف تلعب: حدّد المضاعف المطلوب للسحب، الطيارة تطير وينتهي ذلك عند الانهيار. إذا وصلت لمضاعفك قبل الانهيار → تفوز.</Text>
       </View>

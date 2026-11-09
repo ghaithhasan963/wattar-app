@@ -89,7 +89,7 @@ Deno.serve(async (req: Request) => {
 
     if (error) throw new HttpError(500, 'UPDATE_FAILED', error.message);
 
-    await audit(ctx, 'set_rtp', 'user', body.user_id, before, updated);
+    await audit(ctx, 'set_rtp', 'user', body.user_id, before, updated, {}, req);
 
     return jsonResponse({
       success: true,

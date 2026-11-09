@@ -159,7 +159,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // 5) تسجيل في audit log
-    await audit(ctx, 'create_agent', 'agent', agent.id, null, agent);
+    await audit(ctx, 'create_agent', 'agent', agent.id, null, agent, {}, req);
 
     return jsonResponse({
       success: true,

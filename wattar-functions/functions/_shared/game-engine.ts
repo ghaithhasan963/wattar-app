@@ -13,7 +13,7 @@
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { HttpError } from './supabase.ts';
 
-export type GameType = 'wheel' | 'dice' | 'aviator' | 'plinko';
+export type GameType = 'wheel' | 'dice' | 'aviator' | 'plinko' | 'slots';
 
 export interface GameContext {
   user_id: string;

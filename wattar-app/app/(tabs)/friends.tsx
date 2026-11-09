@@ -6,7 +6,6 @@ import {
   Image,
   Keyboard,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -71,6 +70,7 @@ interface DiceChallenge {
 }
 
 type SocialTab = 'friends' | 'following' | 'messages' | 'requests' | 'invites' | 'challenges';
+type SocialSection = 'network' | 'inbox' | 'play';
 
 const socialPalette = {
   background: '#090611',
@@ -89,6 +89,7 @@ export default function FriendsScreen() {
   const router = useRouter();
   const currentUserId = useAuthStore((state) => state.user?.id);
   const [activeTab, setActiveTab] = useState<SocialTab>('friends');
+  const [activeSection, setActiveSection] = useState<SocialSection>('network');
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<PublicUser[]>([]);
   const [friends, setFriends] = useState<PublicUser[]>([]);
@@ -393,14 +394,41 @@ export default function FriendsScreen() {
     ]);
   };
 
-  const tabs: { key: SocialTab; label: string }[] = [
-    { key: 'friends', label: `الأصدقاء ${friends.length || ''}` },
-    { key: 'following', label: `المتابعة ${following.length || ''}` },
-    { key: 'messages', label: `الرسائل ${conversations.length || ''}` },
-    { key: 'requests', label: `الطلبات ${requests.filter((request) => request.direction === 'incoming').length || ''}` },
-    { key: 'invites', label: `الدعوات ${invitations.length || ''}` },
-    { key: 'challenges', label: 'تحديات النرد' },
+  const incomingRequestCount = requests.filter((request) => request.direction === 'incoming').length;
+  const unreadMessageCount = conversations.reduce((total, conversation) => total + conversation.unread_count, 0);
+  const sectionTabs: { key: SocialSection; label: string; count?: number }[] = [
+    { key: 'network', label: 'شبكتي', count: friends.length },
+    { key: 'inbox', label: 'الوارد', count: incomingRequestCount + invitations.length + unreadMessageCount },
+    { key: 'play', label: 'التحديات' },
   ];
+  const tabs: { key: SocialTab; label: string; count?: number }[] = activeSection === 'network'
+    ? [
+      { key: 'friends', label: 'أصدقائي', count: friends.length },
+      { key: 'following', label: 'أتابع', count: following.length },
+    ]
+    : activeSection === 'inbox'
+      ? [
+        { key: 'messages', label: 'الرسائل', count: unreadMessageCount },
+        { key: 'requests', label: 'طلبات الصداقة', count: incomingRequestCount },
+        { key: 'invites', label: 'دعوات الغرف', count: invitations.length },
+      ]
+      : [{ key: 'challenges', label: 'تحديات النرد' }];
+
+  const selectSection = (section: SocialSection) => {
+    setActiveSection(section);
+    setActiveTab(section === 'network' ? 'friends' : section === 'inbox' ? 'messages' : 'challenges');
+    setQuery('');
+    setSearchResults([]);
+    setHasSearched(false);
+    Keyboard.dismiss();
+  };
+
+  const activeTabLabel = tabs.find((tab) => tab.key === activeTab)?.label ?? '';
+  const sectionDescription = activeSection === 'network'
+    ? 'اكتشف أصدقاءك وتابع الحسابات التي تهمك.'
+    : activeSection === 'inbox'
+      ? 'رسائلك وطلبات التواصل ودعوات الغرف في مكان واحد.'
+      : 'تحديات مجانية مع أصدقائك، بعيدًا عن أرصدة المحفظة.';
 
   const renderUser = (person: PublicUser, action: 'add' | 'message' | 'follow') => {
     const isFollowing = following.some((item) => item.user_id === person.user_id);
@@ -707,21 +735,71 @@ export default function FriendsScreen() {
           <Text style={styles.agentGroupButtonText}>مجموعة الوكيل</Text>
         </TouchableOpacity>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
+      <View style={styles.sectionTabs}>
+        {sectionTabs.map((section) => (
+          <TouchableOpacity
+            key={section.key}
+            style={[styles.sectionTab, activeSection === section.key && styles.activeSectionTab]}
+            onPress={() => selectSection(section.key)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeSection === section.key }}
+          >
+            <Text style={[styles.sectionTabText, activeSection === section.key && styles.activeSectionTabText]}>
+              {section.label}
+            </Text>
+            {section.count ? (
+              <View style={[styles.sectionCount, activeSection === section.key && styles.activeSectionCount]}>
+                <Text style={styles.sectionCountText}>{section.count > 99 ? '99+' : section.count}</Text>
+              </View>
+            ) : null}
+          </TouchableOpacity>
+        ))}
+      </View>
+      <View style={styles.subTabs}>
         {tabs.map((tab) => (
           <TouchableOpacity
             key={tab.key}
-            style={[styles.tab, activeTab === tab.key && styles.activeTab]}
-            onPress={() => setActiveTab(tab.key)}
+            style={[styles.subTab, activeTab === tab.key && styles.activeSubTab]}
+            onPress={() => {
+              setActiveTab(tab.key);
+              setQuery('');
+              setSearchResults([]);
+              setHasSearched(false);
+              Keyboard.dismiss();
+            }}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === tab.key }}
           >
-            <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>{tab.label}</Text>
+            <Text style={[styles.subTabText, activeTab === tab.key && styles.activeSubTabText]}>{tab.label}</Text>
+            {tab.count ? <Text style={styles.subTabCount}>{tab.count > 99 ? '99+' : tab.count}</Text> : null}
           </TouchableOpacity>
         ))}
-      </ScrollView>
+      </View>
       <FlatList
         data={[{ key: activeTab }]}
         keyExtractor={(item) => item.key}
         renderItem={renderContent}
+        ListHeaderComponent={(
+          <View style={styles.listIntro}>
+            <View style={styles.listIntroCopy}>
+              <Text style={styles.listIntroTitle}>{activeTabLabel}</Text>
+              <Text style={styles.listIntroText}>{sectionDescription}</Text>
+            </View>
+            {activeSection === 'network' ? (
+              <View style={styles.networkStats}>
+                <View style={styles.networkStat}>
+                  <Text style={styles.networkStatValue}>{friends.length}</Text>
+                  <Text style={styles.networkStatLabel}>أصدقاء</Text>
+                </View>
+                <View style={styles.networkStatDivider} />
+                <View style={styles.networkStat}>
+                  <Text style={styles.networkStatValue}>{following.length}</Text>
+                  <Text style={styles.networkStatLabel}>متابعة</Text>
+                </View>
+              </View>
+            ) : null}
+          </View>
+        )}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={loadSocialData} tintColor={socialPalette.gold} />}
         keyboardShouldPersistTaps="handled"
@@ -748,11 +826,29 @@ const styles = StyleSheet.create({
   subtitle: { color: socialPalette.muted, fontSize: 13, marginTop: 4 },
   agentGroupButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14, minHeight: 42, borderRadius: 14, backgroundColor: '#28153D', borderWidth: 1, borderColor: '#56306D' },
   agentGroupButtonText: { color: socialPalette.gold, fontSize: 12, fontWeight: '700' },
-  tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 14, paddingBottom: 14 },
-  tab: { minHeight: 42, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 14, backgroundColor: socialPalette.surface, borderWidth: 1, borderColor: socialPalette.border },
-  activeTab: { backgroundColor: socialPalette.primaryDeep, borderColor: '#A64FE5' },
-  tabText: { color: socialPalette.muted, fontSize: 12, fontWeight: '700' },
-  activeTabText: { color: '#FFFFFF' },
+  sectionTabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 14, paddingBottom: 9 },
+  sectionTab: { flex: 1, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 14, backgroundColor: socialPalette.surface, borderWidth: 1, borderColor: socialPalette.border },
+  activeSectionTab: { backgroundColor: '#29183E', borderColor: '#8E42C1' },
+  sectionTabText: { color: socialPalette.muted, fontSize: 12, fontWeight: '700' },
+  activeSectionTabText: { color: socialPalette.text },
+  sectionCount: { minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, backgroundColor: socialPalette.elevated, alignItems: 'center', justifyContent: 'center' },
+  activeSectionCount: { backgroundColor: socialPalette.primaryDeep },
+  sectionCountText: { color: socialPalette.text, fontSize: 10, fontWeight: '800' },
+  subTabs: { flexDirection: 'row', gap: 7, paddingHorizontal: 14, paddingBottom: 12 },
+  subTab: { minHeight: 36, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 12, backgroundColor: 'transparent', borderWidth: 1, borderColor: socialPalette.border },
+  activeSubTab: { backgroundColor: socialPalette.primaryDeep, borderColor: socialPalette.primaryDeep },
+  subTabText: { color: socialPalette.muted, fontSize: 11, fontWeight: '700' },
+  activeSubTabText: { color: '#FFFFFF' },
+  subTabCount: { color: socialPalette.gold, fontSize: 10, fontWeight: '800' },
+  listIntro: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 14, marginBottom: 12, borderRadius: 18, borderWidth: 1, borderColor: socialPalette.border, backgroundColor: socialPalette.surface },
+  listIntroCopy: { flex: 1 },
+  listIntroTitle: { color: socialPalette.text, fontSize: 15, fontWeight: '800', textAlign: 'right' },
+  listIntroText: { color: socialPalette.muted, fontSize: 11, lineHeight: 17, textAlign: 'right', marginTop: 4 },
+  networkStats: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 13, backgroundColor: socialPalette.elevated },
+  networkStat: { alignItems: 'center', minWidth: 38 },
+  networkStatValue: { color: socialPalette.gold, fontSize: 14, fontWeight: '800' },
+  networkStatLabel: { color: socialPalette.muted, fontSize: 9, marginTop: 2 },
+  networkStatDivider: { width: 1, height: 26, backgroundColor: socialPalette.border },
   list: { paddingHorizontal: 14, paddingBottom: 104 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 9, minHeight: 54, paddingHorizontal: 13, marginBottom: 8, borderWidth: 1, borderColor: socialPalette.border, borderRadius: 17, backgroundColor: socialPalette.surface },
   searchInput: { flex: 1, color: socialPalette.text, fontSize: 14, paddingVertical: 9, textAlign: 'right' },

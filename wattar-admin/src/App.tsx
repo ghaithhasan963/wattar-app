@@ -19,6 +19,9 @@ import { GamesPage } from '@/pages/GamesPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { TransfersPage } from '@/pages/TransfersPage';
 import { RoomsPage } from '@/pages/RoomsPage';
+import { AuditLogPage } from '@/pages/AuditLogPage';
+import { MissionsPage } from '@/pages/MissionsPage';
+import { StoreItemsPage } from '@/pages/StoreItemsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -125,6 +128,30 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/audit"
+            element={
+              <ProtectedRoute>
+                <AuditLogPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/missions"
+            element={
+              <ProtectedRoute>
+                <MissionsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/store"
+            element={
+              <ProtectedRoute>
+                <StoreItemsPage />
               </ProtectedRoute>
             }
           />

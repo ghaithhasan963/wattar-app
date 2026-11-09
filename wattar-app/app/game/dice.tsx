@@ -177,7 +177,7 @@ export default function DiceGame() {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.balance}>Coins مجانية: {profile?.game_points?.toLocaleString() ?? 0}</Text>
+      <Text style={styles.balance}>نقاط مجانية: {profile?.game_points?.toLocaleString() ?? 0}</Text>
     </ScrollView>
   );
 }

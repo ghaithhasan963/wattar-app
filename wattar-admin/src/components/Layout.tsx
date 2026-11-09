@@ -19,6 +19,9 @@ import {
   X,
   Bell,
   Search,
+  ClipboardList,
+  Target,
+  Gift,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { clsx } from 'clsx';
@@ -40,6 +43,9 @@ const navItems: NavItem[] = [
   { to: '/games', label: 'الألعاب', icon: Gamepad2, roles: ['admin', 'super_admin'] },
   { to: '/rooms', label: 'الغرف الصوتية', icon: Mic },
   { to: '/settings', label: 'الإعدادات', icon: Settings, roles: ['admin', 'super_admin'] },
+  { to: '/missions', label: 'المهمات', icon: Target, roles: ['admin', 'super_admin'] },
+  { to: '/store', label: 'كتالوج الهدايا', icon: Gift, roles: ['admin', 'super_admin'] },
+  { to: '/audit', label: 'سجل الإدارة', icon: ClipboardList, roles: ['admin', 'super_admin'] },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {

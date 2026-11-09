@@ -66,7 +66,7 @@ export const REALTIME_EVENTS = {
 } as const;
 
 // أنواع الألعاب
-export const GAME_TYPES = ['wheel', 'dice', 'aviator', 'plinko'] as const;
+export const GAME_TYPES = ['wheel', 'dice', 'aviator', 'plinko', 'slots'] as const;
 
 // أسماء الألعاب بالعربية
 export const GAME_NAMES_AR: Record<string, string> = {

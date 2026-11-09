@@ -172,13 +172,14 @@ export async function audit(
   before: unknown = null,
   after: unknown = null,
   metadata: Record<string, unknown> = {},
+  request?: Request,
 ): Promise<void> {
   const supabase = getSupabaseAdmin();
-  const req = (globalThis as any).__req as Request | undefined;
-  const ip = req?.headers.get('X-Forwarded-For') ?? null;
-  const ua = req?.headers.get('User-Agent') ?? null;
+  const forwardedIp = request?.headers.get('X-Forwarded-For')?.split(',')[0].trim();
+  const ip = request?.headers.get('CF-Connecting-IP') ?? forwardedIp ?? null;
+  const ua = request?.headers.get('User-Agent') ?? null;
 
-  await supabase.from('admin_audit_log').insert({
+  const { error } = await supabase.from('admin_audit_log').insert({
     admin_id: ctx.user_id,
     action,
     target_type,
@@ -189,6 +190,10 @@ export async function audit(
     user_agent: ua,
     metadata,
   });
+  if (error) {
+    console.error('[Wattar] Failed to write admin audit log:', error);
+    throw new Error('تعذر حفظ سجل الإجراء الإداري');
+  }
 }
 
 // ============================================================================
