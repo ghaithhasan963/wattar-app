@@ -22,6 +22,7 @@ import { RoomsPage } from '@/pages/RoomsPage';
 import { AuditLogPage } from '@/pages/AuditLogPage';
 import { MissionsPage } from '@/pages/MissionsPage';
 import { StoreItemsPage } from '@/pages/StoreItemsPage';
+import { UserReportsPage } from '@/pages/UserReportsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,13 +34,16 @@ const queryClient = new QueryClient({
 });
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { session, profile } = useAuthStore();
+  const { session, profile, initialized } = useAuthStore();
 
+  if (!initialized) {
+    return <div className="flex min-h-screen items-center justify-center text-sm text-gray-400">جاري التحقق من صلاحيات الإدارة...</div>;
+  }
   if (!session) {
     return <Navigate to="/login" replace />;
   }
 
-  if (profile && !['admin', 'super_admin', 'agent'].includes(profile.role)) {
+  if (!profile || !['admin', 'super_admin'].includes(profile.role)) {
     return <Navigate to="/login" replace />;
   }
 
@@ -136,6 +140,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <AuditLogPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute>
+                <UserReportsPage />
               </ProtectedRoute>
             }
           />

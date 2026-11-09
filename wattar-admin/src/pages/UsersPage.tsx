@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { supabase, callFunction } from '@/lib/supabase';
 import { Search, Settings, Shield, X, Check, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSearchParams } from 'react-router-dom';
 
 interface UserRow {
   id: string;
@@ -15,6 +16,10 @@ interface UserRow {
   balance_gold: number;
   status: string;
   role: string;
+  gender: string | null;
+  profile_visibility: string | null;
+  adult_confirmed_at: string | null;
+  onboarding_completed_at: string | null;
   rtp_override: number | null;
   is_force_win: boolean;
   is_force_lose: boolean;
@@ -23,9 +28,10 @@ interface UserRow {
 }
 
 export function UsersPage() {
+  const [searchParams] = useSearchParams();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => searchParams.get('search') ?? '');
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [statusUser, setStatusUser] = useState<UserRow | null>(null);
   const [statusTarget, setStatusTarget] = useState<'active' | 'suspended' | 'banned'>('suspended');
@@ -40,12 +46,16 @@ export function UsersPage() {
     setLoading(true);
     let query = supabase
       .from('users')
-      .select('id, username, display_name, phone, balance_gold, status, role, rtp_override, is_force_win, is_force_lose, created_at, last_seen_at')
+      .select('id, username, display_name, phone, balance_gold, status, role, gender, profile_visibility, adult_confirmed_at, onboarding_completed_at, rtp_override, is_force_win, is_force_lose, created_at, last_seen_at')
       .order('created_at', { ascending: false })
       .limit(100);
 
     if (search) {
-      query = query.or(`username.ilike.%${search}%,display_name.ilike.%${search}%,phone.ilike.%${search}%`);
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(search)) {
+        query = query.eq('id', search);
+      } else {
+        query = query.or(`username.ilike.%${search}%,display_name.ilike.%${search}%,phone.ilike.%${search}%`);
+      }
     }
 
     try {
@@ -152,6 +162,16 @@ export function UsersPage() {
                 <td className="p-4">
                   <p className="text-sm font-medium text-white">{u.display_name ?? u.username}</p>
                   <p className="text-xs text-gray-500">@{u.username}</p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {u.gender && <span className="rounded bg-dark-elevated px-1.5 py-0.5 text-[10px] text-gray-400">{u.gender === 'female' ? 'أنثى' : u.gender === 'male' ? 'ذكر' : 'أخرى'}</span>}
+                    <span className="rounded bg-dark-elevated px-1.5 py-0.5 text-[10px] text-gray-400">
+                      {u.profile_visibility === 'friends' ? 'الملف للأصدقاء' : 'الملف عام'}
+                    </span>
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] ${u.adult_confirmed_at ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-300'}`}>
+                      {u.adult_confirmed_at ? 'العمر مؤكد' : 'العمر غير مؤكد'}
+                    </span>
+                    {!u.onboarding_completed_at && <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-300">ملف غير مكتمل</span>}
+                  </div>
                 </td>
                 <td className="p-4 text-sm text-gray-300">{u.phone ?? '—'}</td>
                 <td className="p-4 text-sm font-semibold text-gold-500">{u.balance_gold}</td>

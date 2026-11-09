@@ -39,7 +39,7 @@ function redactSensitive(value: unknown): unknown {
   return Object.fromEntries(
     Object.entries(value as Record<string, unknown>).map(([key, item]) => [
       key,
-      /password|token|secret|authorization|document|proof/i.test(key)
+      /password|token|secret|authorization|document|proof|phone|email|address|payout/i.test(key)
         ? '[محجوب]'
         : redactSensitive(item),
     ]),
