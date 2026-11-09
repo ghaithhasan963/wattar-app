@@ -56,10 +56,44 @@ CREATE POLICY room_seats_room_select ON public.room_seats
 DROP POLICY IF EXISTS room_seats_claim ON public.room_seats;
 CREATE POLICY room_seats_claim ON public.room_seats
     FOR UPDATE
-    USING (user_id IS NULL OR user_id = auth.uid())
+    USING (
+        (user_id IS NULL OR user_id = auth.uid())
+        AND EXISTS (
+            SELECT 1 FROM public.rooms AS room
+            WHERE room.id = room_seats.room_id
+              AND room.status <> 'closed'
+              AND (
+                  NOT room.is_private
+                  OR room.owner_id = auth.uid()
+                  OR EXISTS (
+                      SELECT 1 FROM public.room_invitations AS invitation
+                      WHERE invitation.room_id = room.id
+                        AND invitation.recipient_id = auth.uid()
+                        AND invitation.status = 'accepted'
+                  )
+              )
+        )
+    )
     WITH CHECK (
-        (user_id = auth.uid() AND status = 'occupied')
-        OR (user_id IS NULL AND status = 'empty')
+        (
+            (user_id = auth.uid() AND status = 'occupied')
+            OR (user_id IS NULL AND status = 'empty')
+        )
+        AND EXISTS (
+            SELECT 1 FROM public.rooms AS room
+            WHERE room.id = room_seats.room_id
+              AND room.status <> 'closed'
+              AND (
+                  NOT room.is_private
+                  OR room.owner_id = auth.uid()
+                  OR EXISTS (
+                      SELECT 1 FROM public.room_invitations AS invitation
+                      WHERE invitation.room_id = room.id
+                        AND invitation.recipient_id = auth.uid()
+                        AND invitation.status = 'accepted'
+                  )
+              )
+        )
     );
 REVOKE UPDATE ON public.room_seats FROM authenticated;
 GRANT UPDATE (user_id, status, is_mic_on, joined_at)

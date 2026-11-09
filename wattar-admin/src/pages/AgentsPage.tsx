@@ -18,7 +18,7 @@ interface Agent {
   total_commission_usd: number;
   status: string;
   created_at: string;
-  user: { username: string; display_name: string | null; phone: string | null } | null;
+  user: { username: string; display_name: string | null; phone: string | null; email: string | null } | null;
 }
 
 export function AgentsPage() {
@@ -33,19 +33,25 @@ export function AgentsPage() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('agents')
-      .select(`
-        id, wallet_usd, coin_inventory, commission_rate, exchange_rate_usd_to_gold, total_users, total_deposit_usd,
-        total_commission_usd, status, created_at,
-        user:users!agents_user_id_fkey(username, display_name, phone)
-      `)
-      .order('created_at', { ascending: false });
-    setAgents(((data ?? []) as any[]).map(a => ({
-      ...a,
-      user: Array.isArray(a.user) ? a.user[0] ?? null : a.user,
-    })));
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('agents')
+        .select(`
+          id, wallet_usd, coin_inventory, commission_rate, exchange_rate_usd_to_gold, total_users, total_deposit_usd,
+          total_commission_usd, status, created_at,
+          user:users!agents_user_id_fkey(username, display_name, phone, email)
+        `)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setAgents(((data ?? []) as any[]).map(a => ({
+        ...a,
+        user: Array.isArray(a.user) ? a.user[0] ?? null : a.user,
+      })));
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'تعذر تحميل الوكلاء.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -74,7 +80,7 @@ export function AgentsPage() {
             <div className="flex items-start justify-between mb-3">
               <div>
                 <p className="font-medium text-white">{ag.user?.display_name ?? ag.user?.username}</p>
-                <p className="text-xs text-gray-500">{ag.user?.phone ?? '—'}</p>
+                <p className="text-xs text-gray-500">{ag.user?.email ?? ag.user?.phone ?? '—'}</p>
               </div>
               <span className={`px-2 py-1 rounded text-xs ${ag.status === 'active' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
                 {ag.status === 'active' ? 'نشط' : 'موقوف'}
@@ -187,8 +193,8 @@ function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreat
             <Input label="اسم المستخدم" value={form.username} onChange={v => setForm({ ...form, username: v })} required />
             <Input label="كلمة المرور" type="password" value={form.password} onChange={v => setForm({ ...form, password: v })} required />
             <Input label="الاسم الظاهر" value={form.display_name} onChange={v => setForm({ ...form, display_name: v })} />
-            <Input label="الهاتف" value={form.phone} onChange={v => setForm({ ...form, phone: v })} />
-            <Input label="البريد (اختياري)" value={form.email} onChange={v => setForm({ ...form, email: v })} />
+            <Input label="البريد الإلكتروني لتسجيل الدخول" type="email" value={form.email} onChange={v => setForm({ ...form, email: v })} required />
+            <Input label="الهاتف الدولي لتسجيل الدخول" type="tel" value={form.phone} onChange={v => setForm({ ...form, phone: v })} required placeholder="+963..." />
             <Input label="نسبة العمولة (%)" type="number" value={form.commission_rate} onChange={v => setForm({ ...form, commission_rate: v })} required />
             <Input label="حد الائتمان ($)" type="number" value={form.credit_limit_usd} onChange={v => setForm({ ...form, credit_limit_usd: v })} required />
             <Input label="سعر الصرف (1$ = ? Coins)" type="number" value={form.exchange_rate_usd_to_gold} onChange={v => setForm({ ...form, exchange_rate_usd_to_gold: v })} required />

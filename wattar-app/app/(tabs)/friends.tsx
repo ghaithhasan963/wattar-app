@@ -440,10 +440,16 @@ export default function FriendsScreen() {
           : <Text style={styles.avatarText}>{(person.display_name || person.username).slice(0, 1).toUpperCase()}</Text>}
       </View>
       <View style={styles.personDetails}>
-        <Text style={styles.personName}>{person.display_name || person.username}</Text>
-        <Text style={styles.personMeta}>
-          @{person.username} · {person.is_online ? 'متصل الآن' : 'غير متصل'}
-        </Text>
+        <TouchableOpacity
+          onPress={() => router.push(`/user/${person.user_id}`)}
+          accessibilityRole="button"
+          accessibilityLabel={`عرض ملف ${person.display_name || person.username}`}
+        >
+          <Text style={styles.personName}>{person.display_name || person.username}</Text>
+          <Text style={styles.personMeta}>
+            @{person.username} · {person.is_online ? 'متصل الآن' : 'غير متصل'}
+          </Text>
+        </TouchableOpacity>
       </View>
       <TouchableOpacity
         style={styles.actionButton}
@@ -682,8 +688,14 @@ export default function FriendsScreen() {
                   : <Text style={styles.avatarText}>{(request.display_name || request.username).slice(0, 1).toUpperCase()}</Text>}
               </View>
               <View style={styles.personDetails}>
-                <Text style={styles.personName}>{request.display_name || request.username}</Text>
-                <Text style={styles.personMeta}>@{request.username} أرسل طلب صداقة</Text>
+                <TouchableOpacity
+                  onPress={() => router.push(`/user/${request.user_id}`)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`عرض ملف ${request.display_name || request.username}`}
+                >
+                  <Text style={styles.personName}>{request.display_name || request.username}</Text>
+                  <Text style={styles.personMeta}>@{request.username} أرسل طلب صداقة</Text>
+                </TouchableOpacity>
               </View>
               <TouchableOpacity style={styles.acceptButton} onPress={() => respondToRequest(request, true)} disabled={busyId === request.request_id} accessibilityLabel="قبول طلب الصداقة">
                 <UserCheck size={17} color="#FFFFFF" />

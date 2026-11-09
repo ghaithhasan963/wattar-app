@@ -21,7 +21,7 @@ Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return jsonResponse({ error: 'METHOD_NOT_ALLOWED' }, 405);
 
   try {
-    const ctx = await authenticate(req);
+    const ctx = await authenticate(req, { allowStaffWithoutAdultConfirmation: true });
     requireRole(ctx, 'admin', 'super_admin');
 
     const body = await parseBody<CreditAgentBody>(req);

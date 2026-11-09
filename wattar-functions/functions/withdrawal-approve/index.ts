@@ -22,7 +22,7 @@ Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return jsonResponse({ error: 'METHOD_NOT_ALLOWED' }, 405);
 
   try {
-    const ctx = await authenticate(req);
+    const ctx = await authenticate(req, { allowStaffWithoutAdultConfirmation: true });
     requireRole(ctx, 'admin', 'super_admin', 'agent');
 
     const body = await parseBody<ApproveBody>(req);
@@ -30,10 +30,15 @@ Deno.serve(async (req: Request) => {
     if (body.action !== 'approve' && body.action !== 'reject') {
       throw new HttpError(400, 'INVALID_ACTION', 'Action must be approve or reject');
     }
-    if (body.action === 'approve' && (!body.external_ref?.trim() || !body.proof_url?.trim())) {
+    const externalRef = body.external_ref?.trim();
+    const proofPath = body.proof_url?.trim();
+    if (body.action === 'approve' && (!externalRef || !proofPath)) {
       throw new HttpError(400, 'MISSING_PROOF', 'External reference and proof are required');
     }
-    if (body.reason !== undefined && body.reason.length > 500) {
+    if (externalRef && externalRef.length > 200) {
+      throw new HttpError(400, 'EXTERNAL_REF_TOO_LONG', 'External reference cannot exceed 200 characters');
+    }
+    if (body.reason !== undefined && body.reason.trim().length > 500) {
       throw new HttpError(400, 'REASON_TOO_LONG', 'Reason cannot exceed 500 characters');
     }
 
@@ -65,14 +70,31 @@ Deno.serve(async (req: Request) => {
       if (withdrawal.agent_id !== agent.id) {
         throw new HttpError(403, 'NOT_ASSIGNED', 'This withdrawal is not assigned to this agent');
       }
+      if (body.action === 'approve') {
+        const expectedPrefix = `wd_${ctx.user_id}_`;
+        if (!proofPath?.startsWith(expectedPrefix) || proofPath.includes('/')) {
+          throw new HttpError(400, 'INVALID_PROOF_PATH', 'Agent proof must be uploaded to the assigned private proof area');
+        }
+        const { data: proofFiles, error: proofError } = await supabase
+          .storage
+          .from('deposit-proofs')
+          .list('', { search: proofPath, limit: 1 });
+        if (proofError) {
+          console.error('[Wattar] Failed to verify agent withdrawal proof:', proofError);
+          throw new HttpError(500, 'PROOF_LOOKUP_FAILED', 'Could not verify withdrawal proof');
+        }
+        if (!proofFiles?.some((file) => file.name === proofPath)) {
+          throw new HttpError(400, 'PROOF_NOT_FOUND', 'Uploaded withdrawal proof was not found');
+        }
+      }
     }
 
     const { data, error } = await supabase.rpc('settle_diamond_withdrawal', {
       p_withdrawal_id: body.withdrawal_id,
       p_action: body.action,
       p_reviewer_id: ctx.user_id,
-      p_proof_url: body.proof_url?.trim() || null,
-      p_external_ref: body.external_ref?.trim() || null,
+      p_proof_url: proofPath || null,
+      p_external_ref: externalRef || null,
       p_reason: body.reason?.trim() || null,
     });
     if (error) {

@@ -9,8 +9,8 @@
  *     "username": string,
  *     "password": string,
  *     "display_name"?: string,
- *     "phone"?: string,
- *     "email"?: string,
+ *     "phone": string,
+ *     "email": string,
  *     "commission_rate": number,        // %
  *     "credit_limit_usd": number,
  *     "exchange_rate_usd_to_gold"?: number,
@@ -45,8 +45,8 @@ interface CreateAgentBody {
   username: string;
   password: string;
   display_name?: string;
-  phone?: string;
-  email?: string;
+  phone: string;
+  email: string;
   commission_rate: number;
   credit_limit_usd: number;
   exchange_rate_usd_to_gold?: number;
@@ -68,11 +68,20 @@ Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return jsonResponse({ error: 'METHOD_NOT_ALLOWED' }, 405);
 
   try {
-    const ctx = await authenticate(req);
+    const ctx = await authenticate(req, { allowStaffWithoutAdultConfirmation: true });
     requireRole(ctx, 'admin', 'super_admin');
 
     const body = await parseBody<CreateAgentBody>(req);
-    validateBody(body, ['username', 'password', 'commission_rate', 'credit_limit_usd']);
+    validateBody(body, ['username', 'password', 'email', 'phone', 'commission_rate', 'credit_limit_usd']);
+
+    const email = body.email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new HttpError(400, 'INVALID_EMAIL', 'A valid agent email is required');
+    }
+    const phone = body.phone.trim().replace(/[()\s-]/g, '');
+    if (!/^\+[1-9]\d{6,14}$/.test(phone)) {
+      throw new HttpError(400, 'INVALID_PHONE', 'Agent phone must be in international format, such as +963...');
+    }
 
     if (body.commission_rate < 0 || body.commission_rate > 100) {
       throw new HttpError(400, 'INVALID_COMMISSION', 'commission_rate must be 0..100');
@@ -96,9 +105,10 @@ Deno.serve(async (req: Request) => {
 
     // 2) إنشاء مستخدم في Auth
     const { data: authUser, error: authErr } = await supabase.auth.admin.createUser({
-      email: body.email ?? `${body.username}@wattar.internal`,
+      email,
       password: body.password,
-      phone: body.phone,
+      phone,
+      phone_confirm: true,
       email_confirm: true,
       user_metadata: { username: body.username, role: 'agent' },
     });
@@ -113,8 +123,8 @@ Deno.serve(async (req: Request) => {
       .update({
         username: body.username,
         display_name: body.display_name ?? body.username,
-        phone: body.phone ?? null,
-        email: body.email ?? null,
+        phone,
+        email,
         role: 'agent',
         status: 'active',
       })

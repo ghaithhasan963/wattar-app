@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -22,7 +23,6 @@ export default function LoginScreen() {
   const {
     signInWithPhone,
     signInWithGoogle,
-    signInWithFacebook,
     loading,
     error,
   } = useAuthStore();
@@ -46,9 +46,14 @@ export default function LoginScreen() {
   };
 
   const handleSocialSignIn = async (provider: 'google' | 'facebook') => {
+    if (provider === 'facebook') {
+      setLocalError(null);
+      useAuthStore.setState({ error: null });
+      Alert.alert('Facebook غير متاح حاليًا', 'سنفعّل تسجيل الدخول عبر Facebook بعد إكمال إعداد الخدمة.');
+      return;
+    }
     setLocalError(null);
-    const signIn = provider === 'google' ? signInWithGoogle : signInWithFacebook;
-    await signIn();
+    await signInWithGoogle();
     const { session, profile, error: authError } = useAuthStore.getState();
     if (session && profile) {
       router.replace(profile.onboarding_completed_at ? '/(tabs)' : '/(auth)/complete-profile');
@@ -172,6 +177,7 @@ export default function LoginScreen() {
                   onPress={() => handleSocialSignIn('facebook')}
                   disabled={loading}
                   accessibilityRole="button"
+                  accessibilityLabel="تسجيل الدخول عبر Facebook"
                 >
                   <Text style={styles.socialButtonText}>Facebook</Text>
                 </TouchableOpacity>

@@ -20,7 +20,7 @@ Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return jsonResponse({ error: 'METHOD_NOT_ALLOWED' }, 405);
 
   try {
-    const admin = await authenticate(req);
+    const admin = await authenticate(req, { allowStaffWithoutAdultConfirmation: true });
     requireRole(admin, 'admin', 'super_admin');
 
     const body = validateBody<SetUserStatusBody>(

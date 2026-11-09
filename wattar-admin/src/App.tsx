@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 
-import { useAuthStore } from '@/store/auth';
+import { StaffRole, useAuthStore } from '@/store/auth';
 import { Layout } from '@/components/Layout';
 import { LoginPage } from '@/pages/LoginPage';
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
@@ -23,6 +23,7 @@ import { AuditLogPage } from '@/pages/AuditLogPage';
 import { MissionsPage } from '@/pages/MissionsPage';
 import { StoreItemsPage } from '@/pages/StoreItemsPage';
 import { UserReportsPage } from '@/pages/UserReportsPage';
+import { AgentDashboardPage } from '@/pages/AgentDashboardPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,7 +34,15 @@ const queryClient = new QueryClient({
   },
 });
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({
+  children,
+  roles = ['admin', 'super_admin'],
+  withLayout = true,
+}: {
+  children: React.ReactNode;
+  roles?: StaffRole[];
+  withLayout?: boolean;
+}) {
   const { session, profile, initialized } = useAuthStore();
 
   if (!initialized) {
@@ -43,11 +52,26 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!profile || !['admin', 'super_admin'].includes(profile.role)) {
+  if (!profile) {
     return <Navigate to="/login" replace />;
   }
+  if (!roles.includes(profile.role)) {
+    return <Navigate to={profile.role === 'agent' ? '/agent' : '/'} replace />;
+  }
 
-  return <Layout>{children}</Layout>;
+  return withLayout ? <Layout>{children}</Layout> : <>{children}</>;
+}
+
+function HomeRoute() {
+  const { session, profile, initialized } = useAuthStore();
+
+  if (!initialized) {
+    return <div className="flex min-h-screen items-center justify-center text-sm text-gray-400">جاري التحقق من الحساب...</div>;
+  }
+  if (!session || !profile) return <Navigate to="/login" replace />;
+  return profile.role === 'agent'
+    ? <Navigate to="/agent" replace />
+    : <ProtectedRoute><DashboardPage /></ProtectedRoute>;
 }
 
 export default function App() {
@@ -65,9 +89,13 @@ export default function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route
             path="/"
+            element={<HomeRoute />}
+          />
+          <Route
+            path="/agent"
             element={
-              <ProtectedRoute>
-                <DashboardPage />
+              <ProtectedRoute roles={['agent']} withLayout={false}>
+                <AgentDashboardPage />
               </ProtectedRoute>
             }
           />
@@ -167,7 +195,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<HomeRoute />} />
         </Routes>
         <Toaster position="top-center" richColors />
       </BrowserRouter>

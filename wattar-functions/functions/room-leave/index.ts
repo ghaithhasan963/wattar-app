@@ -1,10 +1,10 @@
 /**
  * Wattar Edge Function — room-leave
  *
- * مغادرة غرفة: تحديث المقاعد + عدد المستمعين
+ * مغادرة جلسة غرفة: تحرير المقعد وتحديث الحضور وعدد المستمعين.
  *
  * POST /functions/v1/room-leave
- * Body: { "room_id": string }
+ * Body: { "room_id": string, "session_id"?: string }
  *
  * @version 1.0.0
  */
@@ -15,6 +15,7 @@ import {
   getSupabaseAdmin,
   HttpError,
   parseBody,
+  rateLimitByUser,
   validateBody,
 } from '../_shared/supabase.ts';
 
@@ -24,44 +25,25 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
-    const body = await parseBody<{ room_id: string }>(req);
-    validateBody(body, ['room_id']);
-
-    const supabase = getSupabaseAdmin();
-
-    // 1) إخلاء المقعد إن كان يشغل واحدًا
-    const { data: seat } = await supabase
-      .from('room_seats')
-      .select('id')
-      .eq('room_id', body.room_id)
-      .eq('user_id', ctx.user_id)
-      .maybeSingle();
-
-    if (seat) {
-      await supabase
-        .from('room_seats')
-        .update({
-          user_id: null,
-          status: 'empty',
-          is_mic_on: false,
-          joined_at: null,
-        })
-        .eq('id', seat.id);
+    rateLimitByUser(ctx, 'room_leave', 60, 60_000);
+    const body = validateBody<{ room_id: string; session_id?: string }>(
+      await parseBody(req),
+      ['room_id'],
+    );
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.room_id)) {
+      throw new HttpError(400, 'INVALID_ROOM_ID', 'Invalid room ID');
+    }
+    if (body.session_id !== undefined && !/^[A-Za-z0-9._:-]{8,100}$/.test(body.session_id)) {
+      throw new HttpError(400, 'INVALID_SESSION_ID', 'Invalid room session ID');
     }
 
-    // 2) تحديث عدد المستمعين
-    const { data: room } = await supabase
-      .from('rooms')
-      .select('listeners_count')
-      .eq('id', body.room_id)
-      .single();
-
-    if (room) {
-      await supabase
-        .from('rooms')
-        .update({ listeners_count: Math.max(0, room.listeners_count - 1) })
-        .eq('id', body.room_id);
-    }
+    const { error } = await getSupabaseAdmin().rpc('record_wattar_room_presence', {
+      p_room_id: body.room_id,
+      p_user_id: ctx.user_id,
+      p_session_id: body.session_id ?? null,
+      p_joining: false,
+    });
+    if (error) throw new HttpError(409, 'ROOM_LEAVE_FAILED', error.message);
 
     return jsonResponse({ success: true });
   } catch (err) {

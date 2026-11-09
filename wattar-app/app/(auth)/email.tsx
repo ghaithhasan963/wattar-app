@@ -18,6 +18,7 @@ import { useAuthStore } from '@/store/auth';
 import { colors } from '@/lib/theme';
 
 type EmailMode = 'sign-in' | 'sign-up';
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function EmailAuthScreen() {
   const router = useRouter();
@@ -36,7 +37,8 @@ export default function EmailAuthScreen() {
 
   const submit = async () => {
     setError(null);
-    if (!email.trim() || !email.includes('@')) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
       setError('أدخل بريدًا إلكترونيًا صحيحًا.');
       return;
     }
@@ -55,17 +57,17 @@ export default function EmailAuthScreen() {
 
     try {
       if (mode === 'sign-in') {
-        await signInWithEmail(email, password);
+        await signInWithEmail(normalizedEmail, password);
         const profile = useAuthStore.getState().profile;
         router.replace(profile?.onboarding_completed_at ? '/(tabs)' : '/(auth)/complete-profile');
         return;
       }
 
-      const emailConfirmationRequired = await signUpWithEmail(email, password);
+      const emailConfirmationRequired = await signUpWithEmail(normalizedEmail, password);
       if (emailConfirmationRequired) {
         Alert.alert(
           'باقي خطوة واحدة',
-          'أرسلنا رابط تأكيد إلى بريدك الإلكتروني. أكّد حسابك ثم سجّل الدخول.',
+          'أرسلنا رابط تأكيد إلى بريدك الإلكتروني. افتحه للعودة إلى التطبيق ومتابعة إعداد حسابك.',
           [{ text: 'حسنًا', onPress: () => setMode('sign-in') }],
         );
         return;
@@ -149,6 +151,7 @@ export default function EmailAuthScreen() {
               placeholderTextColor="#756B83"
               keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
               autoComplete="email"
               textContentType="emailAddress"
               returnKeyType="next"

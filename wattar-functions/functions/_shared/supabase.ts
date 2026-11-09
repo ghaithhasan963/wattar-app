@@ -39,7 +39,10 @@ export interface AuthContext {
   phone?: string;
 }
 
-export async function authenticate(req: Request): Promise<AuthContext> {
+export async function authenticate(
+  req: Request,
+  options: { allowStaffWithoutAdultConfirmation?: boolean } = {},
+): Promise<AuthContext> {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     throw new HttpError(401, 'UNAUTHORIZED', 'Missing authorization header');
@@ -65,7 +68,11 @@ export async function authenticate(req: Request): Promise<AuthContext> {
   if (userData.status !== 'active') {
     throw new HttpError(403, 'ACCOUNT_INACTIVE', 'Account is not active');
   }
-  if (!userData.adult_confirmed_at) {
+  const isStaff = ['admin', 'super_admin', 'agent'].includes(userData.role);
+  if (
+    !userData.adult_confirmed_at
+    && !(options.allowStaffWithoutAdultConfirmation && isStaff)
+  ) {
     throw new HttpError(403, 'AGE_CONFIRMATION_REQUIRED', 'Confirm that you are 18 or older to continue');
   }
 

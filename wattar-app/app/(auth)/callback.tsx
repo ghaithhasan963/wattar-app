@@ -26,7 +26,17 @@ export default function AuthCallbackScreen() {
       if (exchangeError) throw exchangeError;
       useAuthStore.setState({ session: data.session, user: data.user });
       await useAuthStore.getState().loadProfile();
-      if (active) router.replace('/(tabs)');
+      const profile = useAuthStore.getState().profile;
+      if (!profile) throw new Error('تم تسجيل الدخول، لكن تعذر تحميل ملف الحساب.');
+      if (active) {
+        router.replace(
+          !profile.onboarding_completed_at
+            ? '/(auth)/complete-profile'
+            : !profile.adult_confirmed_at
+              ? '/(auth)/age-confirmation'
+              : '/(tabs)',
+        );
+      }
     };
 
     completeSignIn().catch((callbackError: unknown) => {

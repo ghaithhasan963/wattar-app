@@ -75,16 +75,37 @@ export default function RoomScreen() {
   const [micLoading, setMicLoading] = useState(false);
   const chatListRef = useRef<FlatList>(null);
   const lkRoomRef = useRef<Room | null>(null);
+  const seatsRef = useRef<Seat[]>([]);
+  const speakersCount = seats.filter(seat => seat.status === 'occupied' && seat.user_id).length;
 
   useEffect(() => {
     if (!id) return;
+    const presenceSessionId = `room-${Date.now()}-${Math.random().toString(36).slice(2, 14)}`;
     loadRoom().catch((error: unknown) => {
       setRoomError(error instanceof Error ? error.message : 'تعذر تحميل الغرفة');
     });
     const unsubscribe = subscribeToRoom();
 
-    // الاتصال الصوتي الحي (يتجاهل بهدوء إذا لم يُضبط LiveKit على الخادم)
     let cancelled = false;
+    let presenceQueue: Promise<void> = Promise.resolve();
+    const updatePresence = (functionName: 'room-join' | 'room-leave', notifyError = false) => {
+      presenceQueue = presenceQueue.then(async () => {
+        try {
+          await callFunction(functionName, { room_id: id, session_id: presenceSessionId });
+        } catch (error: unknown) {
+          console.warn(`[Wattar] ${functionName} presence request failed:`, error);
+          if (notifyError && !cancelled) {
+            Alert.alert('تعذر تسجيل الحضور', error instanceof Error ? error.message : 'حاول تحديث الغرفة.');
+          }
+        }
+      });
+      return presenceQueue;
+    };
+    void updatePresence('room-join', true);
+    const presenceHeartbeat = setInterval(() => {
+      void updatePresence('room-join');
+    }, 30_000);
+
     (async () => {
       try {
         setVoiceState(VOICE_CONNECTING);
@@ -121,8 +142,10 @@ export default function RoomScreen() {
       const lk = lkRoomRef.current;
       lkRoomRef.current = null;
       leaveVoice(lk);
-      // تخفيض العدّادات وتحرير المقعد على الخادم
-      callFunction('room-leave', { room_id: id }).catch(() => {});
+      clearInterval(presenceHeartbeat);
+      void presenceQueue.then(() => updatePresence('room-leave')).catch((error: unknown) => {
+        console.warn('[Wattar] Room presence cleanup failed:', error);
+      });
     };
   }, [id]);
 
@@ -170,6 +193,7 @@ export default function RoomScreen() {
     setRoom(roomResult.data);
     setListenersCount(roomResult.data.listeners_count);
     const loadedSeats = seatsResult.data ?? [];
+    seatsRef.current = loadedSeats as Seat[];
     setSeats(loadedSeats);
     const myOccupiedSeat = loadedSeats.find(
       seat => seat.user_id === profile?.id && seat.status === 'occupied',
@@ -190,12 +214,29 @@ export default function RoomScreen() {
       .order('seat_index', { ascending: true });
 
     if (error) throw error;
-    const loadedSeats = data ?? [];
+    const loadedSeats = (data ?? []) as Seat[];
+    seatsRef.current = loadedSeats;
     setSeats(loadedSeats);
     const occupiedSeat = loadedSeats.find(
       seat => seat.user_id === profile?.id && seat.status === 'occupied',
     );
     setMySeat(occupiedSeat?.seat_index ?? null);
+    return loadedSeats;
+  };
+
+  // Keep realtime seat notices local; persisting them would duplicate a single event per room member.
+  const addSeatSystemMessage = (eventId: string, message: string) => {
+    setMessages(previous => {
+      if (previous.some(item => item.id === eventId)) return previous;
+      return [...previous, {
+        id: eventId,
+        user_id: '',
+        message,
+        is_system: true,
+        created_at: new Date().toISOString(),
+      }];
+    });
+    setTimeout(() => chatListRef.current?.scrollToEnd(), 100);
   };
 
   const subscribeToRoom = () => {
@@ -230,8 +271,26 @@ export default function RoomScreen() {
       )
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'room_seats', filter: `room_id=eq.${id}` },
-        () => {
-          loadSeats().catch((error: unknown) => {
+        (payload) => {
+          const nextSeat = payload.new as Seat;
+          const previousSeat = seatsRef.current.find(seat => seat.id === nextSeat.id);
+          const previousUserId = previousSeat?.user_id ?? null;
+          const nextUserId = nextSeat.user_id ?? null;
+          const changedUser = previousSeat && previousUserId !== nextUserId;
+
+          loadSeats().then(loadedSeats => {
+            if (!changedUser) return;
+            const eventId = `seat-event-${nextSeat.id}-${previousUserId ?? 'empty'}-${nextUserId ?? 'empty'}-${Date.now()}`;
+            if (previousUserId) {
+              const previousName = previousSeat.user?.display_name ?? previousSeat.user?.username ?? 'أحد المتحدثين';
+              addSeatSystemMessage(eventId, `غادر ${previousName} المنصة الصوتية.`);
+            }
+            if (nextUserId) {
+              const joinedSeat = loadedSeats.find(seat => seat.id === nextSeat.id);
+              const joinedName = joinedSeat?.user?.display_name ?? joinedSeat?.user?.username ?? 'مستخدم جديد';
+              addSeatSystemMessage(`${eventId}-join`, `انضم ${joinedName} إلى المنصة الصوتية.`);
+            }
+          }).catch((error: unknown) => {
             Alert.alert('تعذر تحديث المقاعد', error instanceof Error ? error.message : 'حاول تحديث الغرفة.');
           });
         }
@@ -471,14 +530,19 @@ export default function RoomScreen() {
       <StatusBar style="light" />
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={leaveRoom} style={styles.iconBtn}>
+        <TouchableOpacity
+          onPress={leaveRoom}
+          style={styles.iconBtn}
+          accessibilityRole="button"
+          accessibilityLabel="مغادرة الغرفة"
+        >
           <LogOut size={20} color={colors.roomMuted} />
         </TouchableOpacity>
         <View style={styles.roomInfo}>
           <Text style={styles.roomName} numberOfLines={1}>{room.name}</Text>
           <View style={styles.roomMeta}>
             <Users size={12} color={colors.roomMuted} />
-            <Text style={styles.roomMetaText}>{listenersCount} مستمع · {room.speakers_count} متحدث</Text>
+            <Text style={styles.roomMetaText}>{listenersCount} مستمع · {speakersCount} متحدث</Text>
             {/* مؤشر حالة الصوت الحي */}
             {voiceState === VOICE_ON && (
               <View style={styles.voiceChipOn}>
@@ -504,13 +568,25 @@ export default function RoomScreen() {
             )}
           </View>
         </View>
-        <TouchableOpacity style={styles.iconBtn} onPress={openRoomInvites} accessibilityLabel="دعوة الأصدقاء">
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={openRoomInvites}
+          accessibilityRole="button"
+          accessibilityLabel="دعوة الأصدقاء"
+        >
           <UserPlus size={20} color={colors.roomPrimary} />
         </TouchableOpacity>
       </View>
 
       {/* Seats Grid */}
       <View style={styles.seatsContainer}>
+        <View style={styles.sectionHeading}>
+          <View style={styles.sectionTitleWrap}>
+            <View style={styles.sectionAccent} />
+            <Text style={styles.sectionTitle}>المنصة الصوتية</Text>
+          </View>
+          <Text style={styles.sectionCount}>{seats.filter(seat => seat.status === 'occupied').length} / {room.seat_count}</Text>
+        </View>
         <ScrollView contentContainerStyle={styles.seatsGrid}>
           {seats.map(seat => (
             <SeatView
@@ -526,29 +602,76 @@ export default function RoomScreen() {
 
       {/* Chat */}
       <View style={styles.chatContainer}>
+        <View style={styles.chatHeading}>
+          <View style={styles.sectionTitleWrap}>
+            <View style={[styles.sectionAccent, styles.chatAccent]} />
+            <Text style={styles.sectionTitle}>محادثة الغرفة</Text>
+          </View>
+          <Text style={styles.chatHeadingHint}>تواصل بأدب واحترام</Text>
+        </View>
         <FlatList
           ref={chatListRef}
           data={messages}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={styles.messageItem}>
-              <Text style={styles.messageUser}>
-                {item.user?.display_name ?? item.user?.username ?? 'مستخدم'}
-              </Text>
-              <Text style={[styles.messageText, { fontSize: chatFontSize }, item.pending && styles.pendingMessage]}>
-                {item.message}
-              </Text>
-              {item.pending && <Text style={styles.pendingLabel}>يُرسل...</Text>}
+            item.is_system ? (
+              <View style={styles.systemMessage} accessibilityRole="text">
+                <View style={styles.systemMessageRule} />
+                <Text style={styles.systemMessageText}>{item.message}</Text>
+                <View style={styles.systemMessageRule} />
+              </View>
+            ) : (() => {
+              const isMine = item.user_id === profile?.id;
+              return (
+                <View style={[styles.messageItem, isMine ? styles.ownMessageItem : styles.otherMessageItem]}>
+                  <View style={[styles.messageAvatar, isMine && styles.ownMessageAvatar]}>
+                    <Text style={styles.messageAvatarText}>
+                      {(item.user?.display_name ?? item.user?.username ?? 'م')[0]?.toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={[styles.messageBubble, isMine ? styles.ownMessageBubble : styles.otherMessageBubble]}>
+                    <View style={styles.messageMeta}>
+                      <Text style={[styles.messageUser, isMine && styles.ownMessageUser]} numberOfLines={1}>
+                        {item.user?.display_name ?? item.user?.username ?? 'مستخدم'}
+                      </Text>
+                      <Text style={styles.messageTime}>
+                        {new Date(item.created_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    </View>
+                    <Text style={[
+                      styles.messageText,
+                      { fontSize: chatFontSize },
+                      item.pending && styles.pendingMessage,
+                    ]}>
+                      {item.message}
+                    </Text>
+                    {item.pending && <Text style={styles.pendingLabel}>يُرسل...</Text>}
+                  </View>
+                </View>
+              );
+            })()
+          )}
+          contentContainerStyle={[styles.chatList, messages.length === 0 && styles.chatListEmpty]}
+          ListEmptyComponent={(
+            <View style={styles.chatEmpty}>
+              <View style={styles.chatEmptyIcon}><Users size={20} color={colors.gold} /></View>
+              <Text style={styles.chatEmptyTitle}>ابدأ الحديث</Text>
+              <Text style={styles.chatEmptyHint}>كن أول من يشارك رسالة مع أهل الغرفة</Text>
             </View>
           )}
-          contentContainerStyle={styles.chatList}
           onContentSizeChange={() => chatListRef.current?.scrollToEnd()}
+          accessibilityLabel="رسائل محادثة الغرفة"
         />
       </View>
 
       {/* Input Bar */}
       <View style={styles.inputBar}>
-        <TouchableOpacity style={styles.giftBtn} onPress={() => setShowGifts(true)}>
+        <TouchableOpacity
+          style={styles.giftBtn}
+          onPress={() => setShowGifts(true)}
+          accessibilityRole="button"
+          accessibilityLabel="إرسال هدية"
+        >
           <Gift size={22} color={colors.gold} />
         </TouchableOpacity>
         <TextInput
@@ -556,10 +679,18 @@ export default function RoomScreen() {
           value={newMessage}
           onChangeText={setNewMessage}
           placeholder="اكتب رسالة..."
-          placeholderTextColor="#666"
+          placeholderTextColor={colors.roomMuted}
           onSubmitEditing={sendMessage}
+          returnKeyType="send"
+          maxLength={500}
+          accessibilityLabel="اكتب رسالة في محادثة الغرفة"
         />
-        <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
+        <TouchableOpacity
+          style={[styles.sendBtn, !newMessage.trim() && styles.sendBtnIdle]}
+          onPress={sendMessage}
+          accessibilityRole="button"
+          accessibilityLabel="إرسال الرسالة"
+        >
           <Send size={18} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -571,13 +702,21 @@ export default function RoomScreen() {
             style={[styles.micBtn, isMuted ? styles.micMuted : styles.micActive, micLoading && styles.controlDisabled]}
             onPress={toggleMic}
             disabled={micLoading}
+            accessibilityRole="button"
+            accessibilityLabel={micLoading ? 'جارٍ تحديث الميكروفون' : isMuted ? 'تشغيل الميكروفون' : 'كتم الميكروفون'}
+            accessibilityState={{ disabled: micLoading }}
           >
             {micLoading
               ? <ActivityIndicator size="small" color="#fff" />
               : isMuted ? <MicOff size={22} color="#fff" /> : <Mic size={22} color="#fff" />}
             <Text style={styles.micText}>{micLoading ? 'جارٍ التحديث...' : isMuted ? 'مكتوم' : 'تتحدث'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.leaveSeatBtn} onPress={leaveSeat}>
+          <TouchableOpacity
+            style={styles.leaveSeatBtn}
+            onPress={leaveSeat}
+            accessibilityRole="button"
+            accessibilityLabel="ترك مقعد المتحدث"
+          >
             <Text style={styles.leaveSeatText}>ترك المقعد</Text>
           </TouchableOpacity>
         </View>
@@ -661,6 +800,12 @@ function SeatView({
       style={[styles.seat, isOwner && seat.is_owner_seat && styles.seatOwner]}
       onPress={canTake ? onTake : undefined}
       disabled={!canTake}
+      accessibilityRole="button"
+      accessibilityLabel={isOccupied
+        ? `المقعد ${seat.seat_index + 1}، ${seat.user?.display_name ?? seat.user?.username ?? 'متحدث'}${seat.is_mic_on ? '، يتحدث' : '، الميكروفون مكتوم'}`
+        : isLocked ? `المقعد ${seat.seat_index + 1}، مقفل` : `انضم إلى المقعد ${seat.seat_index + 1}`}
+      accessibilityHint={canTake ? 'اضغط للانضمام إلى المنصة الصوتية' : undefined}
+      accessibilityState={{ disabled: !canTake }}
     >
       {isOccupied ? (
         <>
@@ -872,41 +1017,67 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 16,
     paddingTop: 50,
+    paddingBottom: 14,
     backgroundColor: colors.roomSurface,
     borderBottomWidth: 1,
     borderBottomColor: colors.roomElevated,
   },
-  iconBtn: { padding: 8 },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.roomElevated,
+  },
   roomInfo: { flex: 1, marginHorizontal: 12 },
-  roomName: { color: colors.roomText, fontSize: 18, fontWeight: 'bold' },
-  roomMeta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  roomName: { color: colors.roomText, fontSize: 19, fontWeight: '800', textAlign: 'right' },
+  roomMeta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5, flexWrap: 'wrap' },
   roomMetaText: { color: colors.roomMuted, fontSize: 12 },
   seatsContainer: {
-    padding: 16,
-    backgroundColor: colors.roomBackground,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 15,
+    backgroundColor: '#100B1A',
     borderBottomWidth: 1,
     borderBottomColor: colors.roomSurface,
+  },
+  sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  sectionTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sectionAccent: { width: 3, height: 17, borderRadius: 2, backgroundColor: colors.gold },
+  sectionTitle: { color: colors.roomText, fontSize: 14, fontWeight: '800', textAlign: 'right' },
+  sectionCount: {
+    color: colors.roomMuted,
+    fontSize: 11,
+    fontWeight: '700',
+    backgroundColor: colors.roomElevated,
+    borderRadius: 10,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    overflow: 'hidden',
   },
   seatsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 12,
+    gap: 10,
+    paddingVertical: 2,
   },
   seat: {
     width: 80,
     height: 100,
-    backgroundColor: colors.roomSurface,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: colors.roomElevated,
+    backgroundColor: '#1A1327',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#38264C',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 8,
+    elevation: 2,
   },
-  seatOwner: { borderColor: colors.gold },
+  seatOwner: { borderColor: colors.gold, backgroundColor: '#241B2D' },
   seatEmpty: { alignItems: 'center', gap: 4 },
   seatEmptyText: { color: colors.roomPrimary, fontSize: 11, marginTop: 4 },
   seatLockedText: { color: colors.roomMuted, fontSize: 11, marginTop: 4 },
@@ -971,17 +1142,92 @@ const styles = StyleSheet.create({
   },
   sendGiftDisabled: { opacity: 0.4 },
   sendGiftText: { color: '#fff', fontSize: 14, fontWeight: '800' },
-  chatContainer: { flex: 1, padding: 12 },
-  chatList: { gap: 8 },
-  messageItem: { marginBottom: 8 },
-  messageUser: { color: colors.roomTeal, fontSize: 12, fontWeight: '600' },
-  messageText: { color: colors.roomText, fontSize: 14, marginTop: 2 },
+  chatContainer: { flex: 1, paddingHorizontal: 14, paddingTop: 13, paddingBottom: 5 },
+  chatHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 2,
+    paddingBottom: 10,
+  },
+  chatAccent: { backgroundColor: colors.roomPrimary },
+  chatHeadingHint: { color: colors.roomMuted, fontSize: 10, textAlign: 'right' },
+  chatList: { gap: 5, paddingBottom: 8 },
+  chatListEmpty: { flexGrow: 1, justifyContent: 'center' },
+  chatEmpty: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 20 },
+  chatEmptyIcon: {
+    width: 44, height: 44, borderRadius: 16,
+    backgroundColor: colors.goldSoft,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 10,
+  },
+  chatEmptyTitle: { color: colors.roomText, fontSize: 14, fontWeight: '800', textAlign: 'center' },
+  chatEmptyHint: { color: colors.roomMuted, fontSize: 11, marginTop: 4, textAlign: 'center' },
+  messageItem: { flexDirection: 'row', alignItems: 'flex-end', gap: 7, maxWidth: '90%', marginBottom: 7 },
+  ownMessageItem: { alignSelf: 'flex-end' },
+  otherMessageItem: { alignSelf: 'flex-start' },
+  messageAvatar: {
+    width: 29, height: 29, borderRadius: 11,
+    backgroundColor: '#342443',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: '#4A345E',
+  },
+  ownMessageAvatar: { backgroundColor: '#54306F', borderColor: '#7D49A2' },
+  messageAvatarText: { color: colors.roomText, fontSize: 12, fontWeight: '800' },
+  messageBubble: {
+    maxWidth: '88%',
+    minWidth: 92,
+    paddingHorizontal: 11,
+    paddingTop: 8,
+    paddingBottom: 9,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  ownMessageBubble: {
+    backgroundColor: '#2A1938',
+    borderColor: '#57356D',
+    borderBottomRightRadius: 5,
+  },
+  otherMessageBubble: {
+    backgroundColor: colors.roomSurface,
+    borderColor: '#30243D',
+    borderBottomLeftRadius: 5,
+  },
+  messageMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  messageUser: { color: colors.roomTeal, fontSize: 11, fontWeight: '700', flexShrink: 1, textAlign: 'right' },
+  ownMessageUser: { color: '#D5A7F2' },
+  messageTime: { color: '#8D819B', fontSize: 9 },
+  messageText: { color: colors.roomText, fontSize: 14, marginTop: 4, lineHeight: 21, textAlign: 'right' },
   pendingMessage: { opacity: 0.65 },
   pendingLabel: { color: colors.roomMuted, fontSize: 10, marginTop: 2 },
+  systemMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+    alignSelf: 'center',
+    maxWidth: '94%',
+    paddingVertical: 5,
+    paddingHorizontal: 4,
+  },
+  systemMessageRule: { flex: 1, height: 1, backgroundColor: '#382B45' },
+  systemMessageText: {
+    color: '#C8B2D6',
+    backgroundColor: '#21182D',
+    borderWidth: 1,
+    borderColor: '#382B45',
+    borderRadius: 14,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+    overflow: 'hidden',
+  },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
     backgroundColor: colors.roomSurface,
     borderTopWidth: 1,
     borderTopColor: colors.roomElevated,
@@ -1003,6 +1249,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     color: colors.roomText,
     fontSize: 14,
+    textAlign: 'right',
+    borderWidth: 1,
+    borderColor: '#352644',
   },
   sendBtn: {
     width: 40,
@@ -1011,7 +1260,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.roomPrimary,
     alignItems: 'center',
     justifyContent: 'center',
+    elevation: 3,
   },
+  sendBtnIdle: { opacity: 0.72 },
   micControls: {
     flexDirection: 'row',
     padding: 12,

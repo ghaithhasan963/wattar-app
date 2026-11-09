@@ -21,7 +21,7 @@ Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return jsonResponse({ error: 'METHOD_NOT_ALLOWED' }, 405);
 
   try {
-    const ctx = await authenticate(req);
+    const ctx = await authenticate(req, { allowStaffWithoutAdultConfirmation: true });
     requireRole(ctx, 'admin', 'super_admin', 'agent');
 
     const body = await parseBody<ApproveBody>(req);
@@ -45,14 +45,14 @@ Deno.serve(async (req: Request) => {
     if (ctx.role === 'agent') {
       const { data: agent, error: agentError } = await supabase
         .from('agents')
-        .select('id, can_approve_deposits')
+        .select('id, status, can_approve_deposits')
         .eq('user_id', ctx.user_id)
         .maybeSingle();
       if (agentError) {
         console.error('[Wattar] Failed to verify agent permissions:', agentError);
         throw new HttpError(500, 'PERMISSION_LOOKUP_FAILED', 'Could not verify agent permissions');
       }
-      if (!agent || !agent.can_approve_deposits) {
+      if (!agent || agent.status !== 'active' || !agent.can_approve_deposits) {
         throw new HttpError(403, 'NO_PERMISSION', 'Agent cannot approve deposits');
       }
       if (deposit.agent_id !== agent.id) {

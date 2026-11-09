@@ -48,7 +48,6 @@ interface AuthState {
 
   init: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  signInWithFacebook: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string) => Promise<boolean>;
   signInWithPhone: (phone: string) => Promise<void>;
@@ -70,9 +69,7 @@ interface AuthState {
   updateBalance: (gold: number, diamond: number) => void;
 }
 
-async function signInWithOAuthProvider(
-  provider: 'google' | 'facebook',
-): Promise<void> {
+async function signInWithOAuthProvider(provider: 'google'): Promise<void> {
   const redirectTo = Linking.createURL('callback');
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
@@ -189,17 +186,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await signInWithOAuthProvider('google');
     } catch (err: unknown) {
       set({ error: err instanceof Error ? err.message : 'تعذر تسجيل الدخول باستخدام Google' });
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  signInWithFacebook: async () => {
-    set({ loading: true, error: null });
-    try {
-      await signInWithOAuthProvider('facebook');
-    } catch (err: unknown) {
-      set({ error: err instanceof Error ? err.message : 'تعذر تسجيل الدخول باستخدام Facebook' });
     } finally {
       set({ loading: false });
     }

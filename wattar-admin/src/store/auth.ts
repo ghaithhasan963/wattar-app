@@ -8,27 +8,29 @@ import { supabase } from '@/lib/supabase';
 interface AuthState {
   session: Session | null;
   user: User | null;
-  profile: AdminProfile | null;
+  profile: StaffProfile | null;
   initialized: boolean;
   loading: boolean;
   error: string | null;
   initialize: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (identifier: string, password: string) => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   loadProfile: () => Promise<void>;
 }
 
-interface AdminProfile {
+export type StaffRole = 'admin' | 'super_admin' | 'agent';
+
+interface StaffProfile {
   id: string;
   username: string;
   display_name: string | null;
   avatar_url: string | null;
-  role: 'admin' | 'super_admin';
+  role: StaffRole;
   status: string;
 }
 
-async function loadAdminProfile(userId: string): Promise<AdminProfile> {
+async function loadStaffProfile(userId: string): Promise<StaffProfile> {
   const { data: profile, error } = await supabase
     .from('users')
     .select('id, username, display_name, avatar_url, role, status')
@@ -42,13 +44,13 @@ async function loadAdminProfile(userId: string): Promise<AdminProfile> {
         : `تعذر تحميل صلاحيات الحساب: ${error.message}`,
     );
   }
-  if (!profile || !['admin', 'super_admin'].includes(profile.role)) {
-    throw new Error('هذا الحساب ليس مسؤولًا. يلزم أن يكون دوره admin أو super_admin في public.users.');
+  if (!profile || !['admin', 'super_admin', 'agent'].includes(profile.role)) {
+    throw new Error('هذا الحساب غير مخوّل بدخول لوحة الموظفين.');
   }
-  if (profile.status === 'banned' || profile.status === 'blacklisted') {
+  if (profile.status !== 'active') {
     throw new Error('هذا الحساب موقوف.');
   }
-  return profile as AdminProfile;
+  return profile as StaffProfile;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -69,7 +71,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         return;
       }
 
-      const profile = await loadAdminProfile(session.user.id);
+      const profile = await loadStaffProfile(session.user.id);
       set({ session, user: session.user, profile });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'تعذر التحقق من حساب الإدارة.';
@@ -80,13 +82,22 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  signIn: async (email, password) => {
+  signIn: async (identifier, password) => {
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const normalizedIdentifier = identifier.trim();
+      const isEmail = normalizedIdentifier.includes('@');
+      const phone = normalizedIdentifier.replace(/[()\s-]/g, '');
+      if (!isEmail && !/^\+[1-9]\d{6,14}$/.test(phone)) {
+        throw new Error('أدخل بريدًا إلكترونيًا صحيحًا أو رقم هاتف دوليًا يبدأ بـ +.');
+      }
+      const credentials = isEmail
+        ? { email: normalizedIdentifier.toLowerCase(), password }
+        : { phone, password };
+      const { data, error } = await supabase.auth.signInWithPassword(credentials);
       if (error) throw error;
 
-      const profile = await loadAdminProfile(data.user.id);
+      const profile = await loadStaffProfile(data.user.id);
 
       set({ session: data.session, user: data.user, profile, initialized: true });
     } catch (err: unknown) {
@@ -124,7 +135,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    const profile = await loadAdminProfile(session.user.id);
+    const profile = await loadStaffProfile(session.user.id);
     set({ session, user: session.user, profile });
   },
 }));

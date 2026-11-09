@@ -4,10 +4,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
-import { Lock, Mail, Loader2 } from 'lucide-react';
+import { Lock, Mail, Phone, Loader2 } from 'lucide-react';
 
 export function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [resetNotice, setResetNotice] = useState<string | null>(null);
   const { signIn, requestPasswordReset, loading, error } = useAuthStore();
@@ -16,17 +16,17 @@ export function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await signIn(email, password);
-      navigate('/');
+      await signIn(identifier, password);
+      navigate(useAuthStore.getState().profile?.role === 'agent' ? '/agent' : '/');
     } catch {
       // خطأ موجود في store
     }
   };
 
   const handlePasswordReset = async () => {
-    if (!email.trim()) return;
+    if (!identifier.trim() || !identifier.includes('@')) return;
     try {
-      await requestPasswordReset(email);
+      await requestPasswordReset(identifier);
       setResetNotice('إذا كان البريد مسجلًا، سيصلك رابط استعادة. افتحه من هذا المتصفح لإكمال التغيير.');
     } catch {
       // The store exposes the error to the form.
@@ -41,7 +41,7 @@ export function LoginPage() {
             <span className="text-3xl font-bold text-white">W</span>
           </div>
           <h1 className="text-3xl font-bold text-white">Wattar | وتر</h1>
-          <p className="text-gray-400 mt-2">لوحة تحكم الإدارة</p>
+          <p className="text-gray-400 mt-2">بوابة الموظفين والوكلاء</p>
         </div>
 
         <div className="bg-dark-surface rounded-2xl border border-wattar-900 p-8">
@@ -49,15 +49,18 @@ export function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-300 mb-2">البريد الإلكتروني</label>
+              <label className="block text-sm text-gray-300 mb-2">البريد الإلكتروني أو رقم الهاتف</label>
               <div className="relative">
-                <Mail className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                {identifier.includes('@')
+                  ? <Mail className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                  : <Phone className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />}
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); setResetNotice(null); }}
+                  type="text"
+                  autoComplete="username"
+                  value={identifier}
+                  onChange={(e) => { setIdentifier(e.target.value); setResetNotice(null); }}
                   required
-                  placeholder="admin@wattar.app"
+                  placeholder="admin@wattar.app أو ‎+963..."
                   className="w-full rounded-lg bg-dark-elevated border border-wattar-900 py-3 pr-10 pl-4 text-white placeholder-gray-500 focus:outline-none focus:border-wattar-500"
                 />
               </div>
@@ -81,10 +84,10 @@ export function LoginPage() {
             <button
               type="button"
               onClick={handlePasswordReset}
-              disabled={loading || !email.trim()}
+              disabled={loading || !identifier.trim().includes('@')}
               className="text-sm text-wattar-400 hover:text-wattar-300 disabled:opacity-50"
             >
-              نسيت كلمة المرور؟
+              إرسال رابط استعادة كلمة المرور إلى البريد
             </button>
 
             {resetNotice && (

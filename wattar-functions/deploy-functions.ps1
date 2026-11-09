@@ -1,6 +1,7 @@
 param(
   [Parameter(Mandatory = $true)]
-  [string]$ProjectRef
+  [string]$ProjectRef,
+  [switch]$Yes
 )
 
 $ErrorActionPreference = 'Stop'
@@ -18,6 +19,7 @@ $functions = @(
   'transfer',
   'gift-send',
   'daily-bonus',
+  'room-join',
   'room-leave',
   'livekit-token',
   'game-wheel',
@@ -33,6 +35,10 @@ $functions = @(
   'social-push',
   'delete-account'
 )
+$confirmationArgs = @()
+if ($Yes) {
+  $confirmationArgs = @('--yes')
+}
 
 try {
   New-Item -ItemType Directory -Path $functionsTarget -Force | Out-Null
@@ -43,7 +49,7 @@ try {
     Write-Host "Deploying $functionName..."
     Push-Location $tempRoot
     try {
-      & npx --yes supabase@latest functions deploy $functionName --no-verify-jwt --use-api --remote=$ProjectRef
+      & npx --yes supabase@latest functions deploy $functionName --no-verify-jwt --use-api --remote=$ProjectRef @confirmationArgs
       if ($LASTEXITCODE -ne 0) {
         throw "Supabase CLI failed while deploying $functionName (exit code $LASTEXITCODE)."
       }
