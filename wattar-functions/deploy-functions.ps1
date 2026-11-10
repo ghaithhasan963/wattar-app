@@ -30,6 +30,7 @@ $availableFunctions = @(
   'game-plinko',
   'game-slots',
   'admin-create-agent',
+  'admin-create-support',
   'admin-create-host',
   'agent-phone-login',
   'admin-set-agent-status',
