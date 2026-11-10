@@ -25,6 +25,16 @@ interface DepositMethod {
   sort_order: number;
 }
 
+const settingLabels: Record<string, string> = {
+  free_coin_daily_grant: 'مكافأة Point اليومية',
+  free_coin_balance_cap: 'الحد الأقصى لرصيد Point',
+};
+
+const settingDescriptions: Record<string, string> = {
+  free_coin_daily_grant: 'عدد Point الذي يحصل عليه الحساب مرة كل 24 ساعة.',
+  free_coin_balance_cap: 'أقصى رصيد Point يمكن جمعه للألعاب.',
+};
+
 export function SettingsPage() {
   const [settings, setSettings] = useState<Setting[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +58,7 @@ export function SettingsPage() {
       if (error) throw error;
       setSettings((data ?? []).filter((setting) =>
         setting.key !== 'daily_bonus_gold'
+        && setting.key !== 'diamond_to_coin_rate'
         &&
         (!setting.key.startsWith('withdraw') || [
           'withdrawals_enabled',
@@ -160,7 +171,7 @@ export function SettingsPage() {
     else if (s.key.startsWith('withdraw') || s.key === 'diamonds_per_usd') cat = 'السحب';
     else if (s.key.startsWith('transfer')) cat = 'التحويل';
     else if (s.key.startsWith('usdt') || s.key.includes('gold') || s.key.includes('diamond') || s.key.includes('coins_per_usd')) cat = 'العملات';
-    else if (s.key.includes('bonus') || s.key.includes('referral') || s.key.includes('free_coin')) cat = 'المكافآت';
+    else if (s.key.includes('bonus') || s.key.includes('referral') || s.key.includes('point_')) cat = 'المكافآت';
     else if (s.key.includes('room')) cat = 'الغرف';
     else if (s.key.includes('app') || s.key.includes('maintenance') || s.key.includes('update')) cat = 'النظام';
 
@@ -193,13 +204,13 @@ export function SettingsPage() {
                 {items.map(s => (
                   <div key={s.key} className="bg-dark-elevated rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-medium text-white">{s.key}</label>
+                      <label className="text-sm font-medium text-white">{settingLabels[s.key] ?? s.key}</label>
                       {s.is_public && (
                         <span className="text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">عام</span>
                       )}
                     </div>
-                    {s.description && (
-                      <p className="text-xs text-gray-500 mb-2">{s.description}</p>
+                    {(settingDescriptions[s.key] ?? s.description) && (
+                      <p className="text-xs text-gray-500 mb-2">{settingDescriptions[s.key] ?? s.description}</p>
                     )}
                     <div className="flex gap-2">
                       <input

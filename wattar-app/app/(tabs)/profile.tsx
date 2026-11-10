@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Coins, Gem, Gift, ImagePlus, LockKeyhole, LogOut, Pencil, Settings, Star, User, Users, Wallet } from 'lucide-react-native';
+import { BadgeCheck, ChevronLeft, Coins, Gem, Gift, ImagePlus, LockKeyhole, LogOut, Mic, Pencil, Settings, Star, User, Users, Wallet } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 
@@ -144,6 +144,15 @@ export default function ProfileScreen() {
         >
           <ImagePlus size={15} color={palette.primary} />
           <Text style={styles.postsButtonText}>ملفي ومنشوراتي</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.hostProgramButton}
+          onPress={() => router.push('/host-application')}
+          accessibilityRole="button"
+        >
+          <Mic size={15} color={palette.gold} />
+          <Text style={styles.hostProgramButtonText}>برنامج المضيفات وطلب التوثيق</Text>
+          <BadgeCheck size={14} color={palette.gold} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.privacyButton}
@@ -295,6 +304,8 @@ const styles = StyleSheet.create({
   editButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
   postsButton: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 13, paddingVertical: 9, borderRadius: 12, backgroundColor: palette.elevated, borderWidth: 1, borderColor: palette.border, marginTop: 8 },
   postsButtonText: { color: palette.text, fontSize: 11, fontWeight: '700' },
+  hostProgramButton: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 13, paddingVertical: 9, borderRadius: 12, backgroundColor: '#F4BD5518', borderWidth: 1, borderColor: '#F4BD5533', marginTop: 8 },
+  hostProgramButtonText: { color: palette.gold, fontSize: 11, fontWeight: '700' },
   privacyButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, minHeight: 34, paddingHorizontal: 12, marginTop: 8, borderRadius: 12, backgroundColor: '#211B2C', borderWidth: 1, borderColor: palette.border },
   privacyButtonText: { color: palette.gold, fontSize: 11, fontWeight: '700' },
   referral: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 13, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 10, backgroundColor: '#302312' },

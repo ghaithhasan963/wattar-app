@@ -24,6 +24,7 @@ import { MissionsPage } from '@/pages/MissionsPage';
 import { StoreItemsPage } from '@/pages/StoreItemsPage';
 import { UserReportsPage } from '@/pages/UserReportsPage';
 import { AgentDashboardPage } from '@/pages/AgentDashboardPage';
+import { HostApplicationsPage } from '@/pages/HostApplicationsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -128,6 +129,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <AgentsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/hosts"
+            element={
+              <ProtectedRoute>
+                <HostApplicationsPage />
               </ProtectedRoute>
             }
           />

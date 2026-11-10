@@ -9,6 +9,7 @@ import {
 import Svg, { Circle, Path, Text as SvgText } from 'react-native-svg';
 import { callFunction } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
+import { usePreferencesStore } from '@/store/preferences';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/lib/theme';
 
@@ -23,8 +24,15 @@ const SEGMENTS = [
 
 const SEGMENT_ANGLE = 360 / SEGMENTS.length;
 
+interface WheelResponse {
+  winning_segment: number;
+  is_win: boolean;
+  payout: number;
+}
+
 export default function WheelGame() {
   const { profile, loadProfile } = useAuthStore();
+  const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
   const [betAmount, setBetAmount] = useState('100');
   const [selectedSegment, setSelectedSegment] = useState(1); // x2 default
   const [rotation] = useState(new Animated.Value(0));
@@ -34,28 +42,41 @@ export default function WheelGame() {
   const currentRotation = useRef(0);
 
   const spin = async () => {
-    if (!betAmount || spinning) return;
+    const bet = Number(betAmount);
+    if (!Number.isSafeInteger(bet) || bet < 1 || spinning || loading) return;
     setLoading(true);
     setResult(null);
 
     try {
-      const response = await callFunction<any>('game-wheel', {
-        bet_amount: Number(betAmount),
+      const response = await callFunction<WheelResponse>('game-wheel', {
+        bet_amount: bet,
         segment_choice: selectedSegment,
       }, `game-wheel-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`);
+
+      const winningSegment = response.winning_segment;
+      if (
+        !Number.isInteger(winningSegment)
+        || winningSegment < 0
+        || winningSegment >= SEGMENTS.length
+        || typeof response.is_win !== 'boolean'
+        || !Number.isFinite(response.payout)
+        || response.payout < 0
+      ) {
+        throw new Error('لم تصل نتيجة العجلة بشكل صحيح.');
+      }
 
       setLoading(false);
       setSpinning(true);
 
-      const winningSegment = response.winning_segment;
-      // حساب الزاوية الهدف: الخانة الفائزة في الأعلى
-      const targetAngle = 360 - (winningSegment * SEGMENT_ANGLE);
+      const targetAngle = (360 - (winningSegment * SEGMENT_ANGLE + SEGMENT_ANGLE / 2)) % 360;
       const fullSpins = 5; // 5 دورات كاملة
-      const newRotation = currentRotation.current + 360 * fullSpins + (targetAngle - (currentRotation.current % 360));
+      const currentAngle = ((currentRotation.current % 360) + 360) % 360;
+      const angleToTarget = (targetAngle - currentAngle + 360) % 360;
+      const newRotation = currentRotation.current + 360 * fullSpins + angleToTarget;
 
       Animated.timing(rotation, {
         toValue: newRotation,
-        duration: 4000,
+        duration: reduceMotion ? 300 : 4000,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }).start(() => {
@@ -66,11 +87,13 @@ export default function WheelGame() {
           payout: response.payout,
           segment: winningSegment,
         });
-        loadProfile();
+        void loadProfile().catch((error: unknown) => {
+          console.warn('[Wattar] Failed to refresh game points after wheel:', error);
+        });
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setLoading(false);
-      Alert.alert('خطأ', err.message);
+      Alert.alert('خطأ', err instanceof Error ? err.message : 'تعذر إكمال الجولة.');
     }
   };
 
@@ -138,7 +161,7 @@ export default function WheelGame() {
         <View style={[styles.resultBanner, result.won ? styles.winBanner : styles.loseBanner]}>
           <Text style={styles.resultText}>
             {result.won
-              ? `🎉 ربحت ${result.payout} نقطة مجانية!`
+              ? `🎉 ربحت ${result.payout} Point!`
               : `خسرت — وقفت على ${SEGMENTS[result.segment].label}`}
           </Text>
         </View>
@@ -163,7 +186,7 @@ export default function WheelGame() {
           ))}
         </View>
 
-        <Text style={styles.label}>النقاط المشاركة</Text>
+        <Text style={styles.label}>مقدار Point للجولة</Text>
         <TextInput
           style={styles.input}
           value={betAmount}
@@ -184,7 +207,7 @@ export default function WheelGame() {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.balance}>نقاط مجانية: {profile?.game_points?.toLocaleString() ?? 0}</Text>
+      <Text style={styles.balance}>Point: {profile?.game_points?.toLocaleString() ?? 0}</Text>
     </ScrollView>
   );
 }

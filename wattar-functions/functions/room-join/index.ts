@@ -32,7 +32,7 @@ Deno.serve(async (req: Request) => {
       throw new HttpError(400, 'INVALID_SESSION_ID', 'Invalid room session ID');
     }
 
-    const { error } = await getSupabaseAdmin().rpc('record_wattar_room_presence', {
+    const { data: listenerCount, error } = await getSupabaseAdmin().rpc('record_wattar_room_presence', {
       p_room_id: body.room_id,
       p_user_id: ctx.user_id,
       p_session_id: body.session_id,
@@ -40,7 +40,7 @@ Deno.serve(async (req: Request) => {
     });
     if (error) throw new HttpError(403, 'ROOM_JOIN_FAILED', error.message);
 
-    return jsonResponse({ success: true });
+    return jsonResponse({ success: true, listener_count: listenerCount });
   } catch (error) {
     return errorResponse(error);
   }

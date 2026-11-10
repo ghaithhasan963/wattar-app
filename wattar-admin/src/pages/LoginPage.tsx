@@ -64,6 +64,11 @@ export function LoginPage() {
                   className="w-full rounded-lg bg-dark-elevated border border-wattar-900 py-3 pr-10 pl-4 text-white placeholder-gray-500 focus:outline-none focus:border-wattar-500"
                 />
               </div>
+              {identifier.trim() && !identifier.includes('@') && (
+                <p className="mt-2 text-xs leading-5 text-gray-400">
+                  استخدم الرقم الدولي المسجل للوكيل مع كلمة المرور نفسها؛ لا يتطلب تسجيل الدخول إرسال SMS.
+                </p>
+              )}
             </div>
 
             <div>

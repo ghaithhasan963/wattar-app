@@ -4,11 +4,12 @@
  */
 import { useEffect, useState } from 'react';
 import { supabase, callFunction } from '@/lib/supabase';
-import { Plus, DollarSign, Loader2, X } from 'lucide-react';
+import { Plus, DollarSign, Loader2, X, Shield, ShieldOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Agent {
   id: string;
+  user_id: string;
   wallet_usd: number;
   coin_inventory: number;
   commission_rate: number;
@@ -26,6 +27,7 @@ export function AgentsPage() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creditAgent, setCreditAgent] = useState<Agent | null>(null);
+  const [processingAgentId, setProcessingAgentId] = useState<string | null>(null);
 
   useEffect(() => {
     load();
@@ -37,7 +39,7 @@ export function AgentsPage() {
       const { data, error } = await supabase
         .from('agents')
         .select(`
-          id, wallet_usd, coin_inventory, commission_rate, exchange_rate_usd_to_gold, total_users, total_deposit_usd,
+          id, user_id, wallet_usd, coin_inventory, commission_rate, exchange_rate_usd_to_gold, total_users, total_deposit_usd,
           total_commission_usd, status, created_at,
           user:users!agents_user_id_fkey(username, display_name, phone, email)
         `)
@@ -51,6 +53,35 @@ export function AgentsPage() {
       toast.error(error instanceof Error ? error.message : 'تعذر تحميل الوكلاء.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const setAgentStatus = async (agent: Agent, status: 'active' | 'suspended' | 'banned') => {
+    const reason = status === 'active'
+      ? undefined
+      : window.prompt(status === 'banned' ? 'اكتب سبب الحظر الدائم للوكيل:' : 'اكتب سبب إيقاف/أرشفة الوكيل:');
+    if (status !== 'active' && !reason?.trim()) return;
+    if (status === 'active' && !window.confirm('هل تريد إعادة تفعيل دخول هذا الوكيل؟')) return;
+
+    setProcessingAgentId(agent.id);
+    try {
+      await callFunction('admin-set-agent-status', {
+        agent_id: agent.id,
+        status,
+        ...(reason ? { reason: reason.trim() } : {}),
+      });
+      toast.success(
+        status === 'active'
+          ? 'تمت إعادة تفعيل الوكيل.'
+          : status === 'banned'
+            ? 'تم حظر الوكيل.'
+            : 'تم إيقاف/أرشفة الوكيل مع الاحتفاظ بسجلاته.',
+      );
+      await load();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'تعذر تحديث حالة الوكيل.');
+    } finally {
+      setProcessingAgentId(null);
     }
   };
 
@@ -80,10 +111,17 @@ export function AgentsPage() {
             <div className="flex items-start justify-between mb-3">
               <div>
                 <p className="font-medium text-white">{ag.user?.display_name ?? ag.user?.username}</p>
-                <p className="text-xs text-gray-500">{ag.user?.email ?? ag.user?.phone ?? '—'}</p>
+                <p className="text-xs text-gray-500">البريد: {ag.user?.email ?? '—'}</p>
+                <p className="text-xs text-gray-500">الهاتف: {ag.user?.phone ?? '—'}</p>
               </div>
-              <span className={`px-2 py-1 rounded text-xs ${ag.status === 'active' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
-                {ag.status === 'active' ? 'نشط' : 'موقوف'}
+              <span className={`px-2 py-1 rounded text-xs ${
+                ag.status === 'active'
+                  ? 'bg-green-500/10 text-green-400'
+                  : ag.status === 'banned'
+                    ? 'bg-red-500/10 text-red-400'
+                    : 'bg-amber-500/10 text-amber-300'
+              }`}>
+                {ag.status === 'active' ? 'نشط' : ag.status === 'banned' ? 'محظور' : 'موقوف'}
               </span>
             </div>
 
@@ -93,7 +131,7 @@ export function AgentsPage() {
                 <p className="font-semibold text-gold-500">${ag.wallet_usd}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">مخزون Coins مسبق الدفع</p>
+                <p className="text-xs text-gray-500">مخزون Coin لدى الوكيل</p>
                 <p className="font-semibold text-white">{Number(ag.coin_inventory).toLocaleString()}</p>
               </div>
               <div>
@@ -110,13 +148,45 @@ export function AgentsPage() {
               </div>
             </div>
 
-            <button
-              onClick={() => setCreditAgent(ag)}
-              className="w-full rounded-lg bg-wattar-600/20 hover:bg-wattar-600/30 border border-wattar-600 py-2 text-sm text-wattar-300 flex items-center justify-center gap-2"
-            >
-              <DollarSign size={16} />
-              إضافة مخزون مدفوع مسبقًا
-            </button>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                onClick={() => setCreditAgent(ag)}
+                disabled={ag.status !== 'active'}
+                className="rounded-lg bg-wattar-600/20 hover:bg-wattar-600/30 border border-wattar-600 py-2 text-sm text-wattar-300 flex items-center justify-center gap-2"
+              >
+                <DollarSign size={16} />
+                إضافة مخزون مدفوع مسبقًا
+              </button>
+              {ag.status !== 'banned' && (
+                <button
+                  onClick={() => void setAgentStatus(ag, ag.status === 'active' ? 'suspended' : 'active')}
+                  disabled={processingAgentId === ag.id}
+                  className="rounded-lg border border-amber-500/30 bg-amber-500/10 py-2 text-sm text-amber-300 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {processingAgentId === ag.id ? <Loader2 size={16} className="animate-spin" /> : <ShieldOff size={16} />}
+                  {ag.status === 'active' ? 'إيقاف/أرشفة' : 'إعادة التفعيل'}
+                </button>
+              )}
+              {ag.status !== 'banned' && (
+                <button
+                  onClick={() => void setAgentStatus(ag, 'banned')}
+                  disabled={processingAgentId === ag.id}
+                  className="rounded-lg border border-red-500/30 bg-red-500/10 py-2 text-sm text-red-300 flex items-center justify-center gap-2 disabled:opacity-50 sm:col-span-2"
+                >
+                  <Shield size={16} />
+                  حظر الوكيل
+                </button>
+              )}
+              {ag.status === 'banned' && (
+                <button
+                  onClick={() => void setAgentStatus(ag, 'active')}
+                  disabled={processingAgentId === ag.id}
+                  className="rounded-lg border border-green-500/30 bg-green-500/10 py-2 text-sm text-green-300 flex items-center justify-center gap-2 disabled:opacity-50 sm:col-span-2"
+                >
+                  إعادة تفعيل الوكيل
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -189,15 +259,18 @@ function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreat
           <button onClick={onClose}><X size={20} className="text-gray-400" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <p className="rounded-lg border border-wattar-700/40 bg-wattar-900/30 p-3 text-xs leading-5 text-gray-300">
+            يستطيع الوكيل تسجيل الدخول بالبريد أو رقم الهاتف الدولي باستخدام كلمة المرور نفسها، دون الحاجة إلى SMS.
+          </p>
           <div className="grid grid-cols-2 gap-4">
             <Input label="اسم المستخدم" value={form.username} onChange={v => setForm({ ...form, username: v })} required />
             <Input label="كلمة المرور" type="password" value={form.password} onChange={v => setForm({ ...form, password: v })} required />
             <Input label="الاسم الظاهر" value={form.display_name} onChange={v => setForm({ ...form, display_name: v })} />
             <Input label="البريد الإلكتروني لتسجيل الدخول" type="email" value={form.email} onChange={v => setForm({ ...form, email: v })} required />
-            <Input label="الهاتف الدولي لتسجيل الدخول" type="tel" value={form.phone} onChange={v => setForm({ ...form, phone: v })} required placeholder="+963..." />
+            <Input label="رقم الهاتف الدولي لتسجيل الدخول" type="tel" value={form.phone} onChange={v => setForm({ ...form, phone: v })} required placeholder="+963..." />
             <Input label="نسبة العمولة (%)" type="number" value={form.commission_rate} onChange={v => setForm({ ...form, commission_rate: v })} required />
             <Input label="حد الائتمان ($)" type="number" value={form.credit_limit_usd} onChange={v => setForm({ ...form, credit_limit_usd: v })} required />
-            <Input label="سعر الصرف (1$ = ? Coins)" type="number" value={form.exchange_rate_usd_to_gold} onChange={v => setForm({ ...form, exchange_rate_usd_to_gold: v })} required />
+            <Input label="سعر الشحن (1$ = ? Coin)" type="number" value={form.exchange_rate_usd_to_gold} onChange={v => setForm({ ...form, exchange_rate_usd_to_gold: v })} required />
           </div>
           <button
             type="submit"
@@ -233,7 +306,7 @@ function CreditAgentModal({ agent, onClose, onCredited }: { agent: Agent; onClos
         amount_usd: Number(amount),
         notes: notes || undefined,
       }, { idempotencyKey: requestKey });
-      toast.success('تمت إضافة Coins المدفوعة مسبقًا إلى مخزون الوكيل');
+      toast.success('تمت إضافة Coin إلى مخزون الوكيل');
       setAttempt(null);
       onCredited();
     } catch (err: any) {
@@ -253,10 +326,10 @@ function CreditAgentModal({ agent, onClose, onCredited }: { agent: Agent; onClos
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="bg-dark-elevated rounded-lg p-3 text-sm">
             <p className="text-white">{agent.user?.display_name ?? agent.user?.username}</p>
-            <p className="text-gray-500 text-xs">المخزون الحالي: {Number(agent.coin_inventory).toLocaleString()} Coins</p>
+            <p className="text-gray-500 text-xs">المخزون الحالي: {Number(agent.coin_inventory).toLocaleString()} Coin</p>
             <p className="text-gray-500 text-xs">السيولة النقدية الحالية: ${agent.wallet_usd}</p>
             <p className="text-gray-500 text-xs">
-              ستضاف {Math.floor(Number(amount || 0) * Number(agent.exchange_rate_usd_to_gold)).toLocaleString()} Coins بعد تأكيد استلام الدفعة مسبقًا.
+              ستضاف {Math.floor(Number(amount || 0) * Number(agent.exchange_rate_usd_to_gold)).toLocaleString()} Coin بعد تأكيد استلام الدفعة.
             </p>
           </div>
           <Input

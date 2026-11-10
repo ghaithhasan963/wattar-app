@@ -10,12 +10,13 @@ import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
+import { CurrencyIcon } from '@/components/CurrencyIcon';
 
 const games = [
   {
     id: 'wheel',
     name: 'عجلة الحظ',
-    description: 'العب بنقاط مجانية حتى x50',
+    description: 'العب برصيد Point فقط حتى x50',
     icon: Gamepad2,
     color: '#7C3AED',
     bgGradient: ['#7C3AED', '#5B21B6'],
@@ -24,7 +25,7 @@ const games = [
   {
     id: 'aviator',
     name: 'طيارة المضاعفات',
-    description: 'العب بنقاط مجانية قبل الانهيار',
+    description: 'العب برصيد Point فقط قبل الانهيار',
     icon: Plane,
     color: '#3B82F6',
     bgGradient: ['#3B82F6', '#1D4ED8'],
@@ -33,7 +34,7 @@ const games = [
   {
     id: 'plinko',
     name: 'بلانغو',
-    description: 'العب بنقاط مجانية واكتشف النتيجة',
+    description: 'العب برصيد Point فقط واكتشف النتيجة',
     icon: ChevronDown,
     color: '#F59E0B',
     bgGradient: ['#F59E0B', '#B45309'],
@@ -42,7 +43,7 @@ const games = [
   {
     id: 'dice',
     name: 'نرد',
-    description: 'اختر الهدف والعب بنقاط مجانية',
+    description: 'اختر الهدف والعب برصيد Point فقط',
     icon: Dice5,
     color: '#10B981',
     bgGradient: ['#10B981', '#047857'],
@@ -51,7 +52,7 @@ const games = [
   {
     id: 'slots',
     name: 'Slots',
-    description: 'ثلاث بكرات وجوائز بنقاط لعب مجانية',
+    description: 'ثلاث بكرات وجوائز بعملة Point',
     icon: Gem,
     color: '#C026D3',
     bgGradient: ['#C026D3', '#86198F'],
@@ -93,11 +94,11 @@ export default function GamesScreen() {
       if (error) throw error;
       if (data?.claimed) {
         await loadProfile();
-        Alert.alert('تمت الإضافة', `أضفنا ${Number(data.granted).toLocaleString()} نقطة مجانية إلى رصيد الألعاب.`);
+        Alert.alert('تمت الإضافة', `أضفنا ${Number(data.granted).toLocaleString()} Point إلى رصيد الألعاب.`);
       } else if (data?.at_cap) {
-        Alert.alert('رصيدك ممتلئ', 'يمكنك المطالبة بالنقاط اليومية بعد استخدام بعض نقاطك.');
+        Alert.alert('رصيد Point ممتلئ', 'يمكنك المطالبة برصيد يومي بعد استخدام بعض نقاطك.');
       } else {
-        Alert.alert('تم استخدام المطالبة اليومية', 'يمكنك المطالبة بنقاط مجانية مرة أخرى بعد مرور 24 ساعة.');
+        Alert.alert('تم استخدام المطالبة اليومية', 'يمكنك المطالبة برصيد Point مرة أخرى بعد مرور 24 ساعة.');
       }
     } catch (error: unknown) {
       Alert.alert('تعذرت المطالبة بالنقاط', error instanceof Error ? error.message : 'حاول مرة أخرى.');
@@ -111,7 +112,10 @@ export default function GamesScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>الألعاب</Text>
         <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>نقاط مجانية للألعاب</Text>
+          <View style={styles.balanceHeading}>
+            <CurrencyIcon currency="point" size={30} />
+            <Text style={styles.balanceLabel}>رصيد Point للألعاب</Text>
+          </View>
           <Text style={styles.balanceValue}>{profile?.game_points?.toLocaleString() ?? 0}</Text>
         </View>
       </View>
@@ -126,7 +130,7 @@ export default function GamesScreen() {
           ? <ActivityIndicator size="small" color={colors.background} />
           : <Gift size={18} color={colors.background} />}
         <Text style={styles.claimButtonText}>
-          {claimingPoints ? 'جاري جلب النقاط...' : 'استلام النقاط اليومية المجانية'}
+          {claimingPoints ? 'جاري جلب الرصيد...' : 'استلام Point اليومي'}
         </Text>
       </TouchableOpacity>
       <Text style={styles.pointsNotice}>النقاط داخل الألعاب فقط؛ لا تُشترى ولا تُحوّل ولا تُسحب نقدًا.</Text>
@@ -171,7 +175,7 @@ export default function GamesScreen() {
 
       <Animated.View style={[styles.statsCard, entranceStyle]}>
         <Text style={styles.statsTitle}>العب بأمان</Text>
-        <Text style={styles.pointsNotice}>نتائج هذه الألعاب تؤثر على نقاط اللعب المجانية فقط، ولا تغيّر رصيد Coins أو Diamonds في محفظتك.</Text>
+        <Text style={styles.pointsNotice}>الألعاب تستخدم Point فقط. لا يمكن شراء Point أو تحويلها إلى Coin أو Diamond أو سحبها.</Text>
       </Animated.View>
     </ScrollView>
   );
@@ -182,9 +186,10 @@ const styles = StyleSheet.create({
   content: { paddingBottom: 104 },
   header: { padding: 16, paddingTop: 60, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { color: colors.text, fontSize: 24, fontWeight: 'bold' },
-  balanceCard: { backgroundColor: colors.surface, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  balanceCard: { backgroundColor: colors.surface, paddingHorizontal: 12, paddingVertical: 9, borderRadius: 12 },
+  balanceHeading: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   balanceLabel: { color: colors.textSecondary, fontSize: 11 },
-  balanceValue: { color: colors.gold, fontSize: 14, fontWeight: 'bold', marginTop: 2 },
+  balanceValue: { color: '#C4A5FF', fontSize: 15, fontWeight: 'bold', marginTop: 5, textAlign: 'right' },
   claimButton: {
     marginHorizontal: 16, marginTop: 2, minHeight: 48, borderRadius: 14, paddingHorizontal: 14,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9,

@@ -11,9 +11,18 @@ import { useAuthStore } from '@/store/auth';
 import { Dice5, TrendingUp, TrendingDown } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/lib/theme';
+import { usePreferencesStore } from '@/store/preferences';
+
+interface DiceResponse {
+  roll: number;
+  is_win: boolean;
+  payout: number;
+  multiplier: number;
+}
 
 export default function DiceGame() {
   const { profile, loadProfile } = useAuthStore();
+  const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
   const [betAmount, setBetAmount] = useState('100');
   const [target, setTarget] = useState('50');
   const [direction, setDirection] = useState<'over' | 'under'>('over');
@@ -21,6 +30,7 @@ export default function DiceGame() {
   const [result, setResult] = useState<{ roll: number; won: boolean; payout: number; mult: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const dieRotation = useRef(new Animated.Value(0)).current;
+  const dieBounce = useRef(new Animated.Value(0)).current;
 
   const pWin = direction === 'over'
     ? (100 - Number(target)) / 100
@@ -29,38 +39,80 @@ export default function DiceGame() {
   const adjustedMult = fairMult * 30 / 100; // RTP 30%
 
   const play = async () => {
-    if (!betAmount || !target) return;
+    const bet = Number(betAmount);
+    const targetValue = Number(target);
+    if (
+      !Number.isSafeInteger(bet)
+      || bet < 1
+      || !Number.isInteger(targetValue)
+      || targetValue < 2
+      || targetValue > 98
+      || loading
+    ) return;
     setLoading(true);
     setResult(null);
 
     const rollAnimation = Animated.loop(
-      Animated.timing(dieRotation, {
-        toValue: 1,
-        duration: 450,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }),
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(dieRotation, { toValue: 1, duration: 420, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(dieRotation, { toValue: 0, duration: 420, easing: Easing.linear, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.timing(dieBounce, { toValue: 1, duration: 210, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(dieBounce, { toValue: 0, duration: 210, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+          Animated.timing(dieBounce, { toValue: 1, duration: 210, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(dieBounce, { toValue: 0, duration: 210, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+        ]),
+      ]),
     );
     try {
       setRolling(true);
-      rollAnimation.start();
-      const response = await callFunction<any>('game-dice', {
-        bet_amount: Number(betAmount),
-        target: Number(target),
+      if (!reduceMotion) rollAnimation.start();
+      const response = await callFunction<DiceResponse>('game-dice', {
+        bet_amount: bet,
+        target: targetValue,
         direction,
       }, `game-dice-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`);
+      if (
+        !Number.isInteger(response.roll)
+        || response.roll < 1
+        || response.roll > 100
+        || typeof response.is_win !== 'boolean'
+        || !Number.isFinite(response.payout)
+        || response.payout < 0
+        || !Number.isFinite(response.multiplier)
+        || response.multiplier < 0
+      ) {
+        throw new Error('لم تصل نتيجة النرد بشكل صحيح.');
+      }
+
+      rollAnimation.stop();
+      if (!reduceMotion) {
+        await new Promise<void>((resolve) => {
+          Animated.sequence([
+            Animated.timing(dieBounce, { toValue: 0.75, duration: 100, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+            Animated.spring(dieBounce, { toValue: 0, speed: 18, bounciness: 8, useNativeDriver: true }),
+          ]).start(() => resolve());
+        });
+      }
       setResult({
         roll: response.roll,
         won: response.is_win,
         payout: response.payout,
         mult: response.multiplier,
       });
-      loadProfile();
-    } catch (err: any) {
-      Alert.alert('خطأ', err.message);
+      void loadProfile().catch((error: unknown) => {
+        console.warn('[Wattar] Failed to refresh game points after dice:', error);
+      });
+    } catch (err: unknown) {
+      Alert.alert('خطأ', err instanceof Error ? err.message : 'تعذر إكمال الجولة.');
     } finally {
       rollAnimation.stop();
+      dieRotation.stopAnimation();
+      dieBounce.stopAnimation();
       dieRotation.setValue(0);
+      dieBounce.setValue(0);
       setRolling(false);
       setLoading(false);
     }
@@ -73,10 +125,11 @@ export default function DiceGame() {
 
       <View style={styles.diceContainer}>
         {rolling ? (
-          <Animated.View style={{ transform: [{ rotate: dieRotation.interpolate({
-            inputRange: [0, 1],
-            outputRange: ['0deg', '360deg'],
-          }) }] }}>
+          <Animated.View style={{ transform: [
+            { translateY: dieBounce.interpolate({ inputRange: [0, 1], outputRange: [0, -36] }) },
+            { scale: dieBounce.interpolate({ inputRange: [0, 1], outputRange: [1, 0.88] }) },
+            { rotate: dieRotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) },
+          ] }}>
             <Dice5 size={120} color={colors.roomPrimary} />
           </Animated.View>
         ) : result ? (
@@ -156,7 +209,7 @@ export default function DiceGame() {
           </View>
         </View>
 
-        <Text style={styles.label}>النقاط المشاركة</Text>
+        <Text style={styles.label}>مقدار Point للجولة</Text>
         <TextInput
           style={styles.input}
           value={betAmount}
@@ -177,7 +230,7 @@ export default function DiceGame() {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.balance}>نقاط مجانية: {profile?.game_points?.toLocaleString() ?? 0}</Text>
+      <Text style={styles.balance}>Point: {profile?.game_points?.toLocaleString() ?? 0}</Text>
     </ScrollView>
   );
 }

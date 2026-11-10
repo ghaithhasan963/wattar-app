@@ -18,9 +18,7 @@ interface UserProfile {
   role: string;
   status: string;
   balance_gold: number;
-  balance_converted_coins: number;
   balance_diamond: number;
-  balance_diamond_promo: number;
   game_points: number;
   experience_points: number;
   level: number;

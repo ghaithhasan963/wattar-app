@@ -124,7 +124,7 @@ export function jsonResponse(data: unknown, status = 200): Response {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Idempotency-Key',
+      'Access-Control-Allow-Headers': 'Authorization, X-Client-Info, Apikey, Content-Type, X-Idempotency-Key',
     },
   });
 }

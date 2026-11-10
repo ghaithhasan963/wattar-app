@@ -30,8 +30,8 @@ interface NewMission {
 const eventLabels: Record<MissionEvent, string> = {
   daily_grant: 'استلام النقاط اليومية',
   story_post: 'نشر قصة',
-  gift_sent: 'إرسال هدية بـCoins مدفوعة',
-  gift_received: 'استقبال هدية مدفوعة',
+  gift_sent: 'إرسال هدية بـCoin',
+  gift_received: 'استقبال هدية بـCoin',
   following: 'متابعة مستخدمين',
 };
 
@@ -165,7 +165,7 @@ export function MissionsPage() {
           <Input label="الوصف" value={form.description} onChange={(v) => setForm({ ...form, description: v })} />
           <SelectEvent value={form.event_type} onChange={(v) => setForm({ ...form, event_type: v })} />
           <Input label="العدد المطلوب (1–100)" type="number" value={form.target_count} onChange={(v) => setForm({ ...form, target_count: v })} />
-          <Input label="نقاط اللعب المجانية (0–5000)" type="number" value={form.reward_game_points} onChange={(v) => setForm({ ...form, reward_game_points: v })} />
+          <Input label="مكافأة Point (0–5000)" type="number" value={form.reward_game_points} onChange={(v) => setForm({ ...form, reward_game_points: v })} />
           <Input label="XP (0–1000)" type="number" value={form.reward_xp} onChange={(v) => setForm({ ...form, reward_xp: v })} />
         </div>
         <button disabled={creating} className="flex items-center gap-2 rounded-lg bg-wattar-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
@@ -206,7 +206,7 @@ export function MissionsPage() {
                 <Input label="العنوان" value={mission.title} onChange={(v) => updateMission(mission.id, 'title', v)} />
                 <Input label="الوصف" value={mission.description} onChange={(v) => updateMission(mission.id, 'description', v)} />
                 <Input label="العدد المطلوب" type="number" value={String(mission.target_count)} onChange={(v) => updateMission(mission.id, 'target_count', Number(v))} />
-                <Input label="نقاط اللعب المجانية" type="number" value={String(mission.reward_game_points)} onChange={(v) => updateMission(mission.id, 'reward_game_points', Number(v))} />
+                <Input label="مكافأة Point" type="number" value={String(mission.reward_game_points)} onChange={(v) => updateMission(mission.id, 'reward_game_points', Number(v))} />
                 <Input label="XP" type="number" value={String(mission.reward_xp)} onChange={(v) => updateMission(mission.id, 'reward_xp', Number(v))} />
               </div>
               <div className="flex justify-end">

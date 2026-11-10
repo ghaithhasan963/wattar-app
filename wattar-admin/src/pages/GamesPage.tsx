@@ -1,6 +1,6 @@
 /**
  * Wattar Admin — صفحة إعدادات الألعاب
- * ضبط RTP + حدود نقاط اللعب المجانية + تفعيل/إيقاف
+ * ضبط RTP + حدود Point + تفعيل/إيقاف
  */
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -91,7 +91,7 @@ export function GamesPage() {
     <div className="space-y-6" dir="rtl">
       <div>
         <h1 className="text-2xl font-bold text-white">إعدادات الألعاب</h1>
-        <p className="text-gray-400 mt-1">هذه الألعاب تستخدم نقاطًا مجانية منفصلة عن رصيد Coins وDiamonds.</p>
+        <p className="text-gray-400 mt-1">هذه الألعاب تستخدم Point فقط؛ لا تُشترى ولا تتحول إلى Coin أو Diamond.</p>
       </div>
 
       {loading ? (

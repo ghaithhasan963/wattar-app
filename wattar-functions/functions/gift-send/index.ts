@@ -15,7 +15,7 @@ interface GiftSendBody {
   quantity?: number;
   room_id?: string;
   message?: string;
-  funding_currency?: 'gold' | 'conv_gold';
+  funding_currency?: string;
 }
 
 Deno.serve(async (req: Request) => {
@@ -36,10 +36,10 @@ Deno.serve(async (req: Request) => {
     if (body.message !== undefined && body.message.length > 500) {
       throw new HttpError(400, 'MESSAGE_TOO_LONG', 'Gift message cannot exceed 500 characters');
     }
-    const fundingCurrency = body.funding_currency ?? 'gold';
-    if (fundingCurrency !== 'gold' && fundingCurrency !== 'conv_gold') {
-      throw new HttpError(400, 'INVALID_FUNDING_CURRENCY', 'Unsupported Coins balance');
+    if (body.funding_currency !== undefined && body.funding_currency !== 'gold') {
+      throw new HttpError(400, 'INVALID_FUNDING_CURRENCY', 'Gifts can only be funded with Coin');
     }
+    const fundingCurrency = 'gold';
 
     const idempotencyKey = req.headers.get('X-Idempotency-Key')?.trim();
     if (!idempotencyKey || !/^[A-Za-z0-9._:-]{10,90}$/.test(idempotencyKey)) {

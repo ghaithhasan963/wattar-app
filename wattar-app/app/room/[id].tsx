@@ -9,19 +9,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, FlatList, TextInput, ScrollView, Alert, Image, ActivityIndicator,
-  PermissionsAndroid, Platform, Modal,
+  PermissionsAndroid, Platform, Modal, Animated, Easing,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase, callFunction } from '@/lib/supabase';
 import { notifySocialEvent } from '@/lib/notifications';
 import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
+import { CurrencyIcon } from '@/components/CurrencyIcon';
 import { colors } from '@/lib/theme';
 import { StatusBar } from 'expo-status-bar';
 import { joinVoice, leaveVoice, setMicEnabled } from '@/lib/livekit';
 import type { Room } from 'livekit-client';
 import {
-  Mic, MicOff, X, Send, Gift, Crown, Lock, LogOut, Users, Volume2, VolumeX, UserPlus,
+  Mic, MicOff, X, Send, Gift, Crown, Lock, LogOut, Users, Volume2, VolumeX, UserPlus, Smile, Search,
 } from 'lucide-react-native';
 
 const VOICE_OFF = 'off' as const;
@@ -29,6 +30,7 @@ const VOICE_CONNECTING = 'connecting' as const;
 const VOICE_ON = 'on' as const;
 const VOICE_UNAVAILABLE = 'unavailable' as const;
 type VoiceState = typeof VOICE_OFF | typeof VOICE_CONNECTING | typeof VOICE_ON | typeof VOICE_UNAVAILABLE;
+const CHAT_EMOJIS = ['😀', '😂', '🥰', '😍', '🤩', '😎', '🥳', '😭', '👏', '🔥', '❤️', '🌹', '🎉', '✨', '💎', '🎁'];
 
 interface Seat {
   id: string;
@@ -62,8 +64,10 @@ export default function RoomScreen() {
   const [seats, setSeats] = useState<Seat[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [showGifts, setShowGifts] = useState(false);
+  const [giftCelebration, setGiftCelebration] = useState<{ emoji: string; name: string; recipient: string } | null>(null);
   const [showRoomInvites, setShowRoomInvites] = useState(false);
   const [inviteFriends, setInviteFriends] = useState<Array<{ user_id: string; username: string; display_name: string | null }>>([]);
   const [invitesLoading, setInvitesLoading] = useState(false);
@@ -76,7 +80,31 @@ export default function RoomScreen() {
   const chatListRef = useRef<FlatList>(null);
   const lkRoomRef = useRef<Room | null>(null);
   const seatsRef = useRef<Seat[]>([]);
+  const giftCelebrationAnim = useRef(new Animated.Value(0)).current;
   const speakersCount = seats.filter(seat => seat.status === 'occupied' && seat.user_id).length;
+
+  useEffect(() => {
+    if (!giftCelebration) return;
+    giftCelebrationAnim.setValue(0);
+    const animation = Animated.sequence([
+      Animated.spring(giftCelebrationAnim, {
+        toValue: 1,
+        speed: 15,
+        bounciness: 12,
+        useNativeDriver: true,
+      }),
+      Animated.delay(1800),
+      Animated.timing(giftCelebrationAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]);
+    animation.start(({ finished }) => {
+      if (finished) setGiftCelebration(null);
+    });
+    return () => animation.stop();
+  }, [giftCelebration, giftCelebrationAnim]);
 
   useEffect(() => {
     if (!id) return;
@@ -91,7 +119,13 @@ export default function RoomScreen() {
     const updatePresence = (functionName: 'room-join' | 'room-leave', notifyError = false) => {
       presenceQueue = presenceQueue.then(async () => {
         try {
-          await callFunction(functionName, { room_id: id, session_id: presenceSessionId });
+          const result = await callFunction<{ listener_count: number }>(functionName, {
+            room_id: id,
+            session_id: presenceSessionId,
+          });
+          if (!cancelled && Number.isInteger(result.listener_count) && result.listener_count >= 0) {
+            setListenersCount(result.listener_count);
+          }
         } catch (error: unknown) {
           console.warn(`[Wattar] ${functionName} presence request failed:`, error);
           if (notifyError && !cancelled) {
@@ -156,7 +190,7 @@ export default function RoomScreen() {
       supabase
       .from('rooms')
       .select(`
-        id, name, owner_id, seat_count, status, listeners_count, speakers_count,
+        id, name, owner_id, seat_count, status, speakers_count,
         owner:users!rooms_owner_id_fkey(username, display_name, avatar_url)
       `)
       .eq('id', id)
@@ -189,9 +223,8 @@ export default function RoomScreen() {
       setRoomLoading(false);
       throw new Error('الغرفة غير موجودة أو لا تملك صلاحية الدخول إليها.');
     }
-
     setRoom(roomResult.data);
-    setListenersCount(roomResult.data.listeners_count);
+    setRoom(roomResult.data);
     const loadedSeats = seatsResult.data ?? [];
     seatsRef.current = loadedSeats as Seat[];
     setSeats(loadedSeats);
@@ -300,7 +333,6 @@ export default function RoomScreen() {
         (payload) => {
           const updatedRoom = payload.new as typeof room;
           setRoom((current: typeof room) => current ? { ...current, ...updatedRoom } : current);
-          setListenersCount(updatedRoom.listeners_count ?? 0);
         }
       )
       .subscribe();
@@ -665,6 +697,24 @@ export default function RoomScreen() {
       </View>
 
       {/* Input Bar */}
+      {showEmojiPicker && (
+        <View style={styles.emojiTray}>
+          <Text style={styles.emojiTrayTitle}>أضف تعبيرًا</Text>
+          <View style={styles.emojiGrid}>
+            {CHAT_EMOJIS.map((emoji) => (
+              <TouchableOpacity
+                key={emoji}
+                style={styles.emojiChoice}
+                onPress={() => setNewMessage((current) => `${current}${emoji}`.slice(0, 500))}
+                accessibilityRole="button"
+                accessibilityLabel={`إضافة ${emoji}`}
+              >
+                <Text style={styles.emojiChoiceText}>{emoji}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
       <View style={styles.inputBar}>
         <TouchableOpacity
           style={styles.giftBtn}
@@ -674,10 +724,19 @@ export default function RoomScreen() {
         >
           <Gift size={22} color={colors.gold} />
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.emojiToggle, showEmojiPicker && styles.emojiToggleActive]}
+          onPress={() => setShowEmojiPicker((visible) => !visible)}
+          accessibilityRole="button"
+          accessibilityLabel={showEmojiPicker ? 'إغلاق لوحة الإيموجي' : 'فتح لوحة الإيموجي'}
+        >
+          <Smile size={20} color={showEmojiPicker ? colors.gold : colors.roomMuted} />
+        </TouchableOpacity>
         <TextInput
           style={styles.messageInput}
           value={newMessage}
           onChangeText={setNewMessage}
+          onFocus={() => setShowEmojiPicker(false)}
           placeholder="اكتب رسالة..."
           placeholderTextColor={colors.roomMuted}
           onSubmitEditing={sendMessage}
@@ -728,7 +787,29 @@ export default function RoomScreen() {
           roomId={id}
           seats={seats}
           onClose={() => setShowGifts(false)}
+          onGiftSent={(gift) => setGiftCelebration(gift)}
         />
+      )}
+      {giftCelebration && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.giftCelebration,
+            {
+              opacity: giftCelebrationAnim,
+              transform: [
+                { scale: giftCelebrationAnim.interpolate({ inputRange: [0, 1], outputRange: [0.65, 1] }) },
+                { translateY: giftCelebrationAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) },
+              ],
+            },
+          ]}
+        >
+          <Text style={styles.giftCelebrationEmoji}>{giftCelebration.emoji}</Text>
+          <Text style={styles.giftCelebrationTitle}>وصلت هديتك!</Text>
+          <Text style={styles.giftCelebrationSubtitle}>
+            {giftCelebration.name} إلى {giftCelebration.recipient}
+          </Text>
+        </Animated.View>
       )}
       <Modal
         visible={showRoomInvites}
@@ -791,9 +872,41 @@ function SeatView({
   isOwner: boolean;
   onTake: () => void;
 }) {
+  const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
+  const pulse = useRef(new Animated.Value(0)).current;
   const isOccupied = seat.status === 'occupied' && seat.user_id;
   const isLocked = seat.status === 'locked';
   const canTake = !isOccupied && !isLocked && (mySeat === null || mySeat === seat.seat_index);
+
+  useEffect(() => {
+    if (!seat.is_mic_on || reduceMotion) {
+      pulse.stopAnimation();
+      pulse.setValue(0);
+      return;
+    }
+
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 650,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0,
+          duration: 650,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [pulse, reduceMotion, seat.is_mic_on]);
+
+  const pulseScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.25] });
+  const pulseOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.65] });
 
   return (
     <TouchableOpacity
@@ -809,19 +922,30 @@ function SeatView({
     >
       {isOccupied ? (
         <>
-          <View style={styles.seatAvatar}>
-            {seat.user?.avatar_url ? (
-              <Image source={{ uri: seat.user.avatar_url }} style={styles.seatAvatarImg} />
-            ) : (
-              <Text style={styles.seatAvatarText}>
-                {(seat.user?.display_name ?? seat.user?.username ?? '?')[0]?.toUpperCase()}
-              </Text>
+          <View style={styles.seatAvatarWrap}>
+            {seat.is_mic_on && !reduceMotion && (
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  styles.speakerHalo,
+                  { opacity: pulseOpacity, transform: [{ scale: pulseScale }] },
+                ]}
+              />
             )}
-            {seat.is_owner_seat && (
-              <View style={styles.ownerCrown}>
-                <Crown size={12} color={colors.gold} />
-              </View>
-            )}
+            <View style={styles.seatAvatar}>
+              {seat.user?.avatar_url ? (
+                <Image source={{ uri: seat.user.avatar_url }} style={styles.seatAvatarImg} />
+              ) : (
+                <Text style={styles.seatAvatarText}>
+                  {(seat.user?.display_name ?? seat.user?.username ?? '?')[0]?.toUpperCase()}
+                </Text>
+              )}
+              {seat.is_owner_seat && (
+                <View style={styles.ownerCrown}>
+                  <Crown size={12} color={colors.gold} />
+                </View>
+              )}
+            </View>
           </View>
           <Text style={styles.seatName} numberOfLines={1}>
             {seat.user?.display_name ?? seat.user?.username}
@@ -845,17 +969,47 @@ function SeatView({
   );
 }
 
-function GiftsModal({ roomId, seats, onClose }: { roomId: string; seats: Seat[]; onClose: () => void }) {
+function GiftsModal({
+  roomId,
+  seats,
+  onClose,
+  onGiftSent,
+}: {
+  roomId: string;
+  seats: Seat[];
+  onClose: () => void;
+  onGiftSent: (gift: { emoji: string; name: string; recipient: string }) => void;
+}) {
   const { profile, loadProfile } = useAuthStore();
   const [gifts, setGifts] = useState<any[]>([]);
   const [selectedGift, setSelectedGift] = useState<string | null>(null);
+  const [giftSearch, setGiftSearch] = useState('');
   const [receiver, setReceiver] = useState<{ id: string; name: string } | null>(null);
-  const [fundingCurrency, setFundingCurrency] = useState<'gold' | 'conv_gold'>('gold');
   const [sending, setSending] = useState(false);
+  const [giftsLoading, setGiftsLoading] = useState(true);
+  const [giftsError, setGiftsError] = useState<string | null>(null);
   const [giftAttempt, setGiftAttempt] = useState<{ fingerprint: string; key: string } | null>(null);
 
   useEffect(() => {
-    supabase.from('gifts').select('*').eq('is_active', true).order('sort_order').then(({ data }) => setGifts(data ?? []));
+    let active = true;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('gifts')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order');
+        if (error) throw error;
+        if (active) setGifts(data ?? []);
+      } catch (error: unknown) {
+        if (active) {
+          setGiftsError(error instanceof Error ? error.message : 'تعذر تحميل قائمة الهدايا.');
+        }
+      } finally {
+        if (active) setGiftsLoading(false);
+      }
+    })();
+    return () => { active = false; };
   }, []);
 
   // المستلمون الممكنون: جميع أصحاب المقاعد عدا أنا
@@ -863,19 +1017,23 @@ function GiftsModal({ roomId, seats, onClose }: { roomId: string; seats: Seat[];
     .filter(s => s.status === 'occupied' && s.user_id && s.user_id !== profile?.id)
     .map(s => ({ id: s.user_id!, name: s.user?.display_name ?? s.user?.username ?? 'مستخدم' }));
   const selectedGiftRecord = gifts.find(gift => gift.id === selectedGift);
+  const filteredGifts = gifts.filter((gift) => {
+    const query = giftSearch.trim().toLocaleLowerCase();
+    return !query || `${gift.name_ar ?? ''} ${gift.name ?? ''}`.toLocaleLowerCase().includes(query);
+  });
+  const availableBalance = profile?.balance_gold ?? 0;
+  const giftPrice = Number(selectedGiftRecord?.price_gold ?? 0);
+  const canAffordGift = giftPrice <= availableBalance;
 
   const sendGift = async () => {
     if (!selectedGift || !receiver || sending) return;
-    const balance = fundingCurrency === 'gold'
-      ? profile?.balance_gold ?? 0
-      : profile?.balance_converted_coins ?? 0;
-    if (balance < Number(selectedGiftRecord?.price_gold ?? 0)) {
-      Alert.alert('رصيد غير كافٍ', 'اختر نوع رصيد آخر أو اشحن Coins مدفوعة.');
+    if (!canAffordGift) {
+      Alert.alert('رصيد Coin غير كافٍ', 'اشحن رصيد Coin أو اختر هدية أقل سعرًا.');
       return;
     }
     setSending(true);
     try {
-      const fingerprint = `${receiver.id}:${selectedGift}:${roomId}:${fundingCurrency}`;
+      const fingerprint = `${receiver.id}:${selectedGift}:${roomId}:gold`;
       const idempotencyKey = giftAttempt?.fingerprint === fingerprint
         ? giftAttempt.key
         : `gift-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -885,9 +1043,14 @@ function GiftsModal({ roomId, seats, onClose }: { roomId: string; seats: Seat[];
         gift_id: selectedGift,
         room_id: roomId,
         quantity: 1,
-        funding_currency: fundingCurrency,
+        funding_currency: 'gold',
       }, idempotencyKey);
       setGiftAttempt(null);
+      onGiftSent({
+        emoji: selectedGiftRecord?.icon_emoji ?? '🎁',
+        name: selectedGiftRecord?.name_ar ?? selectedGiftRecord?.name ?? 'هدية',
+        recipient: receiver.name,
+      });
       let profileRefreshFailed = false;
       try {
         await loadProfile();
@@ -903,7 +1066,7 @@ function GiftsModal({ roomId, seats, onClose }: { roomId: string; seats: Seat[];
       );
       onClose();
     } catch (e: unknown) {
-      Alert.alert('خطأ', String((e as Error)?.message ?? 'فشل إرسال الهدية'));
+      Alert.alert('خطأ', e instanceof Error ? e.message : 'فشل إرسال الهدية');
     } finally {
       setSending(false);
     }
@@ -913,7 +1076,12 @@ function GiftsModal({ roomId, seats, onClose }: { roomId: string; seats: Seat[];
     <View style={styles.giftsModal}>
       <View style={styles.giftsContent}>
         <View style={styles.giftsHeader}>
-          <Text style={styles.giftsTitle}>{receiver ? 'هدية إلى: ' + receiver.name : 'إرسال هدية'}</Text>
+          <View style={styles.giftsHeadingCopy}>
+            <Text style={styles.giftsTitle}>{receiver ? 'تأكيد الهدية' : 'هدايا الغرفة'}</Text>
+            <Text style={styles.giftsSubtitle}>
+              {receiver ? `إلى ${receiver.name}` : 'اختر هدية ثم حدد المستلم'}
+            </Text>
+          </View>
           <TouchableOpacity
             onPress={() => {
               if (receiver) setReceiver(null);
@@ -926,77 +1094,119 @@ function GiftsModal({ roomId, seats, onClose }: { roomId: string; seats: Seat[];
 
         {!receiver ? (
           <>
-            <View style={styles.giftsGrid}>
-              {gifts.map(g => (
-                <TouchableOpacity
-                  key={g.id}
-                  style={[styles.giftCard, selectedGift === g.id && styles.giftCardActive]}
-                  onPress={() => setSelectedGift(g.id)}
-                >
-                  <View style={styles.giftIcon}>
-                    <Text style={styles.giftIconText}>{g.icon_emoji ?? '🎁'}</Text>
-                  </View>
-                  <Text style={styles.giftName}>{g.name_ar ?? g.name}</Text>
-                  <Text style={styles.giftPrice}>{g.price_gold} Coins</Text>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.giftBalanceCard}>
+              <View>
+                <View style={styles.giftBalanceTitle}>
+                  <Text style={styles.giftBalanceLabel}>رصيد Coin المتاح</Text>
+                  <CurrencyIcon currency="coin" size={27} />
+                </View>
+                <Text style={styles.giftBalanceValue}>{availableBalance.toLocaleString()}</Text>
+              </View>
             </View>
 
-            <Text style={styles.stepHint}>اختر المستلم من الجالسين على المقاعد:</Text>
-            {recipients.length === 0 ? (
-              <Text style={styles.noRecipients}>لا يوجد مستلمون حالياً — لا بد من مستخدم آخر على مقعد</Text>
+            <Text style={styles.stepHint}>اختر هدية</Text>
+            {giftsLoading ? (
+              <ActivityIndicator color={colors.gold} style={styles.giftLoading} />
+            ) : giftsError ? (
+              <Text style={styles.giftError}>تعذر تحميل الهدايا: {giftsError}</Text>
+            ) : gifts.length === 0 ? (
+              <Text style={styles.noRecipients}>لا توجد هدايا متاحة حاليًا.</Text>
             ) : (
-              <View style={styles.recipientsRow}>
-                {recipients.map(r => (
-                  <TouchableOpacity
-                    key={r.id}
-                    style={styles.recipientChip}
-                    onPress={() => setReceiver(r)}
-                  >
-                    <Text style={styles.recipientText}>{r.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <>
+                <View style={styles.giftSearchWrap}>
+                  <Search size={16} color={colors.roomMuted} />
+                  <TextInput
+                    value={giftSearch}
+                    onChangeText={setGiftSearch}
+                    placeholder="ابحث عن هدية..."
+                    placeholderTextColor={colors.roomMuted}
+                    style={styles.giftSearchInput}
+                    accessibilityLabel="البحث في الهدايا"
+                  />
+                </View>
+                <ScrollView style={styles.giftList} contentContainerStyle={styles.giftsGrid} nestedScrollEnabled>
+                  {filteredGifts.map(gift => (
+                    <TouchableOpacity
+                      key={gift.id}
+                      style={[styles.giftCard, selectedGift === gift.id && styles.giftCardActive]}
+                      onPress={() => setSelectedGift(gift.id)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: selectedGift === gift.id }}
+                    >
+                      <View style={[styles.giftIcon, selectedGift === gift.id && styles.giftIconActive]}>
+                        <Text style={styles.giftIconText}>{gift.icon_emoji ?? '🎁'}</Text>
+                      </View>
+                      <Text style={styles.giftName} numberOfLines={1}>{gift.name_ar ?? gift.name}</Text>
+                      <Text style={styles.giftPrice}>{Number(gift.price_gold).toLocaleString()} Coins</Text>
+                    </TouchableOpacity>
+                  ))}
+                  {filteredGifts.length === 0 && (
+                    <Text style={styles.noRecipients}>ما لقينا هدية بهذا الاسم.</Text>
+                  )}
+                </ScrollView>
+              </>
             )}
 
-            <TouchableOpacity
-              style={[styles.sendGiftBtn, (!selectedGift || !receiver && recipients.length === 0 || !receiver) && styles.sendGiftDisabled]}
-              disabled={!selectedGift || !receiver}
-              onPress={() => {
-                // إذا لم يُختر مستلم بعد ولا يوجد سوى مستلم واحد نختاره تلقائياً
-                if (!receiver && recipients.length === 1) setReceiver(recipients[0]);
-              }}
-            >
-              <Text style={styles.sendGiftText}>
-                {selectedGift ? (recipients.length === 1 ? 'إرسال مباشر' : 'اختر المستلم ثم اضغط إرسال') : 'اختر هدية أولاً'}
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.giftFundingOptions}>
-              {([
-                { currency: 'gold' as const, label: `مدفوعة · ${profile?.balance_gold?.toLocaleString() ?? 0}` },
-                { currency: 'conv_gold' as const, label: `محوّلة · ${profile?.balance_converted_coins?.toLocaleString() ?? 0}` },
-              ]).map((option) => (
-                <TouchableOpacity
-                  key={option.currency}
-                  style={[styles.giftFundingOption, fundingCurrency === option.currency && styles.giftFundingOptionActive]}
-                  onPress={() => setFundingCurrency(option.currency)}
-                >
-                  <Text style={styles.giftFundingText}>{option.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <Text style={styles.balanceText}>Coins المجانية للألعاب منفصلة ولا يمكن استخدامها لهدايا الدعم.</Text>
+            <Text style={styles.stepHint}>اختر المستلم من المنصة</Text>
+            {recipients.length === 0 ? (
+              <Text style={styles.noRecipients}>لا يوجد مستلمون حاليًا؛ يجب أن يكون شخص آخر على مقعد.</Text>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recipientsRow}>
+                {recipients.map(recipient => (
+                  <TouchableOpacity
+                    key={recipient.id}
+                    style={styles.recipientChip}
+                    onPress={() => selectedGift && setReceiver(recipient)}
+                    disabled={!selectedGift}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: !selectedGift }}
+                  >
+                    <Text style={styles.recipientText}>{recipient.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+            {selectedGiftRecord && (
+              <View style={styles.giftSelectionSummary}>
+                <Text style={styles.giftSelectionText}>
+                  {selectedGiftRecord.icon_emoji ?? '🎁'} {selectedGiftRecord.name_ar ?? selectedGiftRecord.name}
+                </Text>
+                <Text style={[styles.giftSelectionPrice, !canAffordGift && styles.giftUnaffordable]}>
+                  {giftPrice.toLocaleString()} Coins
+                </Text>
+              </View>
+            )}
+            <Text style={styles.balanceText}>الهدايا تُدفع بعملة Coin فقط. Point مخصصة للألعاب ولا يمكن استخدامها للهدايا.</Text>
           </>
         ) : (
           <>
-            <Text style={styles.stepHint}>تأكيد الإرسال:</Text>
+            <View style={styles.giftConfirmCard}>
+              <Text style={styles.giftConfirmEmoji}>{selectedGiftRecord?.icon_emoji ?? '🎁'}</Text>
+              <View style={styles.giftConfirmCopy}>
+                <Text style={styles.giftConfirmName}>{selectedGiftRecord?.name_ar ?? selectedGiftRecord?.name ?? 'هدية'}</Text>
+                <Text style={styles.giftConfirmRecipient}>إلى {receiver.name}</Text>
+              </View>
+              <Text style={[styles.giftConfirmPrice, !canAffordGift && styles.giftUnaffordable]}>
+                {giftPrice.toLocaleString()} Coins
+              </Text>
+            </View>
+            <View style={styles.giftPaymentSummary}>
+              <Text style={styles.giftPaymentLabel}>الدفع من</Text>
+              <Text style={styles.giftPaymentValue}>Coin</Text>
+              <Text style={styles.giftPaymentLabel}>بعد الإهداء</Text>
+              <Text style={styles.giftPaymentValue}>
+                {Math.max(0, availableBalance - giftPrice).toLocaleString()} Coins
+              </Text>
+            </View>
+            {!canAffordGift && <Text style={styles.giftError}>رصيد Coin غير كافٍ لهذه الهدية. اشحن رصيدك أو اختر هدية أقل سعرًا.</Text>}
             <TouchableOpacity
-              style={[styles.sendGiftBtn, (!selectedGift || sending) && styles.sendGiftDisabled]}
-              disabled={!selectedGift || sending}
+              style={[styles.sendGiftBtn, (!selectedGift || sending || !canAffordGift) && styles.sendGiftDisabled]}
+              disabled={!selectedGift || sending || !canAffordGift}
               onPress={sendGift}
             >
-              <Text style={styles.sendGiftText}>{sending ? '…جاري الإرسال' : 'تأكيد الإرسال 🎁'}</Text>
+              {sending
+                ? <ActivityIndicator color="#25140A" />
+                : <Text style={styles.sendGiftText}>إرسال الهدية الآن 🎁</Text>}
             </TouchableOpacity>
           </>
         )}
@@ -1081,6 +1291,15 @@ const styles = StyleSheet.create({
   seatEmpty: { alignItems: 'center', gap: 4 },
   seatEmptyText: { color: colors.roomPrimary, fontSize: 11, marginTop: 4 },
   seatLockedText: { color: colors.roomMuted, fontSize: 11, marginTop: 4 },
+  seatAvatarWrap: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
+  speakerHalo: {
+    position: 'absolute',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: colors.roomTeal,
+  },
   seatAvatar: {
     width: 48,
     height: 48,
@@ -1133,8 +1352,10 @@ const styles = StyleSheet.create({
   noRecipients: { color: colors.roomMuted, fontSize: 12, textAlign: 'center', paddingVertical: 8 },
   recipientsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   recipientChip: {
-    backgroundColor: colors.roomPrimary, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 7,
+    backgroundColor: colors.roomElevated, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 9,
+    borderWidth: 1, borderColor: '#49365C',
   },
+  recipientChipActive: { backgroundColor: '#49305E', borderColor: colors.roomPrimary },
   recipientText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   sendGiftBtn: {
     backgroundColor: colors.gold, borderRadius: 12, paddingVertical: 13,
@@ -1142,6 +1363,38 @@ const styles = StyleSheet.create({
   },
   sendGiftDisabled: { opacity: 0.4 },
   sendGiftText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  giftsHeadingCopy: { flex: 1 },
+  giftsSubtitle: { color: colors.roomMuted, fontSize: 11, marginTop: 4 },
+  giftBalanceCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderRadius: 15, backgroundColor: '#21182D', borderWidth: 1, borderColor: '#382B45' },
+  giftBalanceTitle: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  giftBalanceLabel: { color: colors.roomMuted, fontSize: 10 },
+  giftBalanceValue: { color: colors.gold, fontSize: 15, fontWeight: '900', marginTop: 4 },
+  giftList: { maxHeight: 168 },
+  giftSearchWrap: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 11, marginBottom: 8, borderRadius: 12, backgroundColor: '#17111F', borderWidth: 1, borderColor: '#382B45' },
+  giftSearchInput: { flex: 1, color: colors.roomText, fontSize: 12, paddingVertical: 8, textAlign: 'right' },
+  giftLoading: { marginVertical: 24 },
+  giftError: { color: colors.danger, fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 9 },
+  giftIconActive: { backgroundColor: '#4B3360' },
+  giftSelectionSummary: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 9, padding: 11, borderRadius: 12, backgroundColor: '#21182D' },
+  giftSelectionText: { color: colors.roomText, fontSize: 12, fontWeight: '700' },
+  giftSelectionPrice: { color: colors.gold, fontSize: 12, fontWeight: '900' },
+  giftUnaffordable: { color: colors.danger },
+  giftConfirmCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, backgroundColor: '#21182D', borderWidth: 1, borderColor: '#49365C' },
+  giftConfirmEmoji: { fontSize: 36 },
+  giftConfirmCopy: { flex: 1 },
+  giftConfirmName: { color: colors.roomText, fontSize: 14, fontWeight: '800' },
+  giftConfirmRecipient: { color: colors.roomMuted, fontSize: 11, marginTop: 4 },
+  giftConfirmPrice: { color: colors.gold, fontSize: 12, fontWeight: '900' },
+  giftPaymentSummary: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 6, marginTop: 12, padding: 12, borderRadius: 13, backgroundColor: '#17111F' },
+  giftPaymentLabel: { width: '48%', color: colors.roomMuted, fontSize: 11 },
+  giftPaymentValue: { width: '48%', color: colors.roomText, fontSize: 11, fontWeight: '700', textAlign: 'right' },
+  emojiTray: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 7, backgroundColor: colors.roomSurface, borderTopWidth: 1, borderTopColor: colors.roomElevated },
+  emojiTrayTitle: { color: colors.roomMuted, fontSize: 10, fontWeight: '700', marginBottom: 8, textAlign: 'right' },
+  emojiGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 5 },
+  emojiChoice: { minWidth: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.roomElevated },
+  emojiChoiceText: { fontSize: 21 },
+  emojiToggle: { width: 36, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.roomElevated },
+  emojiToggleActive: { backgroundColor: '#3A2B48' },
   chatContainer: { flex: 1, paddingHorizontal: 14, paddingTop: 13, paddingBottom: 5 },
   chatHeading: {
     flexDirection: 'row',
@@ -1300,6 +1553,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'flex-end',
   },
+  giftCelebration: {
+    position: 'absolute',
+    top: '35%',
+    alignSelf: 'center',
+    minWidth: 220,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 18,
+    borderRadius: 24,
+    backgroundColor: '#281A35',
+    borderWidth: 1,
+    borderColor: colors.gold,
+    zIndex: 10,
+    elevation: 12,
+  },
+  giftCelebrationEmoji: { fontSize: 56 },
+  giftCelebrationTitle: { color: colors.gold, fontSize: 17, fontWeight: '900', marginTop: 4 },
+  giftCelebrationSubtitle: { color: colors.roomText, fontSize: 12, fontWeight: '700', marginTop: 5 },
   giftsContent: {
     backgroundColor: colors.roomSurface,
     borderTopLeftRadius: 24,

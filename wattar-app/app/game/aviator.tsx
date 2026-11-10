@@ -2,7 +2,7 @@
  * Wattar App — صفحة لعبة Aviator
  * نموذج أولي — يلعب عبر Edge Function
  */
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Animated, Easing, Alert, ScrollView,
 } from 'react-native';
@@ -11,65 +11,97 @@ import { useAuthStore } from '@/store/auth';
 import { Plane, TrendingUp } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/lib/theme';
+import { usePreferencesStore } from '@/store/preferences';
+
+interface AviatorResponse {
+  crash_point: number;
+  is_win: boolean;
+  payout: number;
+}
 
 export default function AviatorGame() {
   const { profile, loadProfile } = useAuthStore();
+  const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
   const [betAmount, setBetAmount] = useState('100');
   const [cashoutMult, setCashoutMult] = useState('2.0');
   const [multiplier, setMultiplier] = useState(1.0);
   const [isFlying, setIsFlying] = useState(false);
   const [result, setResult] = useState<{ crash: number; won: boolean; payout: number } | null>(null);
   const [loading, setLoading] = useState(false);
-  const multAnim = useRef(new Animated.Value(0)).current;
+  const multAnim = useRef(new Animated.Value(1)).current;
+  const flightAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const listenerId = multAnim.addListener(({ value }) => setMultiplier(value));
+    return () => {
+      multAnim.removeListener(listenerId);
+      multAnim.stopAnimation();
+    };
+  }, [multAnim]);
 
   const play = async () => {
-    if (!betAmount || !cashoutMult) return;
+    const bet = Number(betAmount);
+    const target = Number(cashoutMult);
+    if (!Number.isSafeInteger(bet) || bet < 1 || !Number.isFinite(target) || target <= 1 || loading || isFlying) return;
     setLoading(true);
     setResult(null);
     setMultiplier(1.0);
+    multAnim.setValue(1);
+    flightAnim.setValue(0);
 
     try {
-      const response = await callFunction<any>('game-aviator', {
-        bet_amount: Number(betAmount),
-        auto_cashout_multiplier: Number(cashoutMult),
+      const response = await callFunction<AviatorResponse>('game-aviator', {
+        bet_amount: bet,
+        auto_cashout_multiplier: target,
       }, `game-aviator-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`);
-      setLoading(false);
+      if (
+        typeof response.is_win !== 'boolean'
+        || !Number.isFinite(response.crash_point)
+        || !Number.isFinite(response.payout)
+        || response.crash_point < 1
+        || response.payout < 0
+      ) {
+        throw new Error('لم تصل نتيجة الجولة بشكل صحيح.');
+      }
 
-      // محاكاة الرحلة بصريًا
+      setLoading(false);
       setIsFlying(true);
-      const targetMult = response.is_win ? Number(cashoutMult) : response.crash_point;
-
-      // أنيميشن المضاعف
-      Animated.timing(multAnim, {
-        toValue: targetMult,
-        duration: 3000,
-        useNativeDriver: false,
-        easing: Easing.exp,
-      }).start();
-
-      // تحديث المضاعف كل 100ms
-      const interval = setInterval(() => {
-        setMultiplier(prev => {
-          const next = prev + (targetMult - prev) * 0.1;
-          if (Math.abs(next - targetMult) < 0.01) {
-            clearInterval(interval);
-            setIsFlying(false);
-            setResult({
-              crash: response.crash_point,
-              won: response.is_win,
-              payout: response.payout,
-            });
-            loadProfile();
-            return targetMult;
-          }
-          return next;
+      const targetMult = response.is_win ? target : response.crash_point;
+      Animated.parallel([
+        Animated.timing(multAnim, {
+          toValue: targetMult,
+          duration: reduceMotion ? 300 : 3000,
+          useNativeDriver: false,
+          easing: Easing.out(Easing.cubic),
+        }),
+        Animated.timing(flightAnim, {
+          toValue: 1,
+          duration: reduceMotion ? 300 : 3000,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.cubic),
+        }),
+      ]).start(({ finished }) => {
+        if (!finished) return;
+        setIsFlying(false);
+        setResult({
+          crash: response.crash_point,
+          won: response.is_win,
+          payout: response.payout,
         });
-      }, 50);
-    } catch (err: any) {
+        void loadProfile().catch((error: unknown) => {
+          console.warn('[Wattar] Failed to refresh game points after Aviator:', error);
+        });
+      });
+    } catch (err: unknown) {
       setLoading(false);
-      Alert.alert('خطأ', err.message);
+      setIsFlying(false);
+      Alert.alert('خطأ', err instanceof Error ? err.message : 'تعذر إكمال الجولة.');
     }
   };
+
+  const planeX = flightAnim.interpolate({ inputRange: [0, 1], outputRange: [-95, 105] });
+  const planeY = flightAnim.interpolate({ inputRange: [0, 1], outputRange: [60, -55] });
+  const planeRotation = flightAnim.interpolate({ inputRange: [0, 1], outputRange: ['-12deg', '-34deg'] });
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -77,6 +109,22 @@ export default function AviatorGame() {
       <Text style={styles.title}>طيارة المضاعفات</Text>
 
       <View style={styles.gameArea}>
+        <View style={styles.flightGrid} pointerEvents="none">
+          {[0, 1, 2, 3].map((line) => <View key={`h-${line}`} style={[styles.gridLine, { top: 28 + line * 34 }]} />)}
+          {[0, 1, 2, 3, 4].map((line) => <View key={`v-${line}`} style={[styles.gridVertical, { left: 28 + line * 58 }]} />)}
+        </View>
+        <View style={styles.flightTrack} pointerEvents="none" />
+        {(isFlying || result) && (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.plane,
+              { transform: [{ translateX: planeX }, { translateY: planeY }, { rotate: planeRotation }] },
+            ]}
+          >
+            <Plane size={28} color={result && !result.won ? colors.danger : colors.gold} />
+          </Animated.View>
+        )}
         <View style={styles.multDisplay}>
           {isFlying || result ? (
             <Text style={[styles.multiplier, result && !result.won && styles.multiplierCrash]}>
@@ -96,7 +144,7 @@ export default function AviatorGame() {
       <View style={styles.controlsCard}>
         <View style={styles.inputRow}>
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>النقاط المشاركة</Text>
+            <Text style={styles.inputLabel}>مقدار Point للجولة</Text>
             <TextInput
               style={styles.input}
               value={betAmount}
@@ -134,7 +182,7 @@ export default function AviatorGame() {
       <View style={styles.infoCard}>
         <View style={styles.infoRow}>
           <TrendingUp size={14} color="#9CA3AF" />
-          <Text style={styles.infoText}>نقاط مجانية: {profile?.game_points?.toLocaleString() ?? 0}</Text>
+          <Text style={styles.infoText}>Point: {profile?.game_points?.toLocaleString() ?? 0}</Text>
         </View>
         <Text style={styles.infoHint}>كيف تلعب: حدّد المضاعف المطلوب للسحب، الطيارة تطير وينتهي ذلك عند الانهيار. إذا وصلت لمضاعفك قبل الانهيار → تفوز.</Text>
       </View>
@@ -147,17 +195,32 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingTop: 58, paddingBottom: 32 },
   title: { color: colors.roomText, fontSize: 24, fontWeight: '800', textAlign: 'center', marginBottom: 16 },
   gameArea: {
-    backgroundColor: colors.roomSurface,
-    borderRadius: 16,
+    backgroundColor: '#0E1724',
+    borderRadius: 24,
     padding: 24,
     alignItems: 'center',
-    minHeight: 200,
+    minHeight: 270,
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.roomElevated,
+    borderColor: '#25434A',
+    overflow: 'hidden',
   },
-  multDisplay: { alignItems: 'center' },
-  multiplier: { color: colors.roomTeal, fontSize: 56, fontWeight: 'bold' },
+  flightGrid: { ...StyleSheet.absoluteFill, opacity: 0.62 },
+  gridLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: '#1C3944' },
+  gridVertical: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#1C3944' },
+  flightTrack: {
+    position: 'absolute',
+    left: 18,
+    bottom: 28,
+    width: 245,
+    height: 2,
+    backgroundColor: '#4BE1C6',
+    opacity: 0.5,
+    transform: [{ rotate: '-27deg' }],
+  },
+  plane: { position: 'absolute', left: '50%', bottom: 48, zIndex: 2 },
+  multDisplay: { alignItems: 'center', zIndex: 3, minHeight: 80, justifyContent: 'center' },
+  multiplier: { color: colors.roomTeal, fontSize: 58, fontWeight: '900', textShadowColor: '#38D9C055', textShadowRadius: 18 },
   multiplierCrash: { color: colors.danger },
   placeholder: { color: colors.roomMuted, fontSize: 16 },
   resultText: { fontSize: 14, marginTop: 8, fontWeight: '600' },

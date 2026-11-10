@@ -2,10 +2,10 @@
 
 تطبيق صوتي اجتماعي بهوية عربية مستقلة يجمع:
 - 🎙️ **غرف صوتية** (4 أو 8 مقاعد)
-- 🎮 **ألعاب نقاط مجانية** (عجلة الحظ، نرد، Aviator، Plinko، Slots)
-- 🎯 **مهمات يومية** بمكافآت نقاط مجانية وXP يتحقق منها الخادم
-- 🎁 **متجر هدايا** مرتبط بإرسال الهدايا والأرصدة المنفصلة
-- 💰 **محفظة متعددة الأرصدة** (Coins مدفوعة ومحوّلة، Diamonds قابلة للسحب وترويجية)
+- 🎮 **ألعاب Point** (عجلة الحظ، نرد، Aviator، Plinko، Slots) برصيد لعب منفصل
+- 🎯 **مهمات يومية** بمكافآت Point وXP يتحقق منها الخادم
+- 🎁 **متجر هدايا** بأسعار Coin وتسوية هدايا موثّقة
+- 💰 **ثلاث عملات واضحة**: Point للألعاب، Coin للشحن والخدمات، Diamond لأرباح الهدايا
 - 🤝 **نظام وكلاء** (إحالات متعددة المستويات)
 - 🛡️ **لوحة تحكم إدارية كاملة** (تحكّم بكل شيء)
 
@@ -41,18 +41,7 @@ npm run build
 ```
 
 ### تطبيق المستخدم (APK للتحميل المباشر)
-```bash
-cd wattar-app
-# تثبيت EAS CLI (مرة واحدة)
-npm install -g eas-cli
-eas login
-
-# بناء APK للتحميل المباشر (مجانًا على EAS Free Tier)
-eas build -p android --profile preview
-
-# سيُعطيك رابط تحميل APK مباشر
-# يمكنك مشاركته مع المستخدمين للتجربة
-```
+يُبنى APK الاختباري عبر GitHub Actions من **Actions → Build Android APK → Run workflow**، أو تلقائيًا عند دفع نسخة معتمدة إلى `master`. يتطلب workflow أسرار المستودع `GOOGLE_SERVICES_JSON` و`EXPO_PUBLIC_SUPABASE_URL` و`EXPO_PUBLIC_SUPABASE_ANON_KEY`، ثم يحفظ ملف APK كـartifact لمدة 7 أيام.
 
 ---
 
@@ -64,7 +53,7 @@ wattar/
 │   ├── app/                 # شاشات التطبيق (expo-router)
 │   │   ├── (auth)/          # شاشات التسجيل
 │   │   ├── (tabs)/          # التبويبات الرئيسية
-│   │   ├── missions.tsx     # مهمات يومية بمكافآت نقاط مجانية وXP
+│   │   ├── missions.tsx     # مهمات يومية بمكافآت Point وXP
 │   │   ├── store.tsx        # كتالوج الهدايا والإرسال
 │   │   ├── room/            # غرف صوتية
 │   │   └── game/            # صفحات الألعاب
@@ -101,6 +90,7 @@ wattar/
 │       ├── game-plinko/                  # بلانغو
 │       ├── game-slots/                   # Slots بنقاط لعب مجانية
 │       ├── admin-create-agent/           # إنشاء وكيل
+│       ├── agent-phone-login/             # دخول الوكيل بالهاتف وكلمة المرور
 │       ├── admin-set-rtp/                # ضبط RTP لمستخدم
 │       ├── admin-set-user-status/        # إيقاف/حظر مستخدم مع تسجيل السبب
 │       ├── admin-force-outcome/          # إجبار فوز/خسارة
@@ -128,15 +118,16 @@ wattar/
 2. افتح **SQL Editor** في لوحة Supabase
 3. انسخ محتوى `wattar-docs/wattar_schema.sql` كاملاً والصقه ثم نفّذ
    - إذا كانت قاعدة البيانات مُهيأة مسبقًا، نفّذ ملفات `patch_auth_profile_trigger.sql` و`patch_admin_rls.sql` و`patch_room_access.sql` و`patch_financial_rls.sql` من مجلد `wattar-docs`؛ لا تعِد تشغيل السكيمة كاملة.
-4. بعد ترحيل اقتصاد المحفظة، نفّذ `patch_store_missions.sql` لإضافة مهمات يومية يتحقق منها الخادم ومكافآت نقاط لعب مجانية وXP، مع واجهة متجر للهدايا الموجودة.
-5. نفّذ `patch_slots_enum.sql` منفصلًا، ثم بعد نجاحه نفّذ `patch_slots_game_config.sql` لتسجيل Slots كنقاط مجانية فقط.
-6. بعد اكتمال جميع ترحيلات قاعدة البيانات، نفّذ `wattar-docs/patch_admin_audit_controls.sql` لتفعيل سجل تغييرات الإدارة وإجراءات حالة المستخدم المسجلة وتدقيق إعداد المهمات.
-7. أنشئ Storage Buckets:
+4. بعد ترحيل اقتصاد المحفظة، نفّذ `patch_three_currency_economy.sql` لإيقاف تحويل Diamond إلى Coin وإزالة الأرصدة الفرعية القديمة بقيد محاسبي.
+5. نفّذ `patch_store_missions.sql` لإضافة مهمات يومية يتحقق منها الخادم ومكافآت Point وXP، مع إدارة متجر الهدايا.
+6. نفّذ `patch_slots_enum.sql` منفصلًا، ثم بعد نجاحه نفّذ `patch_slots_game_config.sql` لتسجيل Slots بعملة Point فقط.
+7. بعد اكتمال جميع ترحيلات قاعدة البيانات، نفّذ `wattar-docs/patch_admin_audit_controls.sql` لتفعيل سجل تغييرات الإدارة وإجراءات حالة المستخدم المسجلة وتدقيق إعداد المهمات.
+8. أنشئ Storage Buckets:
    - `avatars` (عام)
    - `deposit-proofs` (خاص)
    - `withdrawal-proofs` (خاص)
    - `gift-icons` (عام)
-8. أنشئ مستخدم Auth (Email/Password) للأدمن الأول:
+9. أنشئ مستخدم Auth (Email/Password) للأدمن الأول:
    - في Authentication → Users → Add user
    - بعد إنشائه، نفّذ في SQL Editor:
      ```sql
@@ -158,6 +149,8 @@ supabase login
 # انشر كل الدوال من مجلد wattar-functions (Windows PowerShell)
 .\deploy-functions.ps1 -ProjectRef <project-ref>
 ```
+
+لنشر دالة واحدة فقط، أضف مثلًا `-FunctionsToDeploy agent-phone-login`.
 
 أضف متغيرات البيئة في Supabase → Settings → Edge Functions → Secrets:
 - `SUPABASE_URL` (تلقائي)
@@ -185,14 +178,9 @@ cp .env.example .env
 npm install
 # لتشغيل التطوير (يحتاج جهاز Android أو محاكي)
 npx expo start --dev-client
-
-# لبناء APK للتحميل المباشر
-eas build -p android --profile preview
 ```
 
-للبناء السحابي عبر EAS، أضف `EXPO_PUBLIC_SUPABASE_URL` و
-`EXPO_PUBLIC_SUPABASE_ANON_KEY` إلى بيئة EAS المستخدمة للبناء؛ لا تضع
-مفتاح `service_role` في التطبيق أو في إعدادات البناء.
+لبناء APK الاختبار، شغّل workflow **Build Android APK** من GitHub Actions أو ادفع النسخة المعتمدة إلى `master`. يحتاج workflow أسرار `GOOGLE_SERVICES_JSON` و`EXPO_PUBLIC_SUPABASE_URL` و`EXPO_PUBLIC_SUPABASE_ANON_KEY`، ويُتاح الناتج كـartifact لمدة 7 أيام.
 
 ---
 
@@ -203,9 +191,9 @@ eas build -p android --profile preview
 - ✅ **Atomic operations** عبر `record_wallet_transaction()`
 - ✅ **Row Locking** لمنع الرصيد السالب
 - ✅ **Idempotency keys** لمنع الازدواج
-- ✅ **فصل الأرصدة**: Coins مدفوعة، Coins محوّلة، Diamonds قابلة للسحب، وDiamonds ترويجية
+- ✅ **فصل Point وCoin وDiamond**: Point للألعاب فقط، Coin للهدايا والخدمات، وDiamond لأرباح الهدايا
 - ✅ **مخزون الوكيل** لا يُضاف إلا بعد تأكيد الإدارة استلام الدفع مسبقًا
-- ✅ **Coins الألعاب مجانية بالكامل** ولا يمكن استخدامها لهدايا الدعم أو السحب
+- ✅ **Point للألعاب فقط**؛ لا تُشترى ولا تتحول إلى Coin أو Diamond ولا تُسحب
 - ✅ **السحب والتحويل معطّلان** إلى أن تضبط الإدارة الأسعار وتفعّلهما
 
 ### الألعاب
@@ -214,11 +202,11 @@ eas build -p android --profile preview
 - ✅ **RTP configurable** لكل لعبة + لكل مستخدم
 - ✅ **Forced outcomes** (win/lose) قابلة للإلغاء تلقائيًا
 - ✅ **Seed لكل جولة** للتحقق
-- ✅ **Coins مجانية منفصلة** ومحدودة بسقف ومكافأة يومية قابلين للتعديل
+- ✅ **سقف ومكافأة Point يومية** قابلان للتعديل من الإدارة
 
 ### الوصول
 - ✅ **Row Level Security** على كل جدول
-- ✅ **JWT verification** في كل Edge Function
+- ✅ **التحقق داخل الدوال المحمية** من جلسة JWT والدور؛ ودالة دخول الوكيل العامة تتحقق من بياناته وتحدّ المحاولات
 - ✅ **Role-based access** (user / agent / admin / super_admin)
 - ✅ **Rate limiting** لمنع الإغراق
 - ✅ **Audit log** لكل عملية إدارية

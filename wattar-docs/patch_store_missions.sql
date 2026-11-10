@@ -100,11 +100,11 @@ INSERT INTO public.daily_missions (
   mission_key, title, description, event_type, target_count, reward_game_points, reward_xp
 )
 VALUES
-  ('daily-free-points', 'استلم نقاطك اليومية', 'احصل على نقاط اللعب المجانية لهذا اليوم.', 'daily_grant', 1, 100, 10),
+  ('daily-free-points', 'استلم Point اليومية', 'احصل على رصيد Point اليومي للألعاب.', 'daily_grant', 1, 100, 10),
   ('share-a-story', 'شارك لحظتك', 'انشر قصة واحدة في المجتمع.', 'story_post', 1, 100, 20),
   ('follow-community', 'وسّع مجتمعك', 'تابع ثلاثة أشخاص جدد اليوم.', 'following', 3, 150, 20),
-  ('send-a-paid-gift', 'أرسل هدية', 'أرسل هدية باستخدام Coins المدفوعة.', 'gift_sent', 1, 100, 15),
-  ('receive-a-paid-gift', 'تفاعل مجتمعي', 'استقبل هدية ممولة بـ Coins مدفوعة.', 'gift_received', 1, 100, 15)
+  ('send-a-paid-gift', 'أرسل هدية', 'أرسل هدية باستخدام Coin.', 'gift_sent', 1, 100, 15),
+  ('receive-a-paid-gift', 'تفاعل مجتمعي', 'استقبل هدية أُرسلت باستخدام Coin.', 'gift_received', 1, 100, 15)
 ON CONFLICT (mission_key) DO NOTHING;
 
 CREATE OR REPLACE FUNCTION public.daily_mission_progress(
@@ -177,7 +177,19 @@ STABLE
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
-  SELECT m.id, m.mission_key, m.title, m.description, m.event_type,
+  SELECT m.id,
+         m.mission_key,
+         CASE m.mission_key
+           WHEN 'daily-free-points' THEN 'استلم Point اليومية'
+           ELSE m.title
+         END,
+         CASE m.mission_key
+           WHEN 'daily-free-points' THEN 'احصل على رصيد Point اليومي للألعاب.'
+           WHEN 'send-a-paid-gift' THEN 'أرسل هدية باستخدام Coin.'
+           WHEN 'receive-a-paid-gift' THEN 'استقبل هدية أُرسلت باستخدام Coin.'
+           ELSE m.description
+         END,
+         m.event_type,
          m.target_count,
          public.daily_mission_progress(auth.uid(), m.event_type, (now() AT TIME ZONE 'UTC')::date),
          m.reward_game_points, m.reward_xp,

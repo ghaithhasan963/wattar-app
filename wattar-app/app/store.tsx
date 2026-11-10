@@ -12,12 +12,11 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Coins, Gift, Gem, ShieldCheck } from 'lucide-react-native';
+import { ArrowLeft, Coins, Gift } from 'lucide-react-native';
 import { callFunction, supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 import { colors } from '@/lib/theme';
-
-type FundingCurrency = 'gold' | 'conv_gold';
+import { CurrencyIcon } from '@/components/CurrencyIcon';
 
 interface GiftItem {
   id: string;
@@ -44,7 +43,6 @@ export default function StoreScreen() {
   const [gifts, setGifts] = useState<GiftItem[]>([]);
   const [following, setFollowing] = useState<FollowedUser[]>([]);
   const [selectedGift, setSelectedGift] = useState<GiftItem | null>(null);
-  const [currency, setCurrency] = useState<FundingCurrency>('gold');
   const [loading, setLoading] = useState(true);
   const [busyUser, setBusyUser] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -77,15 +75,13 @@ export default function StoreScreen() {
     void loadStore();
   }, [loadStore]);
 
-  const balance = currency === 'gold'
-    ? profile?.balance_gold ?? 0
-    : profile?.balance_converted_coins ?? 0;
+  const balance = profile?.balance_gold ?? 0;
 
   const sendGift = async (recipient: FollowedUser) => {
     if (!selectedGift || busyUser) return;
     setBusyUser(recipient.user_id);
     try {
-      const fingerprint = `${recipient.user_id}:${selectedGift.id}:${currency}`;
+      const fingerprint = `${recipient.user_id}:${selectedGift.id}:gold`;
       if (sendAttempt.current?.fingerprint !== fingerprint) {
         sendAttempt.current = {
           fingerprint,
@@ -97,7 +93,7 @@ export default function StoreScreen() {
         to_user_id: recipient.user_id,
         gift_id: selectedGift.id,
         quantity: 1,
-        funding_currency: currency,
+        funding_currency: 'gold',
       }, idempotencyKey);
       sendAttempt.current = null;
       const sentGiftName = selectedGift.name_ar || selectedGift.name;
@@ -129,43 +125,18 @@ export default function StoreScreen() {
         <View style={styles.hero}>
           <View style={styles.heroIcon}><Gift size={22} color={colors.gold} /></View>
           <Text style={styles.heroTitle}>اختَر هدية وشاركها</Text>
-          <Text style={styles.heroCopy}>الشراء يتم عند الإرسال فقط، والتسوية آمنة عبر الخادم. لا نضيف Coins إلى رصيدك من هذه الصفحة.</Text>
+          <Text style={styles.heroCopy}>ادفع Coins عند الإرسال فقط. الهدايا تُسوّى بأمان، ولا يوجد تحويل بين عملة اللعب ورصيد Coin.</Text>
         </View>
 
         <View style={styles.walletCard}>
           <View style={styles.walletHeader}>
-            <ShieldCheck size={17} color={colors.success} />
-            <Text style={styles.walletTitle}>اختر مصدر Coins</Text>
+            <View style={styles.currencyCopy}>
+              <Text style={styles.walletTitle}>رصيد Coin</Text>
+              <Text style={styles.currencyBalance}>{balance.toLocaleString()}</Text>
+            </View>
+            <CurrencyIcon currency="coin" size={40} />
           </View>
-          <View style={styles.currencyOptions}>
-            <TouchableOpacity
-              style={[styles.currencyOption, currency === 'gold' && styles.currencyActive]}
-              onPress={() => setCurrency('gold')}
-              accessibilityState={{ selected: currency === 'gold' }}
-            >
-              <Coins size={16} color={currency === 'gold' ? colors.gold : colors.textSecondary} />
-              <View style={styles.currencyCopy}>
-                <Text style={styles.currencyName}>Coins المدفوعة</Text>
-                <Text style={styles.currencyBalance}>{(profile?.balance_gold ?? 0).toLocaleString()}</Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.currencyOption, currency === 'conv_gold' && styles.currencyActive]}
-              onPress={() => setCurrency('conv_gold')}
-              accessibilityState={{ selected: currency === 'conv_gold' }}
-            >
-              <Gem size={16} color={currency === 'conv_gold' ? '#72DCCA' : colors.textSecondary} />
-              <View style={styles.currencyCopy}>
-                <Text style={styles.currencyName}>Coins محوّلة</Text>
-                <Text style={styles.currencyBalance}>{(profile?.balance_converted_coins ?? 0).toLocaleString()}</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.walletNote}>
-            {currency === 'gold'
-              ? 'الهدية الممولة بـ Coins المدفوعة تمنح المستلم Diamonds مؤهلة وفق إعدادات الهدية.'
-              : 'الهدية الممولة بـ Coins محوّلة تمنح المستلم Diamonds ترويجية غير قابلة للسحب.'}
-          </Text>
+          <Text style={styles.walletNote}>Coin للشحن والهدايا والخدمات داخل Wattar، ولا تُسحب نقدًا ولا تتحول إلى Point.</Text>
         </View>
 
         {error ? (
@@ -280,12 +251,8 @@ const styles = StyleSheet.create({
   walletCard: { padding: 15, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   walletHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 7 },
   walletTitle: { color: colors.text, fontWeight: '800', fontSize: 13 },
-  currencyOptions: { flexDirection: 'row', gap: 9, marginTop: 12 },
-  currencyOption: { flex: 1, minHeight: 64, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, padding: 10, borderRadius: 14, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
-  currencyActive: { borderColor: colors.primary, backgroundColor: '#211532' },
   currencyCopy: { alignItems: 'flex-end' },
-  currencyName: { color: colors.text, fontSize: 10, fontWeight: '800' },
-  currencyBalance: { color: colors.gold, fontSize: 12, fontWeight: '800', marginTop: 4 },
+  currencyBalance: { color: colors.gold, fontSize: 18, fontWeight: '900', marginTop: 4 },
   walletNote: { color: colors.textSecondary, fontSize: 10, lineHeight: 16, textAlign: 'right', marginTop: 10 },
   errorCard: { padding: 14, borderRadius: 14, backgroundColor: '#321923', gap: 8 },
   errorText: { color: colors.danger, textAlign: 'right' },

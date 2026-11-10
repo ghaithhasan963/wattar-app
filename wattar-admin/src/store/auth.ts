@@ -91,15 +91,53 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (!isEmail && !/^\+[1-9]\d{6,14}$/.test(phone)) {
         throw new Error('أدخل بريدًا إلكترونيًا صحيحًا أو رقم هاتف دوليًا يبدأ بـ +.');
       }
-      const credentials = isEmail
-        ? { email: normalizedIdentifier.toLowerCase(), password }
-        : { phone, password };
-      const { data, error } = await supabase.auth.signInWithPassword(credentials);
-      if (error) throw error;
+      let session: Session;
+      let user: User;
 
-      const profile = await loadStaffProfile(data.user.id);
+      if (isEmail) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: normalizedIdentifier.toLowerCase(),
+          password,
+        });
+        if (error) throw error;
+        session = data.session;
+        user = data.user;
+      } else {
+        const { data, error } = await supabase.functions.invoke<{
+          access_token: string;
+          refresh_token: string;
+        }>('agent-phone-login', { body: { phone, password } });
 
-      set({ session: data.session, user: data.user, profile, initialized: true });
+        if (error) {
+          const status = 'context' in error && error.context instanceof Response
+            ? error.context.status
+            : undefined;
+          if (status === 401) {
+            throw new Error('بيانات الدخول غير صحيحة أو الحساب غير نشط.');
+          }
+          if (status === 429) {
+            throw new Error('محاولات كثيرة. حاول مجددًا بعد قليل.');
+          }
+          throw new Error('تعذر الاتصال بخدمة تسجيل الدخول. تحقق من اتصالك وحاول مجددًا.');
+        }
+        if (!data?.access_token || !data.refresh_token) {
+          throw new Error('تعذر إكمال تسجيل الدخول برقم الهاتف.');
+        }
+
+        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        });
+        if (sessionError) throw sessionError;
+        if (!sessionData.session || !sessionData.user) {
+          throw new Error('تعذر إكمال تسجيل الدخول برقم الهاتف.');
+        }
+        session = sessionData.session;
+        user = sessionData.user;
+      }
+
+      const profile = await loadStaffProfile(user.id);
+      set({ session, user, profile, initialized: true });
     } catch (err: unknown) {
       await supabase.auth.signOut();
       const message = err instanceof Error ? err.message : 'تعذر تسجيل الدخول إلى لوحة الإدارة.';

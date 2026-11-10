@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 import { supabase, callFunction } from '@/lib/supabase';
-import { Search, Settings, Shield, X, Check, Loader2, AlertTriangle } from 'lucide-react';
+import { Search, Settings, Shield, Archive, X, Check, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
 
@@ -14,6 +14,8 @@ interface UserRow {
   display_name: string | null;
   phone: string | null;
   balance_gold: number;
+  game_points: number;
+  balance_diamond: number;
   status: string;
   role: string;
   gender: string | null;
@@ -46,7 +48,7 @@ export function UsersPage() {
     setLoading(true);
     let query = supabase
       .from('users')
-      .select('id, username, display_name, phone, balance_gold, status, role, gender, profile_visibility, adult_confirmed_at, onboarding_completed_at, rtp_override, is_force_win, is_force_lose, created_at, last_seen_at')
+      .select('id, username, display_name, phone, balance_gold, game_points, balance_diamond, status, role, gender, profile_visibility, adult_confirmed_at, onboarding_completed_at, rtp_override, is_force_win, is_force_lose, created_at, last_seen_at')
       .order('created_at', { ascending: false })
       .limit(100);
 
@@ -105,7 +107,9 @@ export function UsersPage() {
         reason: statusReason.trim() || undefined,
       });
       toast.success(
-        statusTarget === 'banned'
+        statusTarget === 'suspended' && statusReason.trim().startsWith('أرشفة')
+          ? 'تم إيقاف/أرشفة الحساب مع الاحتفاظ بسجل معاملاته.'
+          : statusTarget === 'banned'
           ? 'تم الحظر الدائم وتسجيل الإجراء'
           : statusTarget === 'suspended'
             ? 'تم الإيقاف المؤقت وتسجيل الإجراء'
@@ -145,7 +149,7 @@ export function UsersPage() {
             <tr>
               <th className="text-right p-4 text-sm font-medium text-gray-400">المستخدم</th>
               <th className="text-right p-4 text-sm font-medium text-gray-400">الهاتف</th>
-              <th className="text-right p-4 text-sm font-medium text-gray-400">الرصيد</th>
+              <th className="text-right p-4 text-sm font-medium text-gray-400">العملات</th>
               <th className="text-right p-4 text-sm font-medium text-gray-400">RTP</th>
               <th className="text-right p-4 text-sm font-medium text-gray-400">الحالة</th>
               <th className="text-right p-4 text-sm font-medium text-gray-400">آخر ظهور</th>
@@ -174,7 +178,13 @@ export function UsersPage() {
                   </div>
                 </td>
                 <td className="p-4 text-sm text-gray-300">{u.phone ?? '—'}</td>
-                <td className="p-4 text-sm font-semibold text-gold-500">{u.balance_gold}</td>
+                <td className="p-4 text-xs">
+                  <div className="space-y-1">
+                    <p className="text-violet-300">Point: {Number(u.game_points).toLocaleString('ar')}</p>
+                    <p className="text-gold-400">Coin: {Number(u.balance_gold).toLocaleString('ar')}</p>
+                    <p className="text-teal-300">Diamond: {Number(u.balance_diamond).toLocaleString('ar')}</p>
+                  </div>
+                </td>
                 <td className="p-4 text-sm text-gray-300">
                   {u.rtp_override === null ? (
                     <span className="text-gray-500">افتراضي</span>
@@ -213,9 +223,21 @@ export function UsersPage() {
                       }}
                       disabled={processing || !['user', 'guest'].includes(u.role)}
                       className={`rounded-lg p-2 ${u.status === 'active' ? 'text-red-400 hover:bg-red-500/10' : 'text-green-400 hover:bg-green-500/10'}`}
-                      title={u.status === 'active' ? 'إيقاف أو حظر مع تسجيل السبب' : 'إعادة التفعيل مع تسجيل الإجراء'}
+                      title={u.status === 'active' ? 'إيقاف مؤقت أو حظر دائم مع تسجيل السبب' : 'إعادة التفعيل مع تسجيل الإجراء'}
                     >
                       <Shield size={16} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setStatusUser(u);
+                        setStatusTarget('suspended');
+                        setStatusReason('أرشفة الحساب بناءً على طلب الإدارة');
+                      }}
+                      disabled={processing || !['user', 'guest'].includes(u.role) || u.status === 'suspended'}
+                      className="rounded-lg p-2 text-amber-400 hover:bg-amber-500/10 disabled:opacity-40"
+                      title="أرشفة/تعطيل الحساب مع الاحتفاظ بسجل المعاملات"
+                    >
+                      <Archive size={16} />
                     </button>
                   </div>
                 </td>

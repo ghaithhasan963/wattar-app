@@ -41,6 +41,7 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
       { to: '/users', label: 'المستخدمون', icon: Users },
       { to: '/reports', label: 'بلاغات المستخدمين', icon: ShieldAlert, roles: ['admin', 'super_admin'] },
       { to: '/agents', label: 'الوكلاء', icon: UserCheck, roles: ['admin', 'super_admin'] },
+      { to: '/hosts', label: 'طلبات المضيفات', icon: Mic, roles: ['admin', 'super_admin'] },
     ],
   },
   {

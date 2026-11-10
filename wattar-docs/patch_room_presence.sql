@@ -1,5 +1,6 @@
 -- Track authenticated room listeners and persist real join/leave notices in room chat.
 -- Run after patch_social_foundation.sql, patch_room_access.sql, and patch_room_realtime.sql.
+BEGIN;
 
 CREATE TABLE IF NOT EXISTS public.room_presence (
   room_id uuid NOT NULL REFERENCES public.rooms(id) ON DELETE CASCADE,
@@ -13,13 +14,14 @@ CREATE INDEX IF NOT EXISTS idx_room_presence_room_last_seen
 ALTER TABLE public.room_presence ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.room_presence FROM anon, authenticated;
 
-CREATE OR REPLACE FUNCTION public.record_wattar_room_presence(
+DROP FUNCTION IF EXISTS public.record_wattar_room_presence(uuid, uuid, text, boolean);
+CREATE FUNCTION public.record_wattar_room_presence(
   p_room_id uuid,
   p_user_id uuid,
   p_session_id text,
   p_joining boolean
 )
-RETURNS void
+RETURNS integer
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
@@ -117,12 +119,18 @@ BEGIN
     IF p_session_id IS NOT NULL THEN
       DELETE FROM public.room_presence p
       WHERE p.room_id = p_room_id AND p.user_id = p_user_id AND p.session_id = p_session_id;
-      GET DIAGNOSTICS v_rows = ROW_COUNT;
-      IF v_rows > 0 AND NOT EXISTS (
-        SELECT 1 FROM public.room_presence p
-        WHERE p.room_id = p_room_id AND p.user_id = p_user_id
-          AND p.last_seen_at > now() - interval '90 seconds'
-      ) THEN
+    ELSE
+      DELETE FROM public.room_presence p
+      WHERE p.room_id = p_room_id AND p.user_id = p_user_id;
+    END IF;
+
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF NOT EXISTS (
+      SELECT 1 FROM public.room_presence p
+      WHERE p.room_id = p_room_id AND p.user_id = p_user_id
+        AND p.last_seen_at > now() - interval '90 seconds'
+    ) THEN
+      IF v_rows > 0 THEN
         SELECT coalesce(nullif(u.display_name, ''), u.username)::text
         INTO v_user_name
         FROM public.users u WHERE u.id = p_user_id;
@@ -131,11 +139,11 @@ BEGIN
           VALUES (p_room_id, p_user_id, v_user_name || ' غادر الغرفة.', true);
         END IF;
       END IF;
-    END IF;
 
-    UPDATE public.room_seats
-    SET user_id = NULL, status = 'empty', is_mic_on = false, joined_at = NULL
-    WHERE room_id = p_room_id AND user_id = p_user_id;
+      UPDATE public.room_seats
+      SET user_id = NULL, status = 'empty', is_mic_on = false, joined_at = NULL
+      WHERE room_id = p_room_id AND user_id = p_user_id;
+    END IF;
   END IF;
 
   SELECT count(DISTINCT p.user_id)::integer
@@ -150,10 +158,9 @@ BEGIN
         AND s.status = 'occupied'
     );
 
-  UPDATE public.rooms
-  SET listeners_count = v_active_count
-  WHERE id = p_room_id;
+  RETURN v_active_count;
 END;
 $$;
 REVOKE ALL ON FUNCTION public.record_wattar_room_presence(uuid, uuid, text, boolean) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.record_wattar_room_presence(uuid, uuid, text, boolean) TO service_role;
+COMMIT;

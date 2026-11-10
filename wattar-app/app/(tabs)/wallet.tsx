@@ -14,9 +14,10 @@ import {
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { ArrowDownToLine, ArrowLeftRight, Coins, Gem, History, ShieldCheck } from 'lucide-react-native';
+import { ArrowDownToLine, History, ShieldCheck } from 'lucide-react-native';
 import { supabase, callFunction, uploadPrivateMedia } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
+import { CurrencyIcon } from '@/components/CurrencyIcon';
 
 type DepositMethodCode = 'usdt' | 'sham_cash' | 'syriatel_cash' | 'agent';
 
@@ -29,7 +30,6 @@ interface WalletAccess {
 }
 
 interface WalletOptions {
-  diamond_to_coin_rate: number;
   diamonds_per_usd: number;
   withdrawals_enabled: boolean;
   min_withdrawal_diamonds: number;
@@ -81,7 +81,6 @@ export default function WalletScreen() {
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRecord[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [conversionVisible, setConversionVisible] = useState(false);
   const [withdrawalVisible, setWithdrawalVisible] = useState(false);
   const [walletOptions, setWalletOptions] = useState<WalletOptions | null>(null);
   const [loading, setLoading] = useState(true);
@@ -145,9 +144,8 @@ export default function WalletScreen() {
   }, [loadWallet]);
 
   const coinBalance = profile?.balance_gold ?? 0;
-  const convertedCoinBalance = profile?.balance_converted_coins ?? 0;
   const diamondBalance = profile?.balance_diamond ?? 0;
-  const promotionalDiamondBalance = profile?.balance_diamond_promo ?? 0;
+  const pointBalance = profile?.game_points ?? 0;
 
   return (
     <View style={styles.screen}>
@@ -180,55 +178,40 @@ export default function WalletScreen() {
             ) : null}
 
             <View style={styles.balances}>
+              <View style={[styles.balanceCard, styles.pointCard]}>
+                <View style={styles.balanceHeader}>
+                  <CurrencyIcon currency="point" size={31} />
+                  <Text style={styles.balanceLabel}>Point</Text>
+                </View>
+                <Text style={styles.pointValue}>{pointBalance.toLocaleString()}</Text>
+                <Text style={styles.balanceHint}>للألعاب فقط · مجانية</Text>
+              </View>
               <View style={[styles.balanceCard, styles.coinsCard]}>
                 <View style={styles.balanceHeader}>
-                  <View style={styles.coinIcon}><Coins size={19} color={palette.gold} /></View>
-                  <Text style={styles.balanceLabel}>Coins</Text>
+                  <CurrencyIcon currency="coin" size={31} />
+                  <Text style={styles.balanceLabel}>Coin</Text>
                 </View>
                 <Text style={styles.coinValue}>{coinBalance.toLocaleString()}</Text>
-                <Text style={styles.balanceHint}>مدفوعة · للشحن والهدايا</Text>
+                <Text style={styles.balanceHint}>للشحن والهدايا والخدمات</Text>
               </View>
               <View style={[styles.balanceCard, styles.diamondsCard]}>
                 <View style={styles.balanceHeader}>
-                  <View style={styles.diamondIcon}><Gem size={18} color="#72DCCA" /></View>
-                  <Text style={styles.balanceLabel}>Diamonds</Text>
+                  <CurrencyIcon currency="diamond" size={31} />
+                  <Text style={styles.balanceLabel}>Diamond</Text>
                 </View>
                 <Text style={styles.diamondValue}>{diamondBalance.toLocaleString()}</Text>
-                <Text style={styles.balanceHint}>أرباح من الهدايا المدفوعة · قابلة للسحب</Text>
-              </View>
-            </View>
-
-            <View style={styles.secondaryBalances}>
-              <View style={styles.secondaryBalance}>
-                <Text style={styles.secondaryBalanceLabel}>Coins محوّلة</Text>
-                <Text style={styles.secondaryBalanceValue}>{convertedCoinBalance.toLocaleString()}</Text>
-                <Text style={styles.secondaryBalanceHint}>لا تنتج Diamonds قابلة للسحب عند الإهداء</Text>
-              </View>
-              <View style={styles.secondaryBalance}>
-                <Text style={styles.secondaryBalanceLabel}>Diamonds ترويجية</Text>
-                <Text style={styles.secondaryBalanceValue}>{promotionalDiamondBalance.toLocaleString()}</Text>
-                <Text style={styles.secondaryBalanceHint}>غير قابلة للسحب أو التحويل</Text>
+                <Text style={styles.balanceHint}>أرباح الهدايا · السحب حسب الإتاحة</Text>
               </View>
             </View>
 
             <View style={styles.walletNotice}>
-              <Text style={styles.walletNoticeTitle}>استخدام آمن وواضح</Text>
+              <Text style={styles.walletNoticeTitle}>ثلاث عملات، لكل واحدة استخدام واضح</Text>
               <Text style={styles.walletNoticeText}>
-                Coins المجانية للألعاب منفصلة تمامًا. تحويل Diamonds إلى Coins يجعلها غير قابلة لإنتاج أرباح قابلة للسحب.
+                Point للألعاب فقط، وCoin للشحن والهدايا والخدمات، وDiamond لأرباح الهدايا. لا يوجد تحويل بين أرصدة الألعاب والمحفظة.
               </Text>
             </View>
 
             <View style={styles.walletActions}>
-              {Number(walletOptions?.diamond_to_coin_rate) > 0 ? (
-                <TouchableOpacity
-                  style={[styles.secondaryAction, diamondBalance <= 0 && styles.disabled]}
-                  onPress={() => setConversionVisible(true)}
-                  disabled={diamondBalance <= 0}
-                >
-                  <ArrowLeftRight size={17} color={palette.gold} />
-                  <Text style={styles.secondaryActionText}>تحويل Diamonds إلى Coins</Text>
-                </TouchableOpacity>
-              ) : null}
               {walletOptions?.withdrawals_enabled && Number(walletOptions.diamonds_per_usd) > 0 ? (
                 <TouchableOpacity
                   style={[styles.secondaryAction, diamondBalance < Number(walletOptions.min_withdrawal_diamonds) && styles.disabled]}
@@ -236,7 +219,7 @@ export default function WalletScreen() {
                   disabled={diamondBalance < Number(walletOptions.min_withdrawal_diamonds)}
                 >
                   <ArrowDownToLine size={17} color={palette.success} />
-                  <Text style={styles.secondaryActionText}>طلب سحب Diamonds</Text>
+                  <Text style={styles.secondaryActionText}>طلب سحب Diamond</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -270,7 +253,7 @@ export default function WalletScreen() {
                       <Text style={styles.transactionDate}>{new Date(withdrawal.created_at).toLocaleString('ar')}</Text>
                     </View>
                     <Text style={styles.transactionAmount}>
-                      {Number(withdrawal.amount_diamond).toLocaleString()} Diamonds
+                      {Number(withdrawal.amount_diamond).toLocaleString()} Diamond
                     </Text>
                   </View>
                 ))}
@@ -290,25 +273,21 @@ export default function WalletScreen() {
                   ItemSeparatorComponent={() => <View style={styles.separator} />}
                   renderItem={({ item }) => {
                     const positive = item.amount > 0;
-                    const currency = item.currency === 'diamond'
-                      ? 'Diamonds'
-                      : item.currency === 'promo_dia'
-                        ? 'Diamonds ترويجية'
-                        : item.currency === 'conv_gold'
-                          ? 'Coins محوّلة'
-                          : 'Coins';
+                    const currency = item.currency === 'diamond' || item.currency === 'promo_dia'
+                      ? 'Diamond'
+                      : 'Coin';
                     return (
                       <View style={styles.transactionRow}>
                         <View style={styles.transactionInfo}>
                           <Text style={styles.transactionType}>
                             {item.reference_type === 'conversion'
-                              ? 'تحويل Diamonds إلى Coins'
+                              ? 'تحويل قديم بين العملات'
                               : item.reference_type === 'diamond_withdrawal' && item.amount > 0
-                                ? 'إعادة رصيد سحب مرفوض'
+                                ? 'إعادة رصيد Diamond بعد رفض السحب'
                                 : item.reference_type === 'diamond_withdrawal'
-                                  ? 'حجز Diamonds للسحب'
+                                  ? 'حجز Diamond للسحب'
                                 : item.type === 'gift_received' && item.currency === 'promo_dia'
-                              ? 'Diamonds ترويجية من هدية'
+                              ? 'Diamond من هدية'
                               : getTransactionLabel(item.type)}
                           </Text>
                           <Text style={styles.transactionDate}>{new Date(item.created_at).toLocaleString('ar')}</Text>
@@ -334,18 +313,6 @@ export default function WalletScreen() {
           methods={methods}
           onClose={() => setModalVisible(false)}
           onSuccess={async () => {
-            await loadWallet();
-          }}
-        />
-      ) : null}
-      {access && walletOptions && Number(walletOptions.diamond_to_coin_rate) > 0 ? (
-        <ConversionModal
-          visible={conversionVisible}
-          balance={diamondBalance}
-          rate={Number(walletOptions.diamond_to_coin_rate)}
-          onClose={() => setConversionVisible(false)}
-          onSuccess={async () => {
-            setConversionVisible(false);
             await loadWallet();
           }}
         />
@@ -450,7 +417,7 @@ function DepositModal({
       <View style={styles.modalOverlay}>
         <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>طلب شحن Coins</Text>
+            <Text style={styles.modalTitle}>طلب شحن Coin</Text>
             <Text style={styles.modalSubtitle}>اختر وسيلة الدفع واتبع تعليمات الوكيل</Text>
 
             <Text style={styles.fieldLabel}>وسيلة الشحن</Text>
@@ -522,84 +489,6 @@ function DepositModal({
   );
 }
 
-function ConversionModal({
-  visible,
-  balance,
-  rate,
-  onClose,
-  onSuccess,
-}: {
-  visible: boolean;
-  balance: number;
-  rate: number;
-  onClose: () => void;
-  onSuccess: () => Promise<void>;
-}) {
-  const [amount, setAmount] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [attempt, setAttempt] = useState<{ fingerprint: string; key: string } | null>(null);
-
-  const submit = async () => {
-    const diamonds = Number(amount);
-    if (!Number.isSafeInteger(diamonds) || diamonds <= 0 || diamonds > balance) {
-      Alert.alert('راجع المبلغ', 'أدخل عددًا صحيحًا من Diamonds لا يتجاوز رصيدك.');
-      return;
-    }
-    const fingerprint = String(diamonds);
-    const key = attempt?.fingerprint === fingerprint
-      ? attempt.key
-      : `convert-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    setAttempt({ fingerprint, key });
-    setLoading(true);
-    try {
-      const { error } = await supabase.rpc('convert_my_diamonds_to_coins', {
-        p_amount_diamond: diamonds,
-        p_idempotency_key: key,
-      });
-      if (error) throw error;
-      setAttempt(null);
-      setAmount('');
-      Alert.alert('تم التحويل', 'أُضيفت Coins محوّلة إلى رصيدك. لا يمكن استخدامها لإنتاج Diamonds قابلة للسحب.');
-      await onSuccess();
-    } catch (error: unknown) {
-      Alert.alert('تعذر التحويل', error instanceof Error ? error.message : 'حاول مرة أخرى.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalCard}>
-          <Text style={styles.modalTitle}>تحويل Diamonds إلى Coins</Text>
-          <Text style={styles.modalSubtitle}>
-            كل Diamond يعطي {rate.toLocaleString()} Coins. الرصيد الناتج غير قابل للتحويل إلى Diamonds قابلة للسحب.
-          </Text>
-          <Text style={styles.fieldLabel}>عدد Diamonds · رصيدك {balance.toLocaleString()}</Text>
-          <TextInput
-            style={styles.inputField}
-            value={amount}
-            onChangeText={setAmount}
-            keyboardType="number-pad"
-            placeholder="أدخل المبلغ"
-            placeholderTextColor={palette.muted}
-            editable={!loading}
-          />
-          <View style={styles.modalActions}>
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose} disabled={loading}>
-              <Text style={styles.cancelText}>إلغاء</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.confirmButton, loading && styles.disabled]} onPress={submit} disabled={loading}>
-              {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.confirmText}>تأكيد التحويل</Text>}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
 function WithdrawalModal({
   visible,
   balance,
@@ -632,7 +521,7 @@ function WithdrawalModal({
   const submit = async () => {
     const diamonds = Number(amount);
     if (!Number.isSafeInteger(diamonds) || diamonds < minimum || diamonds > balance) {
-      Alert.alert('راجع المبلغ', `أدخل عددًا صحيحًا بين ${minimum.toLocaleString()} و${balance.toLocaleString()} Diamonds.`);
+      Alert.alert('راجع المبلغ', `أدخل عددًا صحيحًا بين ${minimum.toLocaleString()} و${balance.toLocaleString()} Diamond.`);
       return;
     }
     if (method === 'usdt' && (!address.trim() || !network.trim())) {
@@ -661,7 +550,7 @@ function WithdrawalModal({
       }, key);
       setAttempt(null);
       setAmount('');
-      Alert.alert('تم استلام الطلب', 'تم حجز Diamonds لحين مراجعة الطلب. ستُعاد تلقائيًا إذا رُفض.');
+      Alert.alert('تم استلام الطلب', 'تم حجز Diamond لحين مراجعة الطلب. سيُعاد تلقائيًا إذا رُفض.');
       await onSuccess();
     } catch (error: unknown) {
       Alert.alert('تعذر إرسال الطلب', error instanceof Error ? error.message : 'حاول مرة أخرى.');
@@ -680,11 +569,11 @@ function WithdrawalModal({
       <View style={styles.modalOverlay}>
         <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>سحب Diamonds</Text>
+            <Text style={styles.modalTitle}>سحب Diamond</Text>
             <Text style={styles.modalSubtitle}>
               الحد الأدنى {minimum.toLocaleString()} · السعر التقديري ${estimateUsd.toFixed(2)} قبل الرسوم
             </Text>
-            <Text style={styles.fieldLabel}>عدد Diamonds · رصيدك {balance.toLocaleString()}</Text>
+            <Text style={styles.fieldLabel}>عدد Diamond · رصيدك {balance.toLocaleString()}</Text>
             <TextInput
               style={styles.inputField}
               value={amount}
@@ -741,9 +630,9 @@ function WithdrawalModal({
 
 function getTransactionLabel(type: string): string {
   const labels: Record<string, string> = {
-    deposit: 'شحن Coins',
+    deposit: 'شحن Coin',
     gift_sent: 'هدية مرسلة',
-    gift_received: 'أرباح Diamonds',
+    gift_received: 'أرباح Diamond',
     withdraw: 'سحب سابق',
     transfer_out: 'تحويل صادر سابق',
     transfer_in: 'تحويل وارد سابق',
@@ -782,22 +671,17 @@ const styles = StyleSheet.create({
   gateText: { color: palette.muted, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 9 },
   agentNotice: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, backgroundColor: '#143027', borderRadius: 14, marginBottom: 13 },
   agentNoticeText: { color: palette.success, fontSize: 12, fontWeight: '700' },
-  balances: { flexDirection: 'row', gap: 10 },
-  balanceCard: { flex: 1, minHeight: 150, padding: 15, borderRadius: 19, backgroundColor: palette.surface, borderWidth: 1 },
+  balances: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' },
+  balanceCard: { width: '31.5%', minHeight: 132, padding: 10, borderRadius: 19, backgroundColor: palette.surface, borderWidth: 1 },
+  pointCard: { borderColor: '#6848A2' },
   coinsCard: { borderColor: '#725224' },
   diamondsCard: { borderColor: '#285D56' },
-  balanceHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  coinIcon: { width: 32, height: 32, borderRadius: 11, backgroundColor: '#382A14', alignItems: 'center', justifyContent: 'center' },
-  diamondIcon: { width: 32, height: 32, borderRadius: 11, backgroundColor: '#153832', alignItems: 'center', justifyContent: 'center' },
-  balanceLabel: { color: palette.muted, fontSize: 12, fontWeight: '700' },
-  coinValue: { color: palette.gold, fontSize: 25, fontWeight: '800', marginTop: 11, textAlign: 'right' },
-  diamondValue: { color: '#72DCCA', fontSize: 25, fontWeight: '800', marginTop: 11, textAlign: 'right' },
-  balanceHint: { color: palette.muted, fontSize: 10, marginTop: 7, textAlign: 'right' },
-  secondaryBalances: { flexDirection: 'row', gap: 10, marginTop: 10 },
-  secondaryBalance: { flex: 1, padding: 12, borderRadius: 15, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
-  secondaryBalanceLabel: { color: palette.muted, fontSize: 11, fontWeight: '700', textAlign: 'right' },
-  secondaryBalanceValue: { color: palette.text, fontSize: 18, fontWeight: '800', marginTop: 7, textAlign: 'right' },
-  secondaryBalanceHint: { color: palette.muted, fontSize: 9, lineHeight: 14, marginTop: 5, textAlign: 'right' },
+  balanceHeader: { alignItems: 'flex-end', gap: 6 },
+  balanceLabel: { color: palette.muted, fontSize: 11, fontWeight: '700' },
+  pointValue: { color: '#C4A5FF', fontSize: 17, fontWeight: '800', marginTop: 8, textAlign: 'right' },
+  coinValue: { color: palette.gold, fontSize: 17, fontWeight: '800', marginTop: 8, textAlign: 'right' },
+  diamondValue: { color: '#72DCCA', fontSize: 17, fontWeight: '800', marginTop: 8, textAlign: 'right' },
+  balanceHint: { color: palette.muted, fontSize: 9, lineHeight: 13, marginTop: 6, textAlign: 'right' },
   walletNotice: { padding: 15, marginTop: 12, borderRadius: 16, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
   walletNoticeTitle: { color: palette.text, fontSize: 13, fontWeight: '700', textAlign: 'right' },
   walletNoticeText: { color: palette.muted, fontSize: 11, lineHeight: 18, marginTop: 5, textAlign: 'right' },

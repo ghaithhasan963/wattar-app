@@ -2,12 +2,13 @@
  * Wattar App — صفحة بلانغو (Plinko)
  * الكرة تسقط عبر صف من الأوتاد، تنتهي في خانة مع مضاعف
  */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated, Easing, ScrollView,
 } from 'react-native';
 import { callFunction } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
+import { usePreferencesStore } from '@/store/preferences';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/lib/theme';
 
@@ -27,6 +28,14 @@ const SLOT_COLORS: Record<string, string> = {
   zero: '#6B7280',
 };
 
+interface PlinkoResponse {
+  final_slot: number;
+  path?: Array<'L' | 'R'>;
+  multiplier: number;
+  payout: number;
+  is_win: boolean;
+}
+
 function getColor(mult: number): string {
   if (mult >= 10) return SLOT_COLORS.high;
   if (mult >= 1) return SLOT_COLORS.mid;
@@ -34,50 +43,103 @@ function getColor(mult: number): string {
   return SLOT_COLORS.low;
 }
 
+function makeDisplayPath(finalSlot: number): Array<'L' | 'R'> {
+  const path: Array<'L' | 'R'> = Array(ROWS).fill('L');
+  const rightSteps = Math.min(finalSlot, ROWS);
+  const positions = Array.from({ length: ROWS }, (_, index) => index);
+  for (let index = positions.length - 1; index > 0; index--) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [positions[index], positions[swapIndex]] = [positions[swapIndex], positions[index]];
+  }
+  positions.slice(0, rightSteps).forEach((position) => {
+    path[position] = 'R';
+  });
+  return path;
+}
+
 export default function PlinkoGame() {
   const { profile, loadProfile } = useAuthStore();
+  const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
   const [betAmount, setBetAmount] = useState('100');
   const [risk, setRisk] = useState<'low' | 'medium' | 'high'>('medium');
   const [dropping, setDropping] = useState(false);
   const [result, setResult] = useState<{ slot: number; mult: number; payout: number } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [ballPos] = useState(new Animated.ValueXY({ x: 0, y: 0 }));
+  const [boardWidth, setBoardWidth] = useState(0);
+  const ballPos = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
 
   const play = async () => {
-    if (!betAmount) return;
+    const bet = Number(betAmount);
+    if (!Number.isSafeInteger(bet) || bet < 1 || loading || dropping) return;
     setLoading(true);
     setResult(null);
-    setDropping(true);
+    setDropping(false);
     ballPos.setValue({ x: 0, y: 0 });
 
     try {
-      const response = await callFunction<any>('game-plinko', {
-        bet_amount: Number(betAmount),
+      const response = await callFunction<PlinkoResponse>('game-plinko', {
+        bet_amount: bet,
         risk_level: risk,
       }, `game-plinko-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`);
 
-      // محاكاة سقوط الكرة
-      Animated.sequence([
-        Animated.timing(ballPos.y, {
-          toValue: 1,
-          duration: 2000,
-          easing: Easing.bounce,
-          useNativeDriver: false,
-        }),
-      ]).start(() => {
-        setDropping(false);
-        setLoading(false);
-        setResult({
-          slot: response.final_slot,
-          mult: response.multiplier,
-          payout: response.payout,
-        });
-        loadProfile();
-      });
-    } catch (err: any) {
-      setDropping(false);
+      const path = response.path ?? makeDisplayPath(response.final_slot);
+      if (
+        !Number.isInteger(response.final_slot)
+        || response.final_slot < 0
+        || response.final_slot >= multipliers.length
+        || !Array.isArray(path)
+        || path.length !== ROWS
+        || path.some((step) => step !== 'L' && step !== 'R')
+        || !Number.isFinite(response.multiplier)
+        || response.multiplier < 0
+        || !Number.isFinite(response.payout)
+        || response.payout < 0
+        || typeof response.is_win !== 'boolean'
+      ) {
+        throw new Error('لم تصل نتيجة بلانغو بشكل صحيح.');
+      }
+
       setLoading(false);
-      Alert.alert('خطأ', err.message);
+      setDropping(true);
+      const horizontalStep = Math.max(boardWidth, 240) / (ROWS + 1) / 2;
+      let horizontalOffset = 0;
+      const animations = path.map((step, index) => {
+        horizontalOffset += step === 'R' ? horizontalStep : -horizontalStep;
+        if (index === path.length - 1) {
+          horizontalOffset = (response.final_slot - (SLOTS - 1) / 2) * (Math.max(boardWidth, 240) / SLOTS);
+        }
+        return Animated.parallel([
+          Animated.timing(ballPos.x, {
+            toValue: horizontalOffset,
+            duration: reduceMotion ? 55 : 160,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: false,
+          }),
+          Animated.timing(ballPos.y, {
+            toValue: (index + 1) / path.length,
+            duration: reduceMotion ? 55 : 160,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: false,
+          }),
+        ]);
+      });
+      await new Promise<void>((resolve) => {
+        Animated.sequence(animations).start(() => resolve());
+      });
+      setDropping(false);
+      setResult({
+        slot: response.final_slot,
+        mult: response.multiplier,
+        payout: response.payout,
+      });
+      void loadProfile().catch((error: unknown) => {
+        console.warn('[Wattar] Failed to refresh game points after Plinko:', error);
+      });
+    } catch (err: unknown) {
+      setDropping(false);
+      Alert.alert('خطأ', err instanceof Error ? err.message : 'تعذر إكمال الجولة.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -90,9 +152,21 @@ export default function PlinkoGame() {
 
       <View style={styles.boardContainer}>
         {/* صفوف الأوتاد */}
-        <View style={styles.pegsBoard}>
+        <View
+          style={styles.pegsBoard}
+          onLayout={(event) => setBoardWidth(event.nativeEvent.layout.width)}
+        >
           {Array.from({ length: ROWS }).map((_, row) => (
-            <View key={row} style={[styles.pegRow, { marginTop: row * 18 }]}>
+            <View
+              key={row}
+              style={[
+                styles.pegRow,
+                {
+                  top: row * 18,
+                  gap: Math.max(4, Math.min(20, (boardWidth || 280) / (row + 4))),
+                },
+              ]}
+            >
               {Array.from({ length: row + 2 }).map((_, i) => (
                 <View key={i} style={styles.peg} />
               ))}
@@ -106,14 +180,13 @@ export default function PlinkoGame() {
             style={[
               styles.ball,
               {
+                left: 16 + (Math.max(boardWidth, 240) - 16) / 2,
+                top: 16,
                 transform: [
-                  { translateX: ballPos.x.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [-10, 10],
-                  }) },
-                  { translateY: ballPos.y.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 240],
+                { translateX: ballPos.x },
+                { translateY: ballPos.y.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 240],
                   }) },
                 ],
               },
@@ -161,6 +234,7 @@ export default function PlinkoGame() {
               key={r}
               style={[styles.riskBtn, risk === r && styles.riskBtnActive]}
               onPress={() => setRisk(r)}
+              disabled={dropping || loading}
             >
               <Text style={[styles.riskText, risk === r && styles.riskTextActive]}>
                 {r === 'low' ? 'منخفض' : r === 'medium' ? 'متوسط' : 'عالي'}
@@ -169,7 +243,7 @@ export default function PlinkoGame() {
           ))}
         </View>
 
-        <Text style={styles.label}>النقاط المشاركة</Text>
+        <Text style={styles.label}>مقدار Point للجولة</Text>
         <TextInput
           style={styles.input}
           value={betAmount}
@@ -190,7 +264,7 @@ export default function PlinkoGame() {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.balance}>نقاط مجانية: {profile?.game_points?.toLocaleString() ?? 0}</Text>
+      <Text style={styles.balance}>Point: {profile?.game_points?.toLocaleString() ?? 0}</Text>
     </ScrollView>
   );
 }
@@ -200,13 +274,16 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingTop: 58, paddingBottom: 32 },
   title: { color: colors.roomText, fontSize: 24, fontWeight: '800', textAlign: 'center', marginBottom: 16 },
   boardContainer: {
-    backgroundColor: colors.roomSurface,
-    borderRadius: 16,
+    backgroundColor: '#120D1C',
+    borderRadius: 24,
     padding: 16,
     alignItems: 'center',
     marginVertical: 16,
     minHeight: 320,
     position: 'relative',
+    borderWidth: 1,
+    borderColor: '#382A4B',
+    overflow: 'hidden',
   },
   pegsBoard: {
     position: 'relative',
@@ -215,25 +292,34 @@ const styles = StyleSheet.create({
     height: 240,
   },
   pegRow: {
+    position: 'absolute',
     flexDirection: 'row',
-    gap: 24,
+    width: '100%',
     justifyContent: 'center',
   },
   peg: {
-    width: 6,
-    height: 6,
+    width: 5,
+    height: 5,
     borderRadius: 3,
-    backgroundColor: colors.roomPrimary,
+    backgroundColor: '#AE7BDF',
+    shadowColor: '#B550FF',
+    shadowOpacity: 0.65,
+    shadowRadius: 5,
+    elevation: 3,
   },
   ball: {
     position: 'absolute',
     top: 0,
-    width: 16,
-    height: 16,
+    width: 15,
+    height: 15,
     borderRadius: 8,
-    backgroundColor: colors.gold,
-    borderWidth: 1,
-    borderColor: '#fff',
+    backgroundColor: '#FFE7A3',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: colors.gold,
+    shadowOpacity: 0.9,
+    shadowRadius: 9,
+    elevation: 7,
   },
   slotsRow: {
     flexDirection: 'row',

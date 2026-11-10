@@ -37,6 +37,7 @@ interface WattarProfile {
   is_private: boolean;
   is_friend: boolean;
   is_following: boolean;
+  is_verified_host?: boolean;
 }
 
 interface SocialProgress {
@@ -92,7 +93,18 @@ export default function UserProfileScreen() {
         return;
       }
 
-      const loadedProfile = profileRow as WattarProfile;
+      const { data: hostData, error: hostError } = await supabase
+        .from('verified_hosts')
+        .select('user_id')
+        .eq('user_id', id)
+        .eq('status', 'active')
+        .maybeSingle();
+      if (hostError) throw hostError;
+
+      const loadedProfile = {
+        ...(profileRow as WattarProfile),
+        is_verified_host: Boolean(hostData),
+      };
       setProfile(loadedProfile);
       if (loadedProfile.is_private) {
         setPosts([]);
@@ -271,6 +283,12 @@ export default function UserProfileScreen() {
             </View>
             <Text style={styles.displayName}>{profile.display_name || profile.username}</Text>
             <Text style={styles.username}>@{profile.username}</Text>
+            {profile.is_verified_host && (
+              <View style={styles.hostBadge}>
+                <Users size={13} color={palette.gold} />
+                <Text style={styles.hostBadgeText}>مضيفة موثّقة</Text>
+              </View>
+            )}
             {!profile.is_private && profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
             {profile.is_private ? (
               <View style={styles.privateNotice}>
@@ -417,6 +435,8 @@ const styles = StyleSheet.create({
   avatarInitial: { color: palette.gold, fontSize: 32, fontWeight: '900' },
   displayName: { color: palette.text, fontSize: 22, fontWeight: '900', marginTop: 13 },
   username: { color: palette.muted, fontSize: 13, marginTop: 3 },
+  hostBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 9, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, backgroundColor: '#F4BD5518', borderWidth: 1, borderColor: '#F4BD5533' },
+  hostBadgeText: { color: palette.gold, fontSize: 11, fontWeight: '800' },
   bio: { color: palette.text, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 12 },
   privateNotice: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 13 },
   privateText: { color: palette.gold, fontSize: 13, fontWeight: '700' },

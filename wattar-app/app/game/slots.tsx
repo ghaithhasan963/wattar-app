@@ -13,6 +13,7 @@ import {
 import { useAuthStore } from '@/store/auth';
 import { callFunction } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
+import { usePreferencesStore } from '@/store/preferences';
 
 interface SlotsResponse {
   reels: string[];
@@ -25,6 +26,7 @@ const SYMBOLS = ['🍋', '🍀', '⭐', '🍇', '🍒', '🔔', '💎'];
 
 export default function SlotsGame() {
   const { profile, loadProfile } = useAuthStore();
+  const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
   const [betAmount, setBetAmount] = useState('100');
   const [reels, setReels] = useState(['🍋', '⭐', '🍇']);
   const [result, setResult] = useState<SlotsResponse | null>(null);
@@ -43,9 +45,11 @@ export default function SlotsGame() {
     spinValue.setValue(0);
 
     try {
-      spinTimer = setInterval(() => {
-        setReels(Array.from({ length: 3 }, () => SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]));
-      }, 110);
+      if (!reduceMotion) {
+        spinTimer = setInterval(() => {
+          setReels(Array.from({ length: 3 }, () => SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]));
+        }, 110);
+      }
       const response = await callFunction<SlotsResponse>(
         'game-slots',
         { bet_amount: bet },
@@ -54,7 +58,7 @@ export default function SlotsGame() {
       if (
         !Array.isArray(response.reels)
         || response.reels.length !== 3
-        || response.reels.some((symbol) => typeof symbol !== 'string')
+        || response.reels.some((symbol) => typeof symbol !== 'string' || !SYMBOLS.includes(symbol))
         || typeof response.is_win !== 'boolean'
         || !Number.isFinite(response.multiplier)
         || !Number.isFinite(response.payout)
@@ -64,6 +68,16 @@ export default function SlotsGame() {
         throw new Error('لم تصل نتيجة البكرات بشكل صحيح.');
       }
       if (spinTimer) clearInterval(spinTimer);
+
+      if (reduceMotion) {
+        setReels(response.reels);
+        setResult(response);
+        setLoading(false);
+        void loadProfile().catch((error: unknown) => {
+          console.warn('[Wattar] Failed to refresh game points after slots:', error);
+        });
+        return;
+      }
 
       Animated.timing(spinValue, {
         toValue: 1,
@@ -104,7 +118,7 @@ export default function SlotsGame() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>نقاط مجانية فقط</Text>
+        <Text style={styles.eyebrow}>اللعب بعملة Point فقط</Text>
         <Text style={styles.title}>Slots</Text>
         <Text style={styles.subtitle}>طابق الرموز الثلاثة واربح نقاطًا داخل اللعبة.</Text>
       </View>
@@ -134,7 +148,7 @@ export default function SlotsGame() {
           </Text>
           <Text style={styles.resultText}>
             {result.is_win
-              ? `الجائزة ${result.payout.toLocaleString()} نقطة مجانية`
+              ? `الجائزة ${result.payout.toLocaleString()} Point`
               : 'لم تطابق الرموز هذه المرة.'}
           </Text>
         </View>
@@ -167,12 +181,12 @@ export default function SlotsGame() {
             : <Text style={styles.spinText}>جرّب حظك</Text>}
         </TouchableOpacity>
         <Text style={styles.disclaimer}>
-          لا تستخدم هذه اللعبة Coins أو Diamonds. نقاطها مجانية وغير قابلة للشراء أو التحويل أو السحب.
+          Point مخصصة للألعاب فقط، ولا يمكن شراؤها أو تحويلها إلى Coin أو Diamond أو سحبها.
         </Text>
       </View>
 
       <View style={styles.balanceCard}>
-        <Text style={styles.balanceLabel}>رصيد نقاط اللعب</Text>
+        <Text style={styles.balanceLabel}>رصيد Point</Text>
         <Text style={styles.balance}>{profile?.game_points?.toLocaleString() ?? 0}</Text>
       </View>
     </ScrollView>

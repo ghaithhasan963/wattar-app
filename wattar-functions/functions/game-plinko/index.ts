@@ -93,6 +93,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const finalSlot = Math.min(rightCount, slots - 1);
+    const path = simulatePath(rows, rightCount);
     const multiplier = multipliers[finalSlot];
     const isWin = multiplier >= 1;
     const payout = Math.floor(body.bet_amount * multiplier);
@@ -103,7 +104,7 @@ Deno.serve(async (req: Request) => {
       idempotency_key: idempotencyKey,
       request_data: { risk_level: body.risk_level },
       bet_amount: body.bet_amount,
-      bet_data: { risk_level: body.risk_level, final_slot: finalSlot, path: simulatePath(rows, rightCount) },
+      bet_data: { risk_level: body.risk_level, final_slot: finalSlot, path },
     };
 
     const result: GameResult = {
@@ -116,6 +117,7 @@ Deno.serve(async (req: Request) => {
         multiplier,
         risk_level: body.risk_level,
         rows,
+        path,
         rtp_target: rtp,
       },
       forced_outcome: forced,
@@ -129,6 +131,7 @@ Deno.serve(async (req: Request) => {
       round_id: placed.round_id,
       bet_id: placed.bet_id,
       final_slot: Number(placed.result.final_slot),
+      path: placed.result.path,
       multiplier: placed.multiplier,
       is_win: placed.is_win,
       payout: placed.payout,

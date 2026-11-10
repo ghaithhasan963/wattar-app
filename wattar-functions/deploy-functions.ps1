@@ -1,7 +1,8 @@
 param(
   [Parameter(Mandatory = $true)]
   [string]$ProjectRef,
-  [switch]$Yes
+  [switch]$Yes,
+  [string[]]$FunctionsToDeploy
 )
 
 $ErrorActionPreference = 'Stop'
@@ -10,7 +11,7 @@ $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) "wattar-supabase-$([guid
 $supabaseRoot = Join-Path $tempRoot 'supabase'
 $functionsTarget = Join-Path $supabaseRoot 'functions'
 
-$functions = @(
+$availableFunctions = @(
   'wallet',
   'deposit-request',
   'deposit-approve',
@@ -28,6 +29,9 @@ $functions = @(
   'game-plinko',
   'game-slots',
   'admin-create-agent',
+  'agent-phone-login',
+  'admin-set-agent-status',
+  'host-application-review',
   'admin-set-rtp',
   'admin-set-user-status',
   'admin-force-outcome',
@@ -38,6 +42,15 @@ $functions = @(
 $confirmationArgs = @()
 if ($Yes) {
   $confirmationArgs = @('--yes')
+}
+
+$functions = @($availableFunctions)
+if ($FunctionsToDeploy) {
+  $unknownFunctions = @($FunctionsToDeploy | Where-Object { $_ -notin $availableFunctions })
+  if ($unknownFunctions.Count -gt 0) {
+    throw "Unknown function name(s): $($unknownFunctions -join ', ')"
+  }
+  $functions = @($FunctionsToDeploy | Select-Object -Unique)
 }
 
 try {

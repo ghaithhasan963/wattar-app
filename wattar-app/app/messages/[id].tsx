@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronRight, Send } from 'lucide-react-native';
+import { ChevronRight, Send, Smile } from 'lucide-react-native';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { notifySocialEvent } from '@/lib/notifications';
@@ -41,6 +41,7 @@ const socialPalette = {
   primaryDeep: '#7624D7',
   gold: '#F4BD55',
 } as const;
+const CHAT_EMOJIS = ['😀', '😂', '🥰', '😍', '🤩', '😎', '🥳', '😭', '👏', '🔥', '❤️', '🌹', '🎉', '✨', '💎', '🎁'];
 
 export default function PrivateMessageScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -51,6 +52,7 @@ export default function PrivateMessageScreen() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [title, setTitle] = useState('محادثة');
   const [partnerAvatar, setPartnerAvatar] = useState<string | null>(null);
@@ -217,13 +219,29 @@ export default function PrivateMessageScreen() {
           renderItem={({ item }) => {
             const ownMessage = item.sender_id === user?.id;
             return (
-              <View style={[styles.messageBubble, ownMessage ? styles.ownBubble : styles.otherBubble]}>
-                {!ownMessage && <Text style={styles.senderName}>{item.display_name || item.username}</Text>}
-                <Text style={styles.messageText}>{item.body}</Text>
-                <Text style={[styles.messageTime, ownMessage && styles.ownMessageTime]}>
-                  {new Date(item.created_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}
-                  {ownMessage && item.pending ? ' · جارٍ الإرسال' : ownMessage && item.read_at ? ' · تمت القراءة' : ownMessage ? ' · أُرسلت' : ''}
-                </Text>
+              <View style={[styles.messageRow, ownMessage && styles.ownMessageRow]}>
+                {!ownMessage && (
+                  <View style={styles.messageAvatar}>
+                    {item.avatar_url
+                      ? <Image source={{ uri: item.avatar_url }} style={styles.messageAvatarImage} />
+                      : <Text style={styles.messageAvatarText}>{(item.display_name || item.username || '؟').slice(0, 1)}</Text>}
+                  </View>
+                )}
+                <View style={[styles.messageBubble, ownMessage ? styles.ownBubble : styles.otherBubble]}>
+                  {!ownMessage && <Text style={styles.senderName}>{item.display_name || item.username}</Text>}
+                  <Text style={styles.messageText}>{item.body}</Text>
+                  <Text style={[styles.messageTime, ownMessage && styles.ownMessageTime]}>
+                    {new Date(item.created_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}
+                    {ownMessage && item.pending ? ' · جارٍ الإرسال' : ownMessage && item.read_at ? ' · تمت القراءة' : ownMessage ? ' · أُرسلت' : ''}
+                  </Text>
+                </View>
+                {ownMessage && (
+                  <View style={[styles.messageAvatar, styles.ownMessageAvatar]}>
+                    {profile?.avatar_url
+                      ? <Image source={{ uri: profile.avatar_url }} style={styles.messageAvatarImage} />
+                      : <Text style={styles.messageAvatarText}>{(profile?.display_name || profile?.username || 'أ').slice(0, 1)}</Text>}
+                  </View>
+                )}
               </View>
             );
           }}
@@ -233,11 +251,38 @@ export default function PrivateMessageScreen() {
           ) : null}
         />
       )}
+      {showEmojiPicker && (
+        <View style={styles.emojiTray}>
+          <Text style={styles.emojiTrayTitle}>أضف تعبيرًا</Text>
+          <View style={styles.emojiGrid}>
+            {CHAT_EMOJIS.map((emoji) => (
+              <TouchableOpacity
+                key={emoji}
+                style={styles.emojiChoice}
+                onPress={() => updateTyping(`${message}${emoji}`.slice(0, 2000))}
+                accessibilityRole="button"
+                accessibilityLabel={`إضافة ${emoji}`}
+              >
+                <Text style={styles.emojiChoiceText}>{emoji}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
       <View style={styles.composer}>
+        <TouchableOpacity
+          style={[styles.emojiToggle, showEmojiPicker && styles.emojiToggleActive]}
+          onPress={() => setShowEmojiPicker((visible) => !visible)}
+          accessibilityRole="button"
+          accessibilityLabel={showEmojiPicker ? 'إغلاق لوحة الإيموجي' : 'فتح لوحة الإيموجي'}
+        >
+          <Smile size={19} color={showEmojiPicker ? socialPalette.gold : socialPalette.muted} />
+        </TouchableOpacity>
         <TextInput
           style={styles.input}
           value={message}
           onChangeText={updateTyping}
+          onFocus={() => setShowEmojiPicker(false)}
           placeholder="اكتب رسالة..."
           placeholderTextColor={socialPalette.muted}
           multiline
@@ -269,7 +314,13 @@ const styles = StyleSheet.create({
   title: { color: socialPalette.text, fontSize: 17, fontWeight: '800', textAlign: 'right' },
   subtitle: { color: socialPalette.muted, fontSize: 11, marginTop: 4, textAlign: 'right' },
   messageList: { flexGrow: 1, justifyContent: 'flex-end', paddingHorizontal: 14, paddingVertical: 18, gap: 10 },
-  messageBubble: { maxWidth: '84%', paddingHorizontal: 14, paddingVertical: 11, borderRadius: 18, borderWidth: 1 },
+  messageRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 7, maxWidth: '94%', alignSelf: 'flex-start' },
+  ownMessageRow: { alignSelf: 'flex-end' },
+  messageAvatar: { width: 29, height: 29, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A1940', borderWidth: 1, borderColor: socialPalette.border, overflow: 'hidden' },
+  ownMessageAvatar: { backgroundColor: '#55209A', borderColor: '#8E3FD1' },
+  messageAvatarImage: { width: '100%', height: '100%' },
+  messageAvatarText: { color: socialPalette.text, fontSize: 12, fontWeight: '800' },
+  messageBubble: { maxWidth: '88%', paddingHorizontal: 14, paddingVertical: 11, borderRadius: 18, borderWidth: 1 },
   ownBubble: { alignSelf: 'flex-end', backgroundColor: '#55209A', borderColor: '#8E3FD1', borderBottomRightRadius: 5 },
   otherBubble: { alignSelf: 'flex-start', backgroundColor: socialPalette.surface, borderColor: socialPalette.border, borderBottomLeftRadius: 5 },
   senderName: { color: socialPalette.gold, fontSize: 11, fontWeight: '700', marginBottom: 4 },
@@ -288,4 +339,11 @@ const styles = StyleSheet.create({
   input: { flex: 1, minHeight: 48, maxHeight: 120, color: socialPalette.text, fontSize: 14, paddingHorizontal: 14, paddingVertical: 11, textAlign: 'right', borderWidth: 1, borderColor: socialPalette.border, borderRadius: 16, backgroundColor: socialPalette.surface },
   sendButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: socialPalette.primaryDeep },
   sendDisabled: { opacity: 0.55 },
+  emojiTray: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 7, backgroundColor: socialPalette.surface, borderTopWidth: 1, borderTopColor: socialPalette.border },
+  emojiTrayTitle: { color: socialPalette.muted, fontSize: 10, fontWeight: '700', marginBottom: 8, textAlign: 'right' },
+  emojiGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 5 },
+  emojiChoice: { minWidth: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: '#241B33' },
+  emojiChoiceText: { fontSize: 21 },
+  emojiToggle: { width: 42, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: socialPalette.surface },
+  emojiToggleActive: { backgroundColor: '#3A2B48' },
 });
