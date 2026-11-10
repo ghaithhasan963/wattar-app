@@ -16,47 +16,37 @@ const games = [
   {
     id: 'wheel',
     name: 'عجلة الحظ',
-    description: 'العب برصيد Point فقط حتى x50',
+    description: 'اختر معاملًا ودع العجلة تحدد الخانة',
     icon: Gamepad2,
     color: '#7C3AED',
-    bgGradient: ['#7C3AED', '#5B21B6'],
-    maxMult: 'x50',
   },
   {
     id: 'aviator',
     name: 'طيارة المضاعفات',
-    description: 'العب برصيد Point فقط قبل الانهيار',
+    description: 'حدّد هدف السحب وشاهد مسار الرحلة',
     icon: Plane,
     color: '#3B82F6',
-    bgGradient: ['#3B82F6', '#1D4ED8'],
-    maxMult: 'x100',
   },
   {
     id: 'plinko',
     name: 'بلانغو',
-    description: 'العب برصيد Point فقط واكتشف النتيجة',
+    description: 'اختر المخاطرة وتابع سقوط الكرة',
     icon: ChevronDown,
     color: '#F59E0B',
-    bgGradient: ['#F59E0B', '#B45309'],
-    maxMult: 'x1000',
   },
   {
     id: 'dice',
     name: 'نرد',
-    description: 'اختر الهدف والعب برصيد Point فقط',
+    description: 'توقع رقمًا أعلى أو أدنى من حدك',
     icon: Dice5,
     color: '#10B981',
-    bgGradient: ['#10B981', '#047857'],
-    maxMult: 'x10',
   },
   {
     id: 'slots',
     name: 'Slots',
-    description: 'ثلاث بكرات وجوائز بعملة Point',
+    description: 'طابق الرموز الثلاثة في البكرات',
     icon: Gem,
     color: '#C026D3',
-    bgGradient: ['#C026D3', '#86198F'],
-    maxMult: 'x10',
   },
 ];
 
@@ -151,22 +141,38 @@ export default function GamesScreen() {
         </TouchableOpacity>
       </Animated.View>
 
+      <View style={styles.sectionHeading}>
+        <View>
+          <Text style={styles.sectionTitle}>اختر لعبتك</Text>
+          <Text style={styles.sectionSubtitle}>جولات سريعة برصيد Point فقط</Text>
+        </View>
+        <View style={styles.gamesCount}>
+          <Text style={styles.gamesCountText}>{games.length} ألعاب</Text>
+        </View>
+      </View>
+
       <Animated.View style={[styles.gamesGrid, entranceStyle]}>
         {games.map(game => (
           <TouchableOpacity
             key={game.id}
-            style={[styles.gameCard, { backgroundColor: game.color }]}
+            style={[styles.gameCard, { borderTopColor: game.color }]}
             onPress={() => router.push(`/game/${game.id}`)}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={`افتح لعبة ${game.name}`}
           >
-            <View style={styles.gameIconBg}>
-              <game.icon size={32} color="#fff" />
+            <View style={styles.gameCardTop}>
+              <View style={[styles.gameIconBg, { backgroundColor: `${game.color}22` }]}>
+                <game.icon size={25} color={game.color} />
+              </View>
+              <ArrowLeft size={17} color={colors.textSecondary} />
             </View>
             <View style={styles.gameInfo}>
               <Text style={styles.gameName}>{game.name}</Text>
-              <Text style={styles.gameDesc}>{game.description}</Text>
-              <View style={styles.maxMultBadge}>
-                <Text style={styles.maxMultText}>حتى {game.maxMult}</Text>
+              <Text style={styles.gameDesc} numberOfLines={2}>{game.description}</Text>
+              <View style={styles.gameBadge}>
+                <CurrencyIcon currency="point" size={18} />
+                <Text style={styles.gameBadgeText}>Point فقط</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -203,34 +209,35 @@ const styles = StyleSheet.create({
   communityTitle: { color: colors.text, fontSize: 14, fontWeight: '700' },
   communityDescription: { color: colors.textSecondary, fontSize: 11 },
   communityButton: { width: 34, height: 34, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  gamesGrid: { padding: 16, gap: 12 },
+  sectionHeading: { marginHorizontal: 18, marginTop: 22, marginBottom: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '900' },
+  sectionSubtitle: { color: colors.textSecondary, fontSize: 11, marginTop: 4 },
+  gamesCount: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  gamesCountText: { color: colors.teal, fontSize: 10, fontWeight: '800' },
+  gamesGrid: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 },
   gameCard: {
-    borderRadius: 16,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
+    width: '48%',
+    minHeight: 174,
+    borderRadius: 19,
+    padding: 13,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderTopWidth: 3,
   },
+  gameCardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   gameIconBg: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 44,
+    height: 44,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  gameInfo: { flex: 1 },
-  gameName: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  gameDesc: { color: 'rgba(255,255,255,0.85)', fontSize: 13, marginTop: 4 },
-  maxMultBadge: {
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    marginTop: 6,
-  },
-  maxMultText: { color: '#fff', fontSize: 11, fontWeight: '600' },
+  gameInfo: { flex: 1, justifyContent: 'flex-end', marginTop: 10 },
+  gameName: { color: colors.text, fontSize: 15, fontWeight: '900', textAlign: 'right' },
+  gameDesc: { minHeight: 32, color: colors.textSecondary, fontSize: 10, lineHeight: 15, marginTop: 4, textAlign: 'right' },
+  gameBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 5, marginTop: 8, paddingVertical: 4, paddingHorizontal: 7, borderRadius: 9, backgroundColor: colors.background },
+  gameBadgeText: { color: colors.textSecondary, fontSize: 9, fontWeight: '800' },
   statsCard: {
     margin: 16,
     backgroundColor: colors.surface,

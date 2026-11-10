@@ -4,7 +4,7 @@
  */
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated, Easing, ScrollView,
+  View, Text, TouchableOpacity, StyleSheet, Alert, Animated, Easing, ScrollView,
 } from 'react-native';
 import { callFunction } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
@@ -12,6 +12,7 @@ import { usePreferencesStore } from '@/store/preferences';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/lib/theme';
 import { GameHeader } from '@/components/GameHeader';
+import { GameBetControl, parseValidGameBet } from '@/components/GameBetControl';
 
 const ROWS = 12;
 const SLOTS = 11;
@@ -31,7 +32,7 @@ const SLOT_COLORS: Record<string, string> = {
 
 interface PlinkoResponse {
   final_slot: number;
-  path?: Array<'L' | 'R'>;
+  path: Array<'L' | 'R'>;
   multiplier: number;
   payout: number;
   is_win: boolean;
@@ -44,20 +45,6 @@ function getColor(mult: number): string {
   return SLOT_COLORS.low;
 }
 
-function makeDisplayPath(finalSlot: number): Array<'L' | 'R'> {
-  const path: Array<'L' | 'R'> = Array(ROWS).fill('L');
-  const rightSteps = Math.min(finalSlot, ROWS);
-  const positions = Array.from({ length: ROWS }, (_, index) => index);
-  for (let index = positions.length - 1; index > 0; index--) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    [positions[index], positions[swapIndex]] = [positions[swapIndex], positions[index]];
-  }
-  positions.slice(0, rightSteps).forEach((position) => {
-    path[position] = 'R';
-  });
-  return path;
-}
-
 export default function PlinkoGame() {
   const { profile, loadProfile } = useAuthStore();
   const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
@@ -68,10 +55,11 @@ export default function PlinkoGame() {
   const [loading, setLoading] = useState(false);
   const [boardWidth, setBoardWidth] = useState(0);
   const ballPos = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const validBet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
 
   const play = async () => {
-    const bet = Number(betAmount);
-    if (!Number.isSafeInteger(bet) || bet < 1 || loading || dropping) return;
+    const bet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
+    if (bet === null || loading || dropping) return;
     setLoading(true);
     setResult(null);
     setDropping(false);
@@ -83,7 +71,7 @@ export default function PlinkoGame() {
         risk_level: risk,
       }, `game-plinko-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`);
 
-      const path = response.path ?? makeDisplayPath(response.final_slot);
+      const path = response.path;
       if (
         !Number.isInteger(response.final_slot)
         || response.final_slot < 0
@@ -248,20 +236,17 @@ export default function PlinkoGame() {
           ))}
         </View>
 
-        <Text style={styles.label}>مقدار Point للجولة</Text>
-        <TextInput
-          style={styles.input}
+        <GameBetControl
           value={betAmount}
-          onChangeText={setBetAmount}
-          keyboardType="numeric"
-          placeholder="100"
-          placeholderTextColor="#666"
+          balance={profile?.game_points ?? 0}
+          disabled={dropping || loading}
+          onChange={setBetAmount}
         />
 
         <TouchableOpacity
-          style={[styles.playButton, (dropping || loading) && styles.playButtonDisabled]}
+          style={[styles.playButton, (dropping || loading || validBet === null) && styles.playButtonDisabled]}
           onPress={play}
-          disabled={dropping || loading}
+          disabled={dropping || loading || validBet === null}
         >
           <Text style={styles.playButtonText}>
             {dropping ? 'تسقط...' : loading ? 'جاري...' : '🔻 أسقط الكرة'}

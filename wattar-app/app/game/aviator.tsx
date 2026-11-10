@@ -13,6 +13,7 @@ import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/lib/theme';
 import { usePreferencesStore } from '@/store/preferences';
 import { GameHeader } from '@/components/GameHeader';
+import { GameBetControl, parseValidGameBet } from '@/components/GameBetControl';
 
 interface AviatorResponse {
   crash_point: number;
@@ -31,6 +32,7 @@ export default function AviatorGame() {
   const [loading, setLoading] = useState(false);
   const multAnim = useRef(new Animated.Value(1)).current;
   const flightAnim = useRef(new Animated.Value(0)).current;
+  const validBet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
 
   useEffect(() => {
     const listenerId = multAnim.addListener(({ value }) => setMultiplier(value));
@@ -41,9 +43,9 @@ export default function AviatorGame() {
   }, [multAnim]);
 
   const play = async () => {
-    const bet = Number(betAmount);
+    const bet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
     const target = Number(cashoutMult);
-    if (!Number.isSafeInteger(bet) || bet < 1 || !Number.isFinite(target) || target <= 1 || loading || isFlying) return;
+    if (bet === null || !Number.isFinite(target) || target <= 1 || loading || isFlying) return;
     setLoading(true);
     setResult(null);
     setMultiplier(1.0);
@@ -147,35 +149,46 @@ export default function AviatorGame() {
       </View>
 
       <View style={styles.controlsCard}>
-        <View style={styles.inputRow}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>مقدار Point للجولة</Text>
-            <TextInput
-              style={styles.input}
-              value={betAmount}
-              onChangeText={setBetAmount}
-              keyboardType="numeric"
-              placeholder="100"
-              placeholderTextColor="#666"
-            />
+        <GameBetControl
+          value={betAmount}
+          balance={profile?.game_points ?? 0}
+          disabled={loading || isFlying}
+          onChange={setBetAmount}
+        />
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>السحب التلقائي عند (x)</Text>
+          <TextInput
+            style={styles.input}
+            value={cashoutMult}
+            onChangeText={setCashoutMult}
+            keyboardType="decimal-pad"
+            placeholder="2.0"
+            placeholderTextColor="#666"
+            editable={!loading && !isFlying}
+          />
+          <View style={styles.targetPresets}>
+            {['1.5', '2', '3', '5'].map((preset) => (
+              <TouchableOpacity
+                key={preset}
+                style={[styles.targetPreset, cashoutMult === preset && styles.targetPresetActive]}
+                onPress={() => setCashoutMult(preset)}
+                disabled={loading || isFlying}
+                accessibilityRole="button"
+                accessibilityState={{ selected: cashoutMult === preset, disabled: loading || isFlying }}
+              >
+                <Text style={[styles.targetPresetText, cashoutMult === preset && styles.targetPresetTextActive]}>
+                  {preset}x
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>السحب عند (x)</Text>
-            <TextInput
-              style={styles.input}
-              value={cashoutMult}
-              onChangeText={setCashoutMult}
-              keyboardType="numeric"
-              placeholder="2.0"
-              placeholderTextColor="#666"
-            />
-          </View>
+          <Text style={styles.targetHint}>تُحدد نتيجة الجولة من الخادم قبل عرض مسار الرحلة.</Text>
         </View>
 
         <TouchableOpacity
-          style={[styles.playButton, loading && styles.playButtonDisabled]}
+          style={[styles.playButton, (loading || validBet === null) && styles.playButtonDisabled]}
           onPress={play}
-          disabled={loading || isFlying}
+          disabled={loading || isFlying || validBet === null}
         >
           <Plane size={20} color="#fff" />
           <Text style={styles.playButtonText}>
@@ -228,9 +241,14 @@ const styles = StyleSheet.create({
   winText: { color: colors.roomTeal },
   loseText: { color: colors.danger },
   controlsCard: { backgroundColor: colors.roomSurface, borderRadius: 16, padding: 16, marginTop: 16 },
-  inputRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  inputGroup: { flex: 1 },
+  inputGroup: { marginTop: 16 },
   inputLabel: { color: colors.roomMuted, fontSize: 12, marginBottom: 4 },
+  targetHint: { color: colors.roomMuted, fontSize: 10, lineHeight: 15, marginTop: 7, textAlign: 'right' },
+  targetPresets: { flexDirection: 'row', gap: 7, marginTop: 9 },
+  targetPreset: { flex: 1, minHeight: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 9, backgroundColor: colors.roomElevated },
+  targetPresetActive: { backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary },
+  targetPresetText: { color: colors.roomMuted, fontSize: 11, fontWeight: '800' },
+  targetPresetTextActive: { color: colors.roomText },
   input: {
     backgroundColor: colors.roomElevated,
     borderRadius: 10,

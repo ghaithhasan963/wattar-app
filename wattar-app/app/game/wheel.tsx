@@ -4,7 +4,7 @@
  */
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, Animated, Easing, Alert, ScrollView,
+  View, Text, TouchableOpacity, StyleSheet, Animated, Easing, Alert, ScrollView,
 } from 'react-native';
 import Svg, { Circle, Path, Text as SvgText } from 'react-native-svg';
 import { callFunction } from '@/lib/supabase';
@@ -13,6 +13,7 @@ import { usePreferencesStore } from '@/store/preferences';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/lib/theme';
 import { GameHeader } from '@/components/GameHeader';
+import { GameBetControl, parseValidGameBet } from '@/components/GameBetControl';
 
 const SEGMENTS = [
   { value: 0,  label: 'خسارة', color: '#1F2937' },
@@ -41,10 +42,11 @@ export default function WheelGame() {
   const [result, setResult] = useState<{ won: boolean; payout: number; segment: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const currentRotation = useRef(0);
+  const validBet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
 
   const spin = async () => {
-    const bet = Number(betAmount);
-    if (!Number.isSafeInteger(bet) || bet < 1 || spinning || loading) return;
+    const bet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
+    if (bet === null || spinning || loading) return;
     setLoading(true);
     setResult(null);
 
@@ -190,20 +192,17 @@ export default function WheelGame() {
           ))}
         </View>
 
-        <Text style={styles.label}>مقدار Point للجولة</Text>
-        <TextInput
-          style={styles.input}
+        <GameBetControl
           value={betAmount}
-          onChangeText={setBetAmount}
-          keyboardType="numeric"
-          placeholder="100"
-          placeholderTextColor="#666"
+          balance={profile?.game_points ?? 0}
+          disabled={spinning || loading}
+          onChange={setBetAmount}
         />
 
         <TouchableOpacity
-          style={[styles.spinButton, (spinning || loading) && styles.spinButtonDisabled]}
+          style={[styles.spinButton, (spinning || loading || validBet === null) && styles.spinButtonDisabled]}
           onPress={spin}
-          disabled={spinning || loading}
+          disabled={spinning || loading || validBet === null}
         >
           <Text style={styles.spinButtonText}>
             {loading ? 'جاري...' : spinning ? 'يدور...' : '🎡 أدر العجلة'}
@@ -255,16 +254,21 @@ const styles = StyleSheet.create({
   label: { color: colors.roomMuted, fontSize: 13, marginBottom: 8, marginTop: 12 },
   segmentsRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   segmentBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 8,
-    minWidth: 50,
+    flexBasis: '30%',
+    flexGrow: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   segmentBtnActive: {
-    borderWidth: 2,
     borderColor: colors.roomText,
-    transform: [{ scale: 1.1 }],
+    shadowColor: colors.gold,
+    shadowOpacity: 0.45,
+    shadowRadius: 8,
+    elevation: 3,
   },
   segmentBtnText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
   input: {

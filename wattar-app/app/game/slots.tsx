@@ -6,7 +6,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -15,6 +14,7 @@ import { callFunction } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 import { usePreferencesStore } from '@/store/preferences';
 import { GameHeader } from '@/components/GameHeader';
+import { GameBetControl, parseValidGameBet } from '@/components/GameBetControl';
 
 interface SlotsResponse {
   reels: string[];
@@ -34,10 +34,11 @@ export default function SlotsGame() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const spinValue = useRef(new Animated.Value(0)).current;
+  const validBet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
 
   const spin = async () => {
-    const bet = Number(betAmount);
-    if (!Number.isSafeInteger(bet) || bet < 1 || loading) return;
+    const bet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
+    if (bet === null || loading) return;
 
     let spinTimer: ReturnType<typeof setInterval> | null = null;
     setLoading(true);
@@ -157,24 +158,19 @@ export default function SlotsGame() {
       {errorMessage ? <Text accessibilityRole="alert" style={styles.error}>{errorMessage}</Text> : null}
 
       <View style={styles.controls}>
-        <Text style={styles.label}>نقاط الجولة</Text>
-        <TextInput
-          style={styles.input}
+        <GameBetControl
           value={betAmount}
-          onChangeText={(value) => {
-            setBetAmount(value.replace(/[^\d]/g, ''));
+          balance={profile?.game_points ?? 0}
+          disabled={loading}
+          onChange={(value) => {
+            setBetAmount(value);
             setErrorMessage(null);
           }}
-          keyboardType="number-pad"
-          placeholder="100"
-          placeholderTextColor={colors.textSecondary}
-          editable={!loading}
-          accessibilityLabel="عدد نقاط اللعب للجولة"
         />
         <TouchableOpacity
-          style={[styles.spinButton, loading && styles.disabled]}
+          style={[styles.spinButton, (loading || validBet === null) && styles.disabled]}
           onPress={spin}
-          disabled={loading || !Number.isSafeInteger(Number(betAmount)) || Number(betAmount) < 1}
+          disabled={loading || validBet === null}
           accessibilityRole="button"
         >
           {loading

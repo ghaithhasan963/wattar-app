@@ -4,15 +4,16 @@
  */
 import React, { useRef, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Animated, Easing,
+  View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Animated, Easing,
 } from 'react-native';
 import { callFunction } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
-import { Dice5, TrendingUp, TrendingDown } from 'lucide-react-native';
+import { Dice5, Minus, Plus, TrendingUp, TrendingDown } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/lib/theme';
 import { usePreferencesStore } from '@/store/preferences';
 import { GameHeader } from '@/components/GameHeader';
+import { GameBetControl, parseValidGameBet } from '@/components/GameBetControl';
 
 interface DiceResponse {
   roll: number;
@@ -32,19 +33,23 @@ export default function DiceGame() {
   const [loading, setLoading] = useState(false);
   const dieRotation = useRef(new Animated.Value(0)).current;
   const dieBounce = useRef(new Animated.Value(0)).current;
+  const validBet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
 
   const pWin = direction === 'over'
     ? (100 - Number(target)) / 100
     : (Number(target) - 1) / 100;
   const fairMult = 1 / Math.max(pWin, 0.01);
   const adjustedMult = fairMult * 30 / 100; // RTP 30%
+  const changeTarget = (amount: number) => {
+    const nextTarget = Math.min(98, Math.max(2, Number(target) + amount));
+    setTarget(String(nextTarget));
+  };
 
   const play = async () => {
-    const bet = Number(betAmount);
+    const bet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
     const targetValue = Number(target);
     if (
-      !Number.isSafeInteger(bet)
-      || bet < 1
+      bet === null
       || !Number.isInteger(targetValue)
       || targetValue < 2
       || targetValue > 98
@@ -158,31 +163,56 @@ export default function DiceGame() {
         </View>
       )}
 
-      {/* شريط الـ Target */}
       <View style={styles.targetCard}>
-        <View style={styles.targetRow}>
-          <Text style={styles.targetLabel}>تحت</Text>
-          <Text style={[styles.targetValue, direction === 'under' && styles.targetValueActive]}>
-            {Number(target) - 1}
-          </Text>
-          <View style={styles.targetSlider}>
-            <View style={[styles.targetFill, { width: `${target}%` as any }]} />
-            <View style={[styles.targetKnob, { left: `${target}%` as any }]} />
-          </View>
-          <Text style={[styles.targetValue, direction === 'over' && styles.targetValueActive]}>
-            {100 - Number(target)}
-          </Text>
-          <Text style={styles.targetLabel}>فوق</Text>
+        <View style={styles.targetHeading}>
+          <Text style={styles.targetLabel}>حدّ التوقع</Text>
+          <Text style={styles.targetRange}>من 2 إلى 98</Text>
         </View>
-        <TextInput
-          style={styles.targetInput}
-          value={target}
-          onChangeText={(v) => {
-            const n = Number(v);
-            if (n >= 2 && n <= 98) setTarget(v);
-          }}
-          keyboardType="numeric"
-        />
+        <View style={styles.targetStepper}>
+          <TouchableOpacity
+            style={styles.stepButton}
+            onPress={() => changeTarget(-1)}
+            disabled={Number(target) <= 2 || loading}
+            accessibilityRole="button"
+            accessibilityLabel="خفض حد التوقع"
+          >
+            <Minus size={18} color={colors.roomText} />
+          </TouchableOpacity>
+          <View style={styles.targetValueCard}>
+            <Text style={styles.targetValue}>{Number(target)}</Text>
+            <Text style={styles.targetValueCaption}>من 100</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.stepButton}
+            onPress={() => changeTarget(1)}
+            disabled={Number(target) >= 98 || loading}
+            accessibilityRole="button"
+            accessibilityLabel="رفع حد التوقع"
+          >
+            <Plus size={18} color={colors.roomText} />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.targetSummary}>
+          {direction === 'under'
+            ? `تربح إذا كانت النتيجة من 1 إلى ${Number(target) - 1}`
+            : `تربح إذا كانت النتيجة من ${Number(target) + 1} إلى 100`}
+        </Text>
+        <View style={styles.targetPresets}>
+          {[25, 50, 75].map((preset) => (
+            <TouchableOpacity
+              key={preset}
+              style={[styles.targetPreset, Number(target) === preset && styles.targetPresetActive]}
+              onPress={() => setTarget(String(preset))}
+              disabled={loading}
+              accessibilityRole="button"
+              accessibilityState={{ selected: Number(target) === preset, disabled: loading }}
+            >
+              <Text style={[styles.targetPresetText, Number(target) === preset && styles.targetPresetTextActive]}>
+                {preset}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       <View style={styles.controlsCard}>
@@ -214,20 +244,17 @@ export default function DiceGame() {
           </View>
         </View>
 
-        <Text style={styles.label}>مقدار Point للجولة</Text>
-        <TextInput
-          style={styles.input}
+        <GameBetControl
           value={betAmount}
-          onChangeText={setBetAmount}
-          keyboardType="numeric"
-          placeholder="100"
-          placeholderTextColor="#666"
+          balance={profile?.game_points ?? 0}
+          disabled={loading || rolling}
+          onChange={setBetAmount}
         />
 
         <TouchableOpacity
-          style={[styles.playButton, (rolling || loading) && styles.playButtonDisabled]}
+          style={[styles.playButton, (rolling || loading || validBet === null) && styles.playButtonDisabled]}
           onPress={play}
-          disabled={rolling || loading}
+          disabled={rolling || loading || validBet === null}
         >
           <Text style={styles.playButtonText}>
             {rolling ? '🎲 يدور...' : loading ? 'جاري...' : 'ارمِ النرد'}
@@ -261,44 +288,29 @@ const styles = StyleSheet.create({
   loseBanner: { backgroundColor: '#C94D6020', borderWidth: 1, borderColor: colors.danger },
   resultText: { color: colors.roomText, fontSize: 14, fontWeight: 'bold' },
   targetCard: { backgroundColor: colors.roomSurface, borderRadius: 14, padding: 16, marginBottom: 12 },
-  targetRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  targetLabel: { color: colors.roomMuted, fontSize: 12 },
-  targetValue: { color: colors.roomMuted, fontSize: 14, fontWeight: '600' },
-  targetValueActive: { color: colors.roomPrimary, fontSize: 18 },
-  targetSlider: {
-    flex: 1,
-    height: 8,
+  targetHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  targetLabel: { color: colors.roomText, fontSize: 13, fontWeight: '800' },
+  targetRange: { color: colors.roomMuted, fontSize: 10, fontWeight: '700' },
+  targetStepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 13 },
+  stepButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.roomElevated,
-    borderRadius: 4,
-    position: 'relative',
-    marginHorizontal: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  targetFill: {
-    position: 'absolute',
-    height: '100%',
-    backgroundColor: colors.roomPrimary,
-    borderRadius: 4,
-    left: 0,
-  },
-  targetKnob: {
-    position: 'absolute',
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    top: -4,
-    marginLeft: -8,
-  },
-  targetInput: {
-    backgroundColor: colors.roomElevated,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    color: colors.roomText,
-    fontSize: 14,
-    marginTop: 12,
-    textAlign: 'center',
-  },
+  targetValueCard: { minWidth: 92, alignItems: 'center', paddingVertical: 6 },
+  targetValue: { color: colors.gold, fontSize: 32, fontWeight: '900' },
+  targetValueCaption: { color: colors.roomMuted, fontSize: 10, fontWeight: '700' },
+  targetSummary: { color: colors.roomText, fontSize: 11, fontWeight: '700', textAlign: 'center', marginTop: 12 },
+  targetPresets: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  targetPreset: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 9, backgroundColor: colors.roomElevated },
+  targetPresetActive: { backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary },
+  targetPresetText: { color: colors.roomMuted, fontSize: 11, fontWeight: '800' },
+  targetPresetTextActive: { color: colors.roomText },
   controlsCard: { backgroundColor: colors.roomSurface, borderRadius: 16, padding: 16 },
   directionRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   dirBtn: {
