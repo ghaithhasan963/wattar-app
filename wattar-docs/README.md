@@ -128,7 +128,7 @@ wattar/
 4. بعد ترحيل اقتصاد المحفظة، نفّذ `patch_three_currency_economy.sql` لإيقاف تحويل Diamond إلى Coin وإزالة الأرصدة الفرعية القديمة بقيد محاسبي.
 5. نفّذ `patch_store_missions.sql` لإضافة مهمات يومية يتحقق منها الخادم ومكافآت Point وXP، مع إدارة متجر الهدايا.
 6. نفّذ `patch_slots_enum.sql` منفصلًا، ثم بعد نجاحه نفّذ `patch_slots_game_config.sql` لتسجيل Slots بعملة Point فقط.
-7. بعد ترحيلات المجتمع والمحفظة والغرف، نفّذ `wattar-docs/patch_admin_audit_controls.sql` لتفعيل سجل إجراءات الإدارة.
+7. بعد ترحيلات المجتمع والمحفظة والغرف، نفّذ `wattar-docs/patch_admin_audit_controls.sql` لتفعيل سجل إجراءات الإدارة، ثم `wattar-docs/patch_agent_permissions.sql` بعد ترحيلات الوكلاء لتفعيل إدارة صلاحياتهم وعمولاتهم المسجلة.
 8. نفّذ `wattar-docs/patch_admin_account_controls.sql` بعد سجل الإدارة، ثم `wattar-docs/patch_admin_host_management.sql` بعد `patch_host_program.sql`، وبعدهما `patch_host_pending_accounts.sql` لدعم حسابات المضيفات التي ينشئها الأدمن دون تخطي تأكيد العمر أو إكمال الملف من صاحبة الحساب.
 9. نفّذ `wattar-docs/patch_room_owner_moderation.sql` بعد `patch_room_access.sql` و`patch_room_realtime.sql` و`patch_room_presence.sql`.
 10. نفّذ `wattar-docs/patch_public_auth_rate_limits.sql` بعد السكيمة الأساسية وقبل نشر دوال التسجيل وطلب OTP.
