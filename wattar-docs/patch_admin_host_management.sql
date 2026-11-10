@@ -103,6 +103,8 @@ REVOKE ALL ON FUNCTION public.admin_manage_verified_host(uuid, uuid, text, text)
 GRANT EXECUTE ON FUNCTION public.admin_manage_verified_host(uuid, uuid, text, text)
   TO service_role;
 
+GRANT SELECT (user_id, status, approved_at) ON public.verified_hosts TO authenticated;
+
 DROP POLICY IF EXISTS verified_hosts_admin_select ON public.verified_hosts;
 CREATE POLICY verified_hosts_admin_select
   ON public.verified_hosts FOR SELECT TO authenticated
