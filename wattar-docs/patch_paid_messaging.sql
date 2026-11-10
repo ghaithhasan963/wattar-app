@@ -12,7 +12,7 @@ ALTER TABLE public.user_notifications
     'friend_request', 'friend_accepted', 'private_message',
     'room_invitation', 'new_follower', 'gift_received',
     'deposit_update', 'withdrawal_update', 'host_update', 'membership_update',
-    'host_earning'
+    'host_earning', 'support_reply'
   ));
 
 CREATE TABLE IF NOT EXISTS public.host_program_members (

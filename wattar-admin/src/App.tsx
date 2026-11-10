@@ -28,6 +28,7 @@ import { AgentDashboardPage } from '@/pages/AgentDashboardPage';
 import { HostApplicationsPage } from '@/pages/HostApplicationsPage';
 import { MembershipsPage } from '@/pages/MembershipsPage';
 import { MessagingPage } from '@/pages/MessagingPage';
+import { SupportPage } from '@/pages/SupportPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,6 +76,8 @@ function HomeRoute() {
   if (!session || !profile) return <Navigate to="/login" replace />;
   return profile.role === 'agent'
     ? <Navigate to="/agent" replace />
+    : profile.role === 'support'
+      ? <Navigate to="/support" replace />
     : <ProtectedRoute><DashboardPage /></ProtectedRoute>;
 }
 
@@ -100,6 +103,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={['agent']} withLayout={false}>
                 <AgentDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/support"
+            element={
+              <ProtectedRoute roles={['admin', 'super_admin', 'support']}>
+                <SupportPage />
               </ProtectedRoute>
             }
           />

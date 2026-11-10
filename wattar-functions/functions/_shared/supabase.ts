@@ -68,7 +68,7 @@ export async function authenticate(
   if (userData.status !== 'active') {
     throw new HttpError(403, 'ACCOUNT_INACTIVE', 'Account is not active');
   }
-  const isStaff = ['admin', 'super_admin', 'agent'].includes(userData.role);
+  const isStaff = ['admin', 'super_admin', 'agent', 'support'].includes(userData.role);
   if (
     !userData.adult_confirmed_at
     && !(options.allowStaffWithoutAdultConfirmation && isStaff)

@@ -10,6 +10,7 @@ import {
   Crown,
   Gift,
   Gamepad2,
+  Headset,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -47,6 +48,10 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
       { to: '/hosts', label: 'طلبات التوثيق', icon: Mic, roles: ['admin', 'super_admin'] },
       { to: '/messaging', label: 'الرسائل وبرنامج المضيفات', icon: MessageCircle, roles: ['admin', 'super_admin'] },
     ],
+  },
+  {
+    label: 'خدمة المستخدمين',
+    items: [{ to: '/support', label: 'طلبات الدعم', icon: Headset, roles: ['admin', 'super_admin', 'support'] }],
   },
   {
     label: 'المعاملات',
@@ -131,7 +136,9 @@ export function Layout({ children }: { children: ReactNode }) {
 
         <nav className="scrollbar-thin flex-1 space-y-5 overflow-y-auto px-3 py-5">
           {navGroups.map((group) => {
-            const items = group.items.filter((item) => !item.roles || item.roles.includes(profile?.role ?? ''));
+            const items = group.items.filter((item) => profile?.role === 'support'
+              ? item.to === '/support'
+              : !item.roles || item.roles.includes(profile?.role ?? ''));
             if (items.length === 0) return null;
             const expanded = expandedGroup === group.label;
             return (

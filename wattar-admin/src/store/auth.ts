@@ -19,7 +19,7 @@ interface AuthState {
   loadProfile: () => Promise<void>;
 }
 
-export type StaffRole = 'admin' | 'super_admin' | 'agent';
+export type StaffRole = 'admin' | 'super_admin' | 'agent' | 'support';
 
 interface StaffProfile {
   id: string;
@@ -44,7 +44,7 @@ async function loadStaffProfile(userId: string): Promise<StaffProfile> {
         : `تعذر تحميل صلاحيات الحساب: ${error.message}`,
     );
   }
-  if (!profile || !['admin', 'super_admin', 'agent'].includes(profile.role)) {
+  if (!profile || !['admin', 'super_admin', 'agent', 'support'].includes(profile.role)) {
     throw new Error('هذا الحساب غير مخوّل بدخول لوحة الموظفين.');
   }
   if (profile.status !== 'active') {

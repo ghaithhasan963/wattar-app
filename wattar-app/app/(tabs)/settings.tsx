@@ -243,8 +243,8 @@ export default function SettingsScreen() {
         <SettingRow
           icon={HelpCircle}
           label="المساعدة والدعم"
-          value="مساعدة"
-          onPress={() => Alert.alert('الدعم', 'للمساعدة، أرسل وصف المشكلة عبر قناة دعم Wattar الرسمية.')}
+          value="تذاكري"
+          onPress={() => router.push('/support')}
           last
         />
       </View>
