@@ -4,8 +4,10 @@ import {
   ArrowDownToLine,
   ArrowLeftRight,
   ArrowUpFromLine,
+  Activity,
   ChevronDown,
   ClipboardList,
+  Crown,
   Gift,
   Gamepad2,
   LayoutDashboard,
@@ -59,12 +61,16 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
       { to: '/games', label: 'الألعاب', icon: Gamepad2, roles: ['admin', 'super_admin'] },
       { to: '/missions', label: 'المهمات', icon: Target, roles: ['admin', 'super_admin'] },
       { to: '/store', label: 'كتالوج الهدايا', icon: Gift, roles: ['admin', 'super_admin'] },
+      { to: '/memberships', label: 'عضويات VIP', icon: Crown, roles: ['admin', 'super_admin'] },
       { to: '/settings', label: 'الإعدادات', icon: Settings, roles: ['admin', 'super_admin'] },
     ],
   },
   {
     label: 'الرقابة',
-    items: [{ to: '/audit', label: 'سجل الإدارة', icon: ClipboardList, roles: ['admin', 'super_admin'] }],
+    items: [
+      { to: '/audit', label: 'سجل الإدارة', icon: ClipboardList, roles: ['admin', 'super_admin'] },
+      { to: '/activity', label: 'حركة المنصة', icon: Activity, roles: ['admin', 'super_admin'] },
+    ],
   },
 ];
 

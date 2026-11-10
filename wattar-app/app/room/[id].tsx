@@ -77,11 +77,25 @@ export default function RoomScreen() {
   const [voiceState, setVoiceState] = useState<VoiceState>(VOICE_CONNECTING);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [micLoading, setMicLoading] = useState(false);
+  const [moderatingUserId, setModeratingUserId] = useState<string | null>(null);
   const chatListRef = useRef<FlatList>(null);
   const lkRoomRef = useRef<Room | null>(null);
   const seatsRef = useRef<Seat[]>([]);
+  const closedRoomNoticeRef = useRef(false);
   const giftCelebrationAnim = useRef(new Animated.Value(0)).current;
   const speakersCount = seats.filter(seat => seat.status === 'occupied' && seat.user_id).length;
+  const isRoomOwner = room?.owner_id === profile?.id;
+
+  useEffect(() => {
+    if (room?.status !== 'closed' || closedRoomNoticeRef.current) return;
+    closedRoomNoticeRef.current = true;
+    const liveRoom = lkRoomRef.current;
+    lkRoomRef.current = null;
+    void leaveVoice(liveRoom);
+    Alert.alert('انتهت الغرفة', 'أغلق مالك الغرفة هذه الجلسة. بقي سجل الغرفة محفوظًا.', [
+      { text: 'موافق', onPress: () => router.back() },
+    ], { cancelable: false });
+  }, [room?.status, router]);
 
   useEffect(() => {
     if (!giftCelebration) return;
@@ -279,6 +293,9 @@ export default function RoomScreen() {
         { event: 'INSERT', schema: 'public', table: 'room_messages', filter: `room_id=eq.${id}` },
         (payload) => {
           const incoming = payload.new as Message;
+          if (incoming.is_system && incoming.message === 'أغلق مالك الغرفة هذه الغرفة.') {
+            setRoom((current: typeof room) => current ? { ...current, status: 'closed' } : current);
+          }
           setMessages(prev => {
             const withoutPending = prev.filter(
               message => !(message.pending && message.user_id === incoming.user_id && message.message === incoming.message),
@@ -488,6 +505,85 @@ export default function RoomScreen() {
     router.back();
   };
 
+  const performOwnerAction = async (
+    action: 'close_room' | 'remove_seat' | 'mute_chat',
+    targetUserId?: string,
+    durationMinutes?: number,
+  ) => {
+    if (!profile || !room || room.owner_id !== profile.id) {
+      Alert.alert('غير مصرح', 'إدارة الغرفة متاحة لمالكها فقط.');
+      return;
+    }
+    if (targetUserId && targetUserId === profile.id) {
+      Alert.alert('إجراء غير صالح', 'لا يمكنك تطبيق إجراء على نفسك.');
+      return;
+    }
+    setModeratingUserId(targetUserId ?? 'room');
+    try {
+      const response = await callFunction<{
+        audio_kick?: 'removed' | 'not_configured' | 'failed' | null;
+      }>('room-owner-action', {
+        room_id: id,
+        action,
+        ...(targetUserId ? { target_user_id: targetUserId } : {}),
+        ...(durationMinutes ? { duration_minutes: durationMinutes } : {}),
+      });
+      if (action === 'close_room') {
+        setRoom((current: typeof room) => current ? { ...current, status: 'closed' } : current);
+      } else {
+        await loadSeats();
+        Alert.alert(
+          action === 'remove_seat' ? 'تمت إزالة المتحدث' : 'تم كتم المحادثة',
+          action === 'remove_seat'
+            ? response.audio_kick === 'removed'
+              ? 'أُخلي مقعد المستخدم وتم فصله من الصوت المباشر.'
+              : response.audio_kick === 'not_configured'
+                ? 'أُخلي المقعد، لكن خدمة الصوت غير مهيأة وقد يظل المستخدم متصلًا بالصوت.'
+                : response.audio_kick === 'failed'
+                  ? 'أُخلي المقعد، لكن تعذر فصله من الصوت. تحقق من اتصال LiveKit وحاول مجددًا.'
+                  : 'أُخلي مقعد المستخدم.'
+            : `لن يتمكن المستخدم من إرسال رسائل لمدة ${durationMinutes} دقيقة. لا يؤثر هذا الإجراء في الميكروفون.`,
+        );
+      }
+    } catch (error: unknown) {
+      Alert.alert('تعذر تنفيذ الإجراء', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+    } finally {
+      setModeratingUserId(null);
+    }
+  };
+
+  const moderateSeat = (seat: Seat) => {
+    if (!isRoomOwner || !seat.user_id || seat.user_id === profile?.id || !room || room.status === 'closed') return;
+    const memberName = seat.user?.display_name ?? seat.user?.username ?? 'هذا المستخدم';
+    Alert.alert(`إدارة ${memberName}`, 'اختر إجراءً على المنصة أو محادثة الغرفة.', [
+      {
+        text: 'إزالة من المنصة',
+        style: 'destructive',
+        onPress: () => void performOwnerAction('remove_seat', seat.user_id!),
+      },
+      {
+        text: 'كتم المحادثة',
+        onPress: () => Alert.alert('مدة كتم المحادثة', 'الكتم يخص رسائل المحادثة فقط ولا يعطّل الميكروفون.', [
+          { text: '15 دقيقة', onPress: () => void performOwnerAction('mute_chat', seat.user_id!, 15) },
+          { text: 'ساعة واحدة', onPress: () => void performOwnerAction('mute_chat', seat.user_id!, 60) },
+          { text: 'إلغاء', style: 'cancel' },
+        ]),
+      },
+      { text: 'إلغاء', style: 'cancel' },
+    ]);
+  };
+
+  const confirmCloseRoom = () => {
+    Alert.alert('إغلاق الغرفة؟', 'سيتم إنهاء الجلسة وإخلاء المقاعد. ستبقى الغرفة وسجلها محفوظين.', [
+      {
+        text: 'إغلاق الغرفة',
+        style: 'destructive',
+        onPress: () => void performOwnerAction('close_room'),
+      },
+      { text: 'إلغاء', style: 'cancel' },
+    ]);
+  };
+
   const openRoomInvites = async () => {
     setShowRoomInvites(true);
     setInvitesLoading(true);
@@ -556,6 +652,18 @@ export default function RoomScreen() {
       </View>
     );
   }
+  if (room.status === 'closed') {
+    return (
+      <View style={styles.loading}>
+        <StatusBar style="light" />
+        <Text style={styles.loadErrorTitle}>الغرفة مغلقة</Text>
+        <Text style={styles.loadErrorMessage}>انتهت الجلسة. الغرفة وسجلها محفوظان ولا يمكن إرسال رسائل أو الانضمام إلى المقاعد.</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
+          <Text style={styles.retryButtonText}>العودة</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -608,6 +716,19 @@ export default function RoomScreen() {
         >
           <UserPlus size={20} color={colors.roomPrimary} />
         </TouchableOpacity>
+        {isRoomOwner && (
+          <TouchableOpacity
+            style={[styles.iconBtn, styles.ownerCloseBtn]}
+            onPress={confirmCloseRoom}
+            disabled={moderatingUserId === 'room'}
+            accessibilityRole="button"
+            accessibilityLabel="إغلاق الغرفة"
+          >
+            {moderatingUserId === 'room'
+              ? <ActivityIndicator size="small" color={colors.danger} />
+              : <X size={20} color={colors.danger} />}
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Seats Grid */}
@@ -626,7 +747,13 @@ export default function RoomScreen() {
               seat={seat}
               mySeat={mySeat}
               isOwner={room.owner_id === profile?.id}
+              canModerate={!!isRoomOwner && seat.user_id !== profile?.id}
               onTake={() => takeSeat(seat.seat_index)}
+              onProfile={() => {
+                if (seat.user_id && seat.user_id !== profile?.id) router.push(`/user/${seat.user_id}`);
+              }}
+              onModerate={() => moderateSeat(seat)}
+              moderationDisabled={moderatingUserId === seat.user_id}
             />
           ))}
         </ScrollView>
@@ -865,12 +992,20 @@ function SeatView({
   seat,
   mySeat,
   isOwner,
+  canModerate,
   onTake,
+  onProfile,
+  onModerate,
+  moderationDisabled,
 }: {
   seat: Seat;
   mySeat: number | null;
   isOwner: boolean;
+  canModerate: boolean;
   onTake: () => void;
+  onProfile: () => void;
+  onModerate: () => void;
+  moderationDisabled: boolean;
 }) {
   const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
   const pulse = useRef(new Animated.Value(0)).current;
@@ -911,14 +1046,14 @@ function SeatView({
   return (
     <TouchableOpacity
       style={[styles.seat, isOwner && seat.is_owner_seat && styles.seatOwner]}
-      onPress={canTake ? onTake : undefined}
-      disabled={!canTake}
+      onPress={isOccupied ? onProfile : canTake ? onTake : undefined}
+      disabled={!isOccupied && !canTake}
       accessibilityRole="button"
       accessibilityLabel={isOccupied
         ? `المقعد ${seat.seat_index + 1}، ${seat.user?.display_name ?? seat.user?.username ?? 'متحدث'}${seat.is_mic_on ? '، يتحدث' : '، الميكروفون مكتوم'}`
         : isLocked ? `المقعد ${seat.seat_index + 1}، مقفل` : `انضم إلى المقعد ${seat.seat_index + 1}`}
-      accessibilityHint={canTake ? 'اضغط للانضمام إلى المنصة الصوتية' : undefined}
-      accessibilityState={{ disabled: !canTake }}
+      accessibilityHint={isOccupied ? 'اضغط لعرض الملف الشخصي' : canTake ? 'اضغط للانضمام إلى المنصة الصوتية' : undefined}
+      accessibilityState={{ disabled: !isOccupied && !canTake }}
     >
       {isOccupied ? (
         <>
@@ -953,6 +1088,19 @@ function SeatView({
           <View style={[styles.micIcon, seat.is_mic_on ? styles.micOn : styles.micOff]}>
             {seat.is_mic_on ? <Mic size={10} color="#fff" /> : <MicOff size={10} color="#fff" />}
           </View>
+          {canModerate && seat.user_id && (
+            <TouchableOpacity
+              style={styles.seatModerationButton}
+              onPress={onModerate}
+              disabled={moderationDisabled}
+              accessibilityRole="button"
+              accessibilityLabel={`إدارة ${seat.user?.display_name ?? seat.user?.username ?? 'المتحدث'}`}
+            >
+              {moderationDisabled
+                ? <ActivityIndicator size="small" color={colors.gold} />
+                : <VolumeX size={12} color={colors.gold} />}
+            </TouchableOpacity>
+          )}
         </>
       ) : isLocked ? (
         <View style={styles.seatEmpty}>
@@ -1038,13 +1186,19 @@ function GiftsModal({
         ? giftAttempt.key
         : `gift-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       setGiftAttempt({ fingerprint, key: idempotencyKey });
-      await callFunction('gift-send', {
+      const giftResult = await callFunction<{ gift_transaction?: { id?: string } }>('gift-send', {
         to_user_id: receiver.id,
         gift_id: selectedGift,
         room_id: roomId,
         quantity: 1,
         funding_currency: 'gold',
       }, idempotencyKey);
+      const giftTransactionId = giftResult.gift_transaction?.id;
+      if (giftTransactionId) {
+        void notifySocialEvent('gift_received', giftTransactionId).catch((notificationError: unknown) => {
+          console.warn('[Wattar] Room gift push failed:', notificationError);
+        });
+      }
       setGiftAttempt(null);
       onGiftSent({
         emoji: selectedGiftRecord?.icon_emoji ?? '🎁',
@@ -1242,6 +1396,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.roomElevated,
   },
+  ownerCloseBtn: { marginLeft: 8 },
   roomInfo: { flex: 1, marginHorizontal: 12 },
   roomName: { color: colors.roomText, fontSize: 19, fontWeight: '800', textAlign: 'right' },
   roomMeta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5, flexWrap: 'wrap' },
@@ -1276,6 +1431,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   seat: {
+    position: 'relative',
     width: 80,
     height: 100,
     backgroundColor: '#1A1327',
@@ -1331,6 +1487,17 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  seatModerationButton: {
+    position: 'absolute',
+    bottom: 3,
+    left: 3,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#382B45',
   },
   micOn: { backgroundColor: colors.roomTeal },
   micOff: { backgroundColor: colors.roomElevated },

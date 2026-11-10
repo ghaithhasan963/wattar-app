@@ -20,11 +20,13 @@ import { SettingsPage } from '@/pages/SettingsPage';
 import { TransfersPage } from '@/pages/TransfersPage';
 import { RoomsPage } from '@/pages/RoomsPage';
 import { AuditLogPage } from '@/pages/AuditLogPage';
+import { PlatformActivityPage } from '@/pages/PlatformActivityPage';
 import { MissionsPage } from '@/pages/MissionsPage';
 import { StoreItemsPage } from '@/pages/StoreItemsPage';
 import { UserReportsPage } from '@/pages/UserReportsPage';
 import { AgentDashboardPage } from '@/pages/AgentDashboardPage';
 import { HostApplicationsPage } from '@/pages/HostApplicationsPage';
+import { MembershipsPage } from '@/pages/MembershipsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -181,6 +183,14 @@ export default function App() {
             }
           />
           <Route
+            path="/activity"
+            element={
+              <ProtectedRoute>
+                <PlatformActivityPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/reports"
             element={
               <ProtectedRoute>
@@ -201,6 +211,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <StoreItemsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/memberships"
+            element={
+              <ProtectedRoute>
+                <MembershipsPage />
               </ProtectedRoute>
             }
           />

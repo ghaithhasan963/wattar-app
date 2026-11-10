@@ -14,6 +14,7 @@ import { useAuthStore } from '@/store/auth';
 import { callFunction } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 import { usePreferencesStore } from '@/store/preferences';
+import { GameHeader } from '@/components/GameHeader';
 
 interface SlotsResponse {
   reels: string[];
@@ -117,11 +118,11 @@ export default function SlotsGame() {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.header}>
-        <Text style={styles.eyebrow}>اللعب بعملة Point فقط</Text>
-        <Text style={styles.title}>Slots</Text>
-        <Text style={styles.subtitle}>طابق الرموز الثلاثة واربح نقاطًا داخل اللعبة.</Text>
-      </View>
+      <GameHeader
+        title="Slots"
+        subtitle="طابق الرموز الثلاثة واربح نقاطًا داخل اللعبة."
+        balance={profile?.game_points ?? 0}
+      />
 
       <View style={styles.machine}>
         <View style={styles.machineLights}>
@@ -185,10 +186,6 @@ export default function SlotsGame() {
         </Text>
       </View>
 
-      <View style={styles.balanceCard}>
-        <Text style={styles.balanceLabel}>رصيد Point</Text>
-        <Text style={styles.balance}>{profile?.game_points?.toLocaleString() ?? 0}</Text>
-      </View>
     </ScrollView>
   );
 }

@@ -90,7 +90,14 @@ wattar/
 │       ├── game-plinko/                  # بلانغو
 │       ├── game-slots/                   # Slots بنقاط لعب مجانية
 │       ├── admin-create-agent/           # إنشاء وكيل
+│       ├── admin-create-host/            # إنشاء حساب دخول أولي لمضيفة
 │       ├── agent-phone-login/             # دخول الوكيل بالهاتف وكلمة المرور
+│       ├── admin-manage-host/              # تعيين وإيقاف المضيفات
+│       ├── admin-delete-user/              # حذف آمن أو أرشفة حساب
+│       ├── admin-reset-user-password/       # إرسال رابط استعادة كلمة المرور
+│       ├── room-owner-action/               # إغلاق الغرفة وإشراف المالك
+│       ├── auth-send-phone-otp/              # تحديد محاولات OTP للهاتف
+│       ├── auth-sign-up-email/               # تحديد محاولات التسجيل بالبريد
 │       ├── admin-set-rtp/                # ضبط RTP لمستخدم
 │       ├── admin-set-user-status/        # إيقاف/حظر مستخدم مع تسجيل السبب
 │       ├── admin-force-outcome/          # إجبار فوز/خسارة
@@ -121,13 +128,19 @@ wattar/
 4. بعد ترحيل اقتصاد المحفظة، نفّذ `patch_three_currency_economy.sql` لإيقاف تحويل Diamond إلى Coin وإزالة الأرصدة الفرعية القديمة بقيد محاسبي.
 5. نفّذ `patch_store_missions.sql` لإضافة مهمات يومية يتحقق منها الخادم ومكافآت Point وXP، مع إدارة متجر الهدايا.
 6. نفّذ `patch_slots_enum.sql` منفصلًا، ثم بعد نجاحه نفّذ `patch_slots_game_config.sql` لتسجيل Slots بعملة Point فقط.
-7. بعد اكتمال جميع ترحيلات قاعدة البيانات، نفّذ `wattar-docs/patch_admin_audit_controls.sql` لتفعيل سجل تغييرات الإدارة وإجراءات حالة المستخدم المسجلة وتدقيق إعداد المهمات.
-8. أنشئ Storage Buckets:
+7. بعد ترحيلات المجتمع والمحفظة والغرف، نفّذ `wattar-docs/patch_admin_audit_controls.sql` لتفعيل سجل إجراءات الإدارة.
+8. نفّذ `wattar-docs/patch_admin_account_controls.sql` بعد سجل الإدارة، ثم `wattar-docs/patch_admin_host_management.sql` بعد `patch_host_program.sql`، وبعدهما `patch_host_pending_accounts.sql` لدعم حسابات المضيفات التي ينشئها الأدمن دون تخطي تأكيد العمر أو إكمال الملف من صاحبة الحساب.
+9. نفّذ `wattar-docs/patch_room_owner_moderation.sql` بعد `patch_room_access.sql` و`patch_room_realtime.sql` و`patch_room_presence.sql`.
+10. نفّذ `wattar-docs/patch_public_auth_rate_limits.sql` بعد السكيمة الأساسية وقبل نشر دوال التسجيل وطلب OTP.
+11. نفّذ `wattar-docs/patch_membership_wallet_type.sql` وحده أولًا، وتأكد من نجاحه قبل تشغيل `patch_memberships_xp_acceleration.sql`؛ يضيف الثاني عضويات VIP غير متجددة تلقائيًا وسقف تسريع XP يبلغ 250 لكل عملية و500 شهريًا.
+12. نفّذ `wattar-docs/patch_notification_inbox.sql` بعد ترحيلات المجتمع والمحفظة والمضيفات والعضويات.
+13. نفّذ `wattar-docs/patch_platform_activity_log.sql` أخيرًا بعد سجل الإدارة وجميع ترحيلات الغرف والمضيفات والمجتمع والمحفظة؛ يسجل أحداثًا تشغيلية أساسية ولا يسجل محتوى الرسائل أو بيانات الاعتماد.
+14. أنشئ Storage Buckets:
    - `avatars` (عام)
    - `deposit-proofs` (خاص)
    - `withdrawal-proofs` (خاص)
    - `gift-icons` (عام)
-9. أنشئ مستخدم Auth (Email/Password) للأدمن الأول:
+15. أنشئ مستخدم Auth (Email/Password) للأدمن الأول:
    - في Authentication → Users → Add user
    - بعد إنشائه، نفّذ في SQL Editor:
      ```sql
@@ -155,6 +168,7 @@ supabase login
 أضف متغيرات البيئة في Supabase → Settings → Edge Functions → Secrets:
 - `SUPABASE_URL` (تلقائي)
 - `SUPABASE_SERVICE_ROLE_KEY` (تلقائي)
+- `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` لتفعيل الصوت وقطع اتصال المتحدث عند إزالته من الغرفة. من دونها تُزال المقاعد من قاعدة البيانات، لكن لا يمكن للخادم فصل اتصال الصوت.
 
 ### 3) إعداد لوحة الأدمن
 

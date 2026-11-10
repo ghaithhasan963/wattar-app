@@ -100,6 +100,7 @@ wattar/
 │       ├── game-aviator/                 # طيارة المضاعفات
 │       ├── game-plinko/                  # بلانغو
 │       ├── admin-create-agent/           # إنشاء وكيل
+│       ├── admin-create-host/            # إنشاء حساب دخول أولي لمضيفة
 │       ├── admin-set-rtp/                # ضبط RTP لمستخدم
 │       ├── admin-force-outcome/          # إجبار فوز/خسارة
 │       └── admin-credit-agent/           # شحن رصيد وكيل
@@ -148,9 +149,13 @@ cd wattar-functions
 
 ```bash
 for fn in wallet deposit-request deposit-approve withdrawal-request \
-  withdrawal-approve transfer gift-send daily-bonus room-leave \
-  livekit-token game-wheel game-dice game-aviator game-plinko \
-  admin-create-agent admin-set-rtp admin-force-outcome admin-credit-agent; do
+  withdrawal-approve transfer gift-send daily-bonus room-join room-leave \
+  room-owner-action livekit-token game-wheel game-dice game-aviator \
+  game-plinko game-slots admin-create-agent admin-create-host \
+  agent-phone-login admin-set-agent-status host-application-review \
+  admin-manage-host admin-set-rtp admin-set-user-status admin-force-outcome \
+  admin-credit-agent social-push delete-account auth-send-phone-otp \
+  auth-sign-up-email admin-delete-user admin-reset-user-password; do
   supabase functions deploy "$fn" --no-verify-jwt
 done
 ```

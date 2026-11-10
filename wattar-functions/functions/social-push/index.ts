@@ -9,7 +9,14 @@ import {
   validateBody,
 } from '../_shared/supabase.ts';
 
-type SocialEvent = 'friend_request' | 'private_message' | 'room_invitation' | 'dice_challenge';
+type SocialEvent =
+  | 'friend_request'
+  | 'friend_accepted'
+  | 'new_follower'
+  | 'private_message'
+  | 'room_invitation'
+  | 'dice_challenge'
+  | 'gift_received';
 type PushToken = { user_id: string; expo_push_token: string };
 
 interface PushRequest {
@@ -30,7 +37,7 @@ Deno.serve(async (req: Request) => {
       await parseBody<PushRequest>(req),
       ['event_type', 'reference_id'],
     );
-    if (!['friend_request', 'private_message', 'room_invitation', 'dice_challenge'].includes(body.event_type)
+    if (!['friend_request', 'friend_accepted', 'new_follower', 'private_message', 'room_invitation', 'dice_challenge', 'gift_received'].includes(body.event_type)
       || !uuidPattern.test(body.reference_id)) {
       throw new HttpError(400, 'INVALID_REQUEST', 'Invalid social notification request');
     }
@@ -62,6 +69,31 @@ Deno.serve(async (req: Request) => {
       recipientIds = [data.recipient_id];
       title = 'طلب صداقة جديد';
       message = `${senderName} أرسل إليك طلب صداقة.`;
+    } else if (body.event_type === 'friend_accepted') {
+      const { data, error } = await supabase
+        .from('friend_requests')
+        .select('requester_id')
+        .eq('id', body.reference_id)
+        .eq('recipient_id', ctx.user_id)
+        .eq('status', 'accepted')
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new HttpError(404, 'REQUEST_NOT_FOUND', 'Accepted friend request not found');
+      recipientIds = [data.requester_id];
+      title = 'تم قبول طلب الصداقة';
+      message = `${senderName} قبل طلب الصداقة.`;
+    } else if (body.event_type === 'new_follower') {
+      const { data, error } = await supabase
+        .from('user_follows')
+        .select('followed_id')
+        .eq('follower_id', ctx.user_id)
+        .eq('followed_id', body.reference_id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) throw new HttpError(404, 'FOLLOW_NOT_FOUND', 'Follow relationship not found');
+      recipientIds = [data.followed_id];
+      title = 'متابع جديد';
+      message = `${senderName} بدأ بمتابعتك.`;
     } else if (body.event_type === 'private_message') {
       const { data: sentMessage, error: messageError } = await supabase
         .from('private_messages')
@@ -99,6 +131,19 @@ Deno.serve(async (req: Request) => {
       recipientIds = [data.recipient_id];
       title = 'دعوة إلى غرفة صوتية';
       message = `${senderName} دعاك للانضمام إلى غرفة صوتية.`;
+    } else if (body.event_type === 'gift_received') {
+      const { data: gift, error: giftError } = await supabase
+        .from('gift_transactions')
+        .select('to_user_id, room_id')
+        .eq('id', body.reference_id)
+        .eq('from_user_id', ctx.user_id)
+        .maybeSingle();
+      if (giftError) throw giftError;
+      if (!gift) throw new HttpError(404, 'GIFT_NOT_FOUND', 'Gift transaction not found');
+      recipientIds = [gift.to_user_id];
+      route = gift.room_id ? `/room/${gift.room_id}` : '/(tabs)/wallet';
+      title = 'وصلتك هدية';
+      message = `${senderName} أرسل إليك هدية.`;
     } else {
       const { data: challenge, error: challengeError } = await supabase
         .from('game_challenges')

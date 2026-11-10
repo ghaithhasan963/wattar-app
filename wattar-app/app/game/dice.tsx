@@ -12,6 +12,7 @@ import { Dice5, TrendingUp, TrendingDown } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/lib/theme';
 import { usePreferencesStore } from '@/store/preferences';
+import { GameHeader } from '@/components/GameHeader';
 
 interface DiceResponse {
   roll: number;
@@ -121,7 +122,11 @@ export default function DiceGame() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <StatusBar style="light" />
-      <Text style={styles.title}>نرد</Text>
+      <GameHeader
+        title="نرد"
+        subtitle="اختر اتجاه التوقع وحدد رهانك قبل بدء الجولة."
+        balance={profile?.game_points ?? 0}
+      />
 
       <View style={styles.diceContainer}>
         {rolling ? (
@@ -230,7 +235,6 @@ export default function DiceGame() {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.balance}>Point: {profile?.game_points?.toLocaleString() ?? 0}</Text>
     </ScrollView>
   );
 }

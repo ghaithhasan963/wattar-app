@@ -5,7 +5,7 @@ import { create } from 'zustand';
 import { Session, User } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
-import { supabase } from '@/lib/supabase';
+import { callFunction, supabase } from '@/lib/supabase';
 
 let authSubscription: { unsubscribe: () => void } | null = null;
 
@@ -96,6 +96,12 @@ async function signInWithOAuthProvider(provider: 'google'): Promise<void> {
   const { session, user } = sessionData;
   useAuthStore.setState({ session, user });
   await useAuthStore.getState().loadProfile();
+  await recordSessionStarted();
+}
+
+async function recordSessionStarted(): Promise<void> {
+  const { error } = await supabase.rpc('record_my_session_started');
+  if (error) console.warn('[Wattar] Failed to record authenticated session:', error.message);
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -199,6 +205,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (error) throw error;
       set({ session: data.session, user: data.user });
       await get().loadProfile();
+      await recordSessionStarted();
     } catch (err: unknown) {
       set({ error: err instanceof Error ? err.message : 'تعذر تسجيل الدخول بالبريد الإلكتروني' });
       throw err;
@@ -210,18 +217,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signUpWithEmail: async (email, password) => {
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
+      const result = await callFunction<{
+        confirmation_required: boolean;
+        session: Session | null;
+        user: User | null;
+      }>('auth-sign-up-email', {
+        email: email.trim().toLowerCase(),
         password,
-        options: {
-          emailRedirectTo: Linking.createURL('callback'),
-        },
+        email_redirect_to: Linking.createURL('callback'),
+      });
+      if (!result.user) throw new Error('تعذر إنشاء الحساب. حاول مرة أخرى.');
+      if (!result.session) return result.confirmation_required;
+
+      const { data, error } = await supabase.auth.setSession({
+        access_token: result.session.access_token,
+        refresh_token: result.session.refresh_token,
       });
       if (error) throw error;
-      if (!data.session || !data.user) return true;
-
       set({ session: data.session, user: data.user });
       await get().loadProfile();
+      await recordSessionStarted();
       return false;
     } catch (err: unknown) {
       set({ error: err instanceof Error ? err.message : 'تعذر إنشاء الحساب' });
@@ -234,11 +249,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signInWithPhone: async (phone: string) => {
     set({ loading: true, error: null });
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone,
-        options: { channel: 'sms' },
-      });
-      if (error) throw error;
+      await callFunction('auth-send-phone-otp', { phone });
     } catch (err: any) {
       set({ error: err.message });
       throw err;
@@ -258,6 +269,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (error) throw error;
       set({ session: data.session, user: data.user });
       await get().loadProfile();
+      await recordSessionStarted();
     } catch (err: any) {
       set({ error: err.message });
       throw err;

@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/lib/theme';
+import { GameHeader } from '@/components/GameHeader';
 
 const ROWS = 12;
 const SLOTS = 11;
@@ -148,7 +149,11 @@ export default function PlinkoGame() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <StatusBar style="light" />
-      <Text style={styles.title}>بلانغو</Text>
+      <GameHeader
+        title="بلانغو"
+        subtitle="اختر مستوى المخاطرة وأسقط الكرة لمشاهدة مسار الجولة."
+        balance={profile?.game_points ?? 0}
+      />
 
       <View style={styles.boardContainer}>
         {/* صفوف الأوتاد */}
@@ -264,7 +269,6 @@ export default function PlinkoGame() {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.balance}>Point: {profile?.game_points?.toLocaleString() ?? 0}</Text>
     </ScrollView>
   );
 }

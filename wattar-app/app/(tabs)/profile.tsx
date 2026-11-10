@@ -10,9 +10,10 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { BadgeCheck, ChevronLeft, Coins, Gem, Gift, ImagePlus, LockKeyhole, LogOut, Mic, Pencil, Settings, Star, User, Users, Wallet } from 'lucide-react-native';
+import { BadgeCheck, ChevronLeft, Coins, Crown, Gem, Gift, ImagePlus, LockKeyhole, LogOut, Mic, Pencil, Settings, Star, User, Users, Wallet } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
+import { NotificationBell } from '@/components/NotificationBell';
 
 interface SocialProgress {
   level: number;
@@ -95,6 +96,7 @@ export default function ProfileScreen() {
   };
 
   const level = Math.max(1, progress?.level ?? profile?.level ?? 1);
+  const levelBadgeColor = level >= 50 ? '#B44BFF' : level >= 25 ? '#72DCCA' : level >= 10 ? '#C4D0E0' : palette.gold;
   const experience = Math.max(0, progress?.experience_points ?? profile?.experience_points ?? 0);
   const levelStart = (level - 1) ** 2 * 100;
   const nextLevelAt = level ** 2 * 100;
@@ -104,9 +106,12 @@ export default function ProfileScreen() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.topBar}>
         <Text style={styles.pageTitle}>ملفي الشخصي</Text>
-        <TouchableOpacity style={styles.settingsButton} onPress={() => router.push('/settings')} accessibilityRole="button">
-          <Settings size={19} color={palette.muted} />
-        </TouchableOpacity>
+        <View style={styles.topActions}>
+          <NotificationBell />
+          <TouchableOpacity style={styles.settingsButton} onPress={() => router.push('/settings')} accessibilityRole="button">
+            <Settings size={19} color={palette.muted} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.profileCard}>
@@ -119,7 +124,7 @@ export default function ProfileScreen() {
               <User size={34} color={palette.gold} />
             )}
           </View>
-          <View style={styles.levelBadge}><Star size={12} color="#1B1026" fill="#1B1026" /></View>
+          <View style={[styles.levelBadge, { backgroundColor: levelBadgeColor }]}><Star size={12} color="#1B1026" fill="#1B1026" /></View>
         </View>
         <Text style={styles.displayName}>{profile?.display_name || profile?.username || 'مستخدم Wattar'}</Text>
         <Text style={styles.username}>@{profile?.username}</Text>
@@ -240,6 +245,7 @@ export default function ProfileScreen() {
       <View style={styles.menuCard}>
         <MenuItem icon={Users} label="المجتمع والمتابعة" onPress={() => router.push('/(tabs)/friends')} />
         <MenuItem icon={Wallet} label="المحفظة وسجل المعاملات" onPress={() => router.push('/(tabs)/wallet')} />
+        <MenuItem icon={Crown} label="عضوية VIP" onPress={() => router.push('/membership')} />
         <MenuItem icon={Settings} label="إعدادات الحساب والأمان" onPress={() => router.push('/settings')} />
       </View>
 
@@ -288,6 +294,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: palette.background },
   content: { paddingHorizontal: 16, paddingTop: 54, paddingBottom: 112 },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pageTitle: { color: palette.text, fontSize: 22, fontWeight: '800' },
   settingsButton: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
   profileCard: { alignItems: 'center', overflow: 'hidden', padding: 20, borderRadius: 23, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },

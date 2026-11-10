@@ -222,6 +222,11 @@ export default function FriendsScreen() {
         p_accept: accept,
       });
       if (error) throw error;
+      if (accept) {
+        void notifySocialEvent('friend_accepted', request.request_id).catch((notificationError: unknown) => {
+          console.warn('[Wattar] Friend acceptance push failed:', notificationError);
+        });
+      }
       await loadSocialData();
     } catch (error: unknown) {
       Alert.alert('تعذر تحديث الطلب', error instanceof Error ? error.message : 'حاول مرة أخرى.');
@@ -255,6 +260,11 @@ export default function FriendsScreen() {
         { p_user_id: person.user_id },
       );
       if (error) throw error;
+      if (!isFollowing) {
+        void notifySocialEvent('new_follower', person.user_id).catch((notificationError: unknown) => {
+          console.warn('[Wattar] New follower push failed:', notificationError);
+        });
+      }
       setFollowing((current) => isFollowing
         ? current.filter((item) => item.user_id !== person.user_id)
         : [person, ...current]);

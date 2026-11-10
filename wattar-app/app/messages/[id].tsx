@@ -55,6 +55,7 @@ export default function PrivateMessageScreen() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [title, setTitle] = useState('محادثة');
+  const [partnerUserId, setPartnerUserId] = useState<string | null>(null);
   const [partnerAvatar, setPartnerAvatar] = useState<string | null>(null);
   const [partnerOnline, setPartnerOnline] = useState(false);
   const listRef = useRef<FlatList<PrivateMessage>>(null);
@@ -76,6 +77,7 @@ export default function PrivateMessageScreen() {
         (item: { conversation_id: string }) => item.conversation_id === id,
       );
       if (conversation) {
+        setPartnerUserId(conversation.user_id);
         setTitle(conversation.display_name || conversation.username);
         setPartnerAvatar(conversation.avatar_url ?? null);
         setPartnerOnline(conversation.is_online === true);
@@ -187,6 +189,13 @@ export default function PrivateMessageScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="رجوع">
           <ChevronRight size={22} color={colors.textSecondary} />
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.partnerHeaderAction}
+          onPress={() => partnerUserId && router.push(`/user/${partnerUserId}`)}
+          disabled={!partnerUserId}
+          accessibilityRole="button"
+          accessibilityLabel="فتح الملف الشخصي"
+        >
         <View style={styles.partnerAvatar}>
           {partnerAvatar
             ? <Image source={{ uri: partnerAvatar }} style={styles.partnerAvatarImage} />
@@ -198,6 +207,7 @@ export default function PrivateMessageScreen() {
             {partnerTyping ? 'يكتب الآن...' : partnerOnline ? 'متصل الآن' : 'محادثة خاصة بين الأصدقاء'}
           </Text>
         </View>
+        </TouchableOpacity>
       </View>
       {loading && messages.length === 0 ? (
         <View style={styles.loading}><ActivityIndicator size="large" color={socialPalette.gold} /></View>
@@ -307,6 +317,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: socialPalette.background },
   header: { minHeight: 82, flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 15, paddingTop: Platform.OS === 'android' ? 8 : 24, borderBottomWidth: 1, borderBottomColor: socialPalette.border },
   backButton: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: socialPalette.surface },
+  partnerHeaderAction: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 11 },
   partnerAvatar: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A1940', borderWidth: 1, borderColor: socialPalette.gold, overflow: 'hidden' },
   partnerAvatarImage: { width: '100%', height: '100%' },
   partnerAvatarText: { color: socialPalette.gold, fontSize: 17, fontWeight: '800' },

@@ -9,9 +9,12 @@ const ANDROID_CHANNEL_ID = 'social';
 
 export type SocialNotificationEvent =
   | 'friend_request'
+  | 'friend_accepted'
+  | 'new_follower'
   | 'private_message'
   | 'room_invitation'
-  | 'dice_challenge';
+  | 'dice_challenge'
+  | 'gift_received';
 
 export async function getSocialPushEnabled(): Promise<boolean> {
   if (Platform.OS === 'web') return false;

@@ -1,16 +1,17 @@
 /**
  * Wattar App — Layout لشاشات التسجيل
  */
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, usePathname, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { useAuthStore } from '@/store/auth';
 
 export default function AuthLayout() {
   const { session, profile } = useAuthStore();
-  const segments = useSegments();
+  const pathname = usePathname();
   const router = useRouter();
 
   useEffect(() => {
+    if (pathname.endsWith('/callback')) return;
     if (session && profile) {
       if (!profile.onboarding_completed_at || !profile.gender) {
         router.replace('/(auth)/complete-profile');
@@ -20,7 +21,7 @@ export default function AuthLayout() {
         router.replace('/(auth)/age-confirmation');
       }
     }
-  }, [session, profile, router]);
+  }, [pathname, session, profile, router]);
 
   return (
     <Stack screenOptions={{ headerShown: false }} />

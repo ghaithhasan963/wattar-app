@@ -22,6 +22,7 @@ $availableFunctions = @(
   'daily-bonus',
   'room-join',
   'room-leave',
+  'room-owner-action',
   'livekit-token',
   'game-wheel',
   'game-dice',
@@ -29,15 +30,21 @@ $availableFunctions = @(
   'game-plinko',
   'game-slots',
   'admin-create-agent',
+  'admin-create-host',
   'agent-phone-login',
   'admin-set-agent-status',
   'host-application-review',
+  'admin-manage-host',
   'admin-set-rtp',
   'admin-set-user-status',
   'admin-force-outcome',
   'admin-credit-agent',
   'social-push',
-  'delete-account'
+  'delete-account',
+  'auth-send-phone-otp',
+  'auth-sign-up-email',
+  'admin-delete-user',
+  'admin-reset-user-password'
 )
 $confirmationArgs = @()
 if ($Yes) {

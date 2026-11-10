@@ -4,9 +4,10 @@
  */
 import { useEffect, useState } from 'react';
 import { supabase, callFunction } from '@/lib/supabase';
-import { Search, Settings, Shield, Archive, X, Check, Loader2, AlertTriangle } from 'lucide-react';
+import { Search, Settings, Shield, Archive, KeyRound, Trash2, X, Check, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
+import { useAuthStore } from '@/store/auth';
 
 interface UserRow {
   id: string;
@@ -38,7 +39,10 @@ export function UsersPage() {
   const [statusUser, setStatusUser] = useState<UserRow | null>(null);
   const [statusTarget, setStatusTarget] = useState<'active' | 'suspended' | 'banned'>('suspended');
   const [statusReason, setStatusReason] = useState('');
+  const [accountUser, setAccountUser] = useState<UserRow | null>(null);
+  const [accountAction, setAccountAction] = useState<'archive' | 'delete' | 'reset'>('archive');
   const [processing, setProcessing] = useState(false);
+  const currentAdminId = useAuthStore((state) => state.user?.id);
 
   useEffect(() => {
     load();
@@ -101,10 +105,11 @@ export function UsersPage() {
     if (!statusUser) return;
     setProcessing(true);
     try {
-      await callFunction('admin-set-user-status', {
+      await callFunction('admin-delete-user', {
+        action: 'status',
         user_id: statusUser.id,
         status: statusTarget,
-        reason: statusReason.trim() || undefined,
+        reason: statusReason.trim(),
       });
       toast.success(
         statusTarget === 'suspended' && statusReason.trim().startsWith('أرشفة')
@@ -125,11 +130,39 @@ export function UsersPage() {
     }
   };
 
+  const handleAccountAction = async (action: 'archive' | 'delete' | 'reset', user: UserRow, reason: string, confirmation: string) => {
+    setProcessing(true);
+    try {
+      if (action === 'reset') {
+        await callFunction('admin-reset-user-password', { user_id: user.id, reason });
+        toast.success('تم إرسال رابط استعادة كلمة المرور إلى بريد الحساب');
+      } else {
+        await callFunction('admin-delete-user', {
+          action,
+          user_id: user.id,
+          reason,
+          ...(action === 'delete' ? { confirmation } : {}),
+        });
+        toast.success(
+          action === 'archive'
+            ? 'تمت أرشفة الحساب وإيقافه مع الاحتفاظ بالسجلات المالية والتدقيقية'
+            : 'تم حذف ملف الحساب ومصادقة الدخول بعد التحقق من خلوه من السجلات المرتبطة',
+        );
+      }
+      setAccountUser(null);
+      await load();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'تعذر تنفيذ إجراء الحساب');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   return (
     <div className="space-y-6" dir="rtl">
       <div>
         <h1 className="text-2xl font-bold text-white">المستخدمون</h1>
-        <p className="text-gray-400 mt-1">إدارة حسابات المستخدمين — RTP، forced outcomes، حظر</p>
+        <p className="text-gray-400 mt-1">إدارة الحسابات — الأرشفة الآمنة، استعادة كلمة المرور، وحذف مشروط بالسجلات المرتبطة</p>
       </div>
 
       <div className="relative max-w-md">
@@ -229,15 +262,36 @@ export function UsersPage() {
                     </button>
                     <button
                       onClick={() => {
-                        setStatusUser(u);
-                        setStatusTarget('suspended');
-                        setStatusReason('أرشفة الحساب بناءً على طلب الإدارة');
+                        setAccountUser(u);
+                        setAccountAction('archive');
                       }}
-                      disabled={processing || !['user', 'guest'].includes(u.role) || u.status === 'suspended'}
+                      disabled={processing || !['user', 'guest'].includes(u.role) || u.status === 'suspended' || u.id === currentAdminId}
                       className="rounded-lg p-2 text-amber-400 hover:bg-amber-500/10 disabled:opacity-40"
                       title="أرشفة/تعطيل الحساب مع الاحتفاظ بسجل المعاملات"
                     >
                       <Archive size={16} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAccountUser(u);
+                        setAccountAction('reset');
+                      }}
+                      disabled={processing || !['user', 'guest'].includes(u.role) || u.id === currentAdminId}
+                      className="rounded-lg p-2 text-sky-400 hover:bg-sky-500/10 disabled:opacity-40"
+                      title="إرسال رابط استعادة كلمة المرور"
+                    >
+                      <KeyRound size={16} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAccountUser(u);
+                        setAccountAction('delete');
+                      }}
+                      disabled={processing || !['user', 'guest'].includes(u.role) || u.id === currentAdminId}
+                      className="rounded-lg p-2 text-red-400 hover:bg-red-500/10 disabled:opacity-40"
+                      title="حذف نهائي مشروط بعدم وجود سجلات مرتبطة"
+                    >
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </td>
@@ -273,6 +327,134 @@ export function UsersPage() {
           onSubmit={() => void handleSetUserStatus()}
         />
       )}
+      {accountUser && (
+        <AccountActionModal
+          user={accountUser}
+          action={accountAction}
+          processing={processing}
+          onClose={() => {
+            if (!processing) setAccountUser(null);
+          }}
+          onSubmit={(reason, confirmation) => {
+            void handleAccountAction(accountAction, accountUser, reason, confirmation);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function AccountActionModal({
+  user,
+  action,
+  processing,
+  onClose,
+  onSubmit,
+}: {
+  user: UserRow;
+  action: 'archive' | 'delete' | 'reset';
+  processing: boolean;
+  onClose: () => void;
+  onSubmit: (reason: string, confirmation: string) => void;
+}) {
+  const [reason, setReason] = useState('');
+  const [confirmation, setConfirmation] = useState('');
+  const deleting = action === 'delete';
+  const resetting = action === 'reset';
+  const title = deleting ? 'حذف الحساب نهائيًا' : resetting ? 'إرسال رابط استعادة' : 'أرشفة الحساب وتعطيله';
+  const canSubmit = !processing
+    && reason.trim().length > 0
+    && reason.length <= 500
+    && (!deleting || confirmation === 'DELETE');
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="account-action-title"
+        className="w-full max-w-lg rounded-xl border border-wattar-900 bg-dark-surface"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-wattar-900 p-5">
+          <div>
+            <h2 id="account-action-title" className="text-lg font-semibold text-white">{title}</h2>
+            <p className="mt-1 text-sm text-gray-400">@{user.username}</p>
+          </div>
+          <button onClick={onClose} disabled={processing} className="text-gray-400 disabled:opacity-50" aria-label="إغلاق">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="space-y-4 p-5">
+          {deleting ? (
+            <div className="flex gap-2 rounded-lg border border-red-500/25 bg-red-500/10 p-3 text-sm leading-6 text-red-200">
+              <AlertTriangle size={18} className="mt-1 shrink-0" />
+              سيُحذف ملف المستخدم ومصادقة الدخول نهائيًا فقط إذا لم توجد أي سجلات مرتبطة. الحذف يُرفض عند وجود روابط بيانات، بما فيها السجلات المالية أو سجل المحاسبة؛ استخدم الأرشفة بدلًا من ذلك.
+            </div>
+          ) : resetting ? (
+            <div className="rounded-lg border border-sky-500/25 bg-sky-500/10 p-3 text-sm leading-6 text-sky-100">
+              سيرسل Supabase رابط استعادة آمنًا إلى بريد الحساب؛ لن تظهر كلمة المرور الحالية أو رابط سري في اللوحة. تُنهى جلسات Wattar المسجلة، لكن قد تبقى رموز مصادقة صادرة مسبقًا صالحة حتى انتهاء مدتها. استعادة كلمة المرور لا تعيد تفعيل الحساب الموقوف.
+            </div>
+          ) : (
+            <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 p-3 text-sm leading-6 text-amber-100">
+              سيُوقف الحساب ويُمنع من استخدام خدمات Wattar، مع الاحتفاظ بملف البيانات والرصيد والدفاتر وسجلات التدقيق دون حذف. يمكن إعادة تفعيله لاحقًا.
+            </div>
+          )}
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-300" htmlFor="account-action-reason">
+              سبب الإجراء <span className="text-red-400">*</span>
+            </label>
+            <textarea
+              id="account-action-reason"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              maxLength={500}
+              rows={3}
+              disabled={processing}
+              placeholder="اكتب سببًا واضحًا ليظهر في سجل الإدارة..."
+              className="w-full resize-y rounded-lg border border-wattar-900 bg-dark-elevated px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:border-wattar-500 focus:outline-none"
+            />
+            <p className="mt-1 text-left text-xs text-gray-500">{reason.length}/500</p>
+          </div>
+
+          {deleting && (
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-300" htmlFor="account-delete-confirmation">
+                اكتب DELETE للتأكيد
+              </label>
+              <input
+                id="account-delete-confirmation"
+                value={confirmation}
+                onChange={(event) => setConfirmation(event.target.value)}
+                disabled={processing}
+                className="w-full rounded-lg border border-red-500/30 bg-dark-elevated px-3 py-2.5 text-sm text-white"
+                autoComplete="off"
+              />
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={onClose}
+              disabled={processing}
+              className="rounded-lg border border-wattar-900 px-4 py-2 text-sm text-gray-300 hover:bg-dark-elevated disabled:opacity-50"
+            >
+              إلغاء
+            </button>
+            <button
+              onClick={() => onSubmit(reason.trim(), confirmation)}
+              disabled={!canSubmit}
+              className={`flex min-w-32 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 ${
+                deleting ? 'bg-red-700 hover:bg-red-600' : resetting ? 'bg-sky-700 hover:bg-sky-600' : 'bg-amber-700 hover:bg-amber-600'
+              }`}
+            >
+              {processing ? <Loader2 size={16} className="animate-spin" /> : null}
+              {deleting ? 'حذف نهائي' : resetting ? 'إرسال الرابط' : 'أرشفة وتعطيل'}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -296,8 +478,7 @@ function UserStatusModal({
   onClose: () => void;
   onSubmit: () => void;
 }) {
-  const needsReason = status !== 'active';
-  const canSubmit = !processing && (!needsReason || reason.trim().length > 0) && reason.length <= 500;
+  const canSubmit = !processing && reason.trim().length > 0 && reason.length <= 500;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
@@ -340,28 +521,22 @@ function UserStatusModal({
             </div>
           ) : null}
 
-          {needsReason ? (
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-300" htmlFor="user-status-reason">
-                سبب الإجراء <span className="text-red-400">*</span>
-              </label>
-              <textarea
-                id="user-status-reason"
-                value={reason}
-                onChange={(event) => onReasonChange(event.target.value)}
-                maxLength={500}
-                rows={4}
-                disabled={processing}
-                placeholder="اكتب سببًا واضحًا ليظهر في سجل الإدارة..."
-                className="w-full resize-y rounded-lg border border-wattar-900 bg-dark-elevated px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:border-wattar-500 focus:outline-none"
-              />
-              <p className="mt-1 text-left text-xs text-gray-500">{reason.length}/500</p>
-            </div>
-          ) : (
-            <p className="text-sm leading-6 text-gray-400">
-              سيُعاد تفعيل الحساب، وسيُسجّل الإجراء وبيانات الحالة السابقة في سجل الإدارة.
-            </p>
-          )}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-300" htmlFor="user-status-reason">
+              سبب الإجراء <span className="text-red-400">*</span>
+            </label>
+            <textarea
+              id="user-status-reason"
+              value={reason}
+              onChange={(event) => onReasonChange(event.target.value)}
+              maxLength={500}
+              rows={4}
+              disabled={processing}
+              placeholder="اكتب سببًا واضحًا ليظهر في سجل الإدارة..."
+              className="w-full resize-y rounded-lg border border-wattar-900 bg-dark-elevated px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:border-wattar-500 focus:outline-none"
+            />
+            <p className="mt-1 text-left text-xs text-gray-500">{reason.length}/500</p>
+          </div>
 
           <div className="flex justify-end gap-2 pt-2">
             <button

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react-native';
 import { supabase, uploadPrivateMedia } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
+import { notifySocialEvent } from '@/lib/notifications';
 
 const POST_BUCKET = 'wattar-posts';
 const IMAGE_LIMIT = 10 * 1024 * 1024;
@@ -171,6 +172,11 @@ export default function UserProfileScreen() {
         { p_user_id: profile.user_id },
       );
       if (followError) throw followError;
+      if (!wasFollowing) {
+        void notifySocialEvent('new_follower', profile.user_id).catch((notificationError: unknown) => {
+          console.warn('[Wattar] New follower push failed:', notificationError);
+        });
+      }
       setProfile((current) => current
         ? { ...current, is_following: !wasFollowing }
         : current);

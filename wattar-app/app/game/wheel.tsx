@@ -12,6 +12,7 @@ import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/lib/theme';
+import { GameHeader } from '@/components/GameHeader';
 
 const SEGMENTS = [
   { value: 0,  label: 'خسارة', color: '#1F2937' },
@@ -116,8 +117,11 @@ export default function WheelGame() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <StatusBar style="light" />
-      <Text style={styles.title}>عجلة الحظ</Text>
-      <Text style={styles.subtitle}>اختر خانة وشاهد النتيجة مباشرة</Text>
+      <GameHeader
+        title="عجلة الحظ"
+        subtitle="اختر خانتك، ثم شاهد دوران العجلة والنتيجة مباشرة."
+        balance={profile?.game_points ?? 0}
+      />
 
       <View style={styles.wheelContainer}>
         <View style={styles.pointer} />
@@ -207,7 +211,6 @@ export default function WheelGame() {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.balance}>Point: {profile?.game_points?.toLocaleString() ?? 0}</Text>
     </ScrollView>
   );
 }

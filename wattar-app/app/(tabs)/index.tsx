@@ -22,6 +22,7 @@ import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
 import { Mic, Users, Lock, Plus, ChevronLeft, Sparkles, CirclePlay, ShoppingBag, Target } from 'lucide-react-native';
 import { colors } from '@/lib/theme';
+import { NotificationBell } from '@/components/NotificationBell';
 
 interface Room {
   id: string;
@@ -143,6 +144,7 @@ export default function HomeScreen() {
           </View>
         </View>
         <View style={styles.headerActions}>
+          <NotificationBell />
           <View style={styles.balancePill}>
             <Text style={styles.balanceValue}>{(profile?.balance_gold ?? 0).toLocaleString()}</Text>
             <Text style={styles.balanceUnit}>Coins</Text>

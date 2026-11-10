@@ -12,6 +12,7 @@ import { Plane, TrendingUp } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/lib/theme';
 import { usePreferencesStore } from '@/store/preferences';
+import { GameHeader } from '@/components/GameHeader';
 
 interface AviatorResponse {
   crash_point: number;
@@ -106,7 +107,11 @@ export default function AviatorGame() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <StatusBar style="light" />
-      <Text style={styles.title}>طيارة المضاعفات</Text>
+      <GameHeader
+        title="طيارة المضاعفات"
+        subtitle="حدد رهانك ومضاعف السحب قبل إقلاع الجولة."
+        balance={profile?.game_points ?? 0}
+      />
 
       <View style={styles.gameArea}>
         <View style={styles.flightGrid} pointerEvents="none">
@@ -180,10 +185,6 @@ export default function AviatorGame() {
       </View>
 
       <View style={styles.infoCard}>
-        <View style={styles.infoRow}>
-          <TrendingUp size={14} color="#9CA3AF" />
-          <Text style={styles.infoText}>Point: {profile?.game_points?.toLocaleString() ?? 0}</Text>
-        </View>
         <Text style={styles.infoHint}>كيف تلعب: حدّد المضاعف المطلوب للسحب، الطيارة تطير وينتهي ذلك عند الانهيار. إذا وصلت لمضاعفك قبل الانهيار → تفوز.</Text>
       </View>
     </ScrollView>

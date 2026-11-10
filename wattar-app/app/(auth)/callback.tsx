@@ -6,8 +6,8 @@ import { useAuthStore } from '@/store/auth';
 
 export default function AuthCallbackScreen() {
   const router = useRouter();
-  const { code, error_description: errorDescription } =
-    useLocalSearchParams<{ code?: string; error_description?: string }>();
+  const { code, flow, error_description: errorDescription } =
+    useLocalSearchParams<{ code?: string; flow?: string; error_description?: string }>();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -29,6 +29,10 @@ export default function AuthCallbackScreen() {
       const profile = useAuthStore.getState().profile;
       if (!profile) throw new Error('تم تسجيل الدخول، لكن تعذر تحميل ملف الحساب.');
       if (active) {
+        if (flow === 'recovery') {
+          router.replace('/recover-password');
+          return;
+        }
         router.replace(
           !profile.onboarding_completed_at
             ? '/(auth)/complete-profile'
@@ -46,7 +50,7 @@ export default function AuthCallbackScreen() {
     });
 
     return () => { active = false; };
-  }, [code, errorDescription, router]);
+  }, [code, errorDescription, flow, router]);
 
   return (
     <View style={styles.container}>

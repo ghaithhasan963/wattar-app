@@ -93,14 +93,44 @@ Deno.serve(async (req: Request) => {
     const supabase = getSupabaseAdmin();
 
     // 1) التحقق من عدم وجود username مسبقًا
-    const { data: existing } = await supabase
+    const { data: existing, error: usernameLookupError } = await supabase
       .from('users')
       .select('id')
       .eq('username', body.username)
       .maybeSingle();
 
+    if (usernameLookupError) {
+      throw new HttpError(500, 'USERNAME_CHECK_FAILED', 'تعذر التحقق من اسم المستخدم، حاول مرة أخرى');
+    }
+
     if (existing) {
       throw new HttpError(409, 'USERNAME_TAKEN', 'Username already exists');
+    }
+
+    const { data: existingEmail, error: emailLookupError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (emailLookupError) {
+      throw new HttpError(500, 'EMAIL_CHECK_FAILED', 'تعذر التحقق من البريد الإلكتروني، حاول مرة أخرى');
+    }
+    if (existingEmail) {
+      throw new HttpError(409, 'EMAIL_TAKEN', 'هذا البريد الإلكتروني مستخدم مسبقًا في حساب Wattar. استخدم بريدًا آخر.');
+    }
+
+    const { data: existingPhone, error: phoneLookupError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('phone', phone)
+      .maybeSingle();
+
+    if (phoneLookupError) {
+      throw new HttpError(500, 'PHONE_CHECK_FAILED', 'تعذر التحقق من رقم الهاتف، حاول مرة أخرى');
+    }
+    if (existingPhone) {
+      throw new HttpError(409, 'PHONE_TAKEN', 'رقم الهاتف مستخدم مسبقًا في حساب Wattar. استخدم رقمًا آخر.');
     }
 
     // 2) إنشاء مستخدم في Auth
@@ -112,6 +142,9 @@ Deno.serve(async (req: Request) => {
     });
 
     if (authErr || !authUser.user) {
+      if (authErr?.code === 'email_exists') {
+        throw new HttpError(409, 'EMAIL_TAKEN', 'هذا البريد الإلكتروني مرتبط بحساب موجود. استخدم بريدًا آخر.');
+      }
       throw new HttpError(500, 'AUTH_CREATE_FAILED', authErr?.message ?? 'Failed to create auth user');
     }
 

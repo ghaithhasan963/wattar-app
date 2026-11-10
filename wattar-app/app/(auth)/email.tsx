@@ -13,9 +13,11 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { ChevronRight, Eye, EyeOff, Lock, Mail, ShieldCheck, Sparkles } from 'lucide-react-native';
 import { useAuthStore } from '@/store/auth';
 import { colors } from '@/lib/theme';
+import { supabase } from '@/lib/supabase';
 
 type EmailMode = 'sign-in' | 'sign-up';
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -30,6 +32,7 @@ export default function EmailAuthScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetSending, setResetSending] = useState(false);
 
   useEffect(() => {
     setMode(requestedMode === 'sign-up' ? 'sign-up' : 'sign-in');
@@ -46,8 +49,8 @@ export default function EmailAuthScreen() {
       setError('أدخل كلمة المرور للمتابعة.');
       return;
     }
-    if (mode === 'sign-up' && password.length < 8) {
-      setError('اجعل كلمة المرور 8 أحرف على الأقل لزيادة أمان حسابك.');
+    if (mode === 'sign-up' && (password.length < 8 || password.length > 128)) {
+      setError('استخدم كلمة مرور من 8 إلى 128 حرفًا لزيادة أمان حسابك.');
       return;
     }
     if (mode === 'sign-up' && password !== confirmPassword) {
@@ -59,7 +62,13 @@ export default function EmailAuthScreen() {
       if (mode === 'sign-in') {
         await signInWithEmail(normalizedEmail, password);
         const profile = useAuthStore.getState().profile;
-        router.replace(profile?.onboarding_completed_at ? '/(tabs)' : '/(auth)/complete-profile');
+        router.replace(
+          !profile?.onboarding_completed_at
+            ? '/(auth)/complete-profile'
+            : !profile.adult_confirmed_at
+              ? '/(auth)/age-confirmation'
+              : '/(tabs)',
+        );
         return;
       }
 
@@ -82,6 +91,28 @@ export default function EmailAuthScreen() {
     setMode(nextMode);
     setError(null);
     setConfirmPassword('');
+  };
+
+  const sendPasswordReset = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      setError('أدخل بريدك الإلكتروني أولًا لإرسال رابط إعادة التعيين.');
+      return;
+    }
+
+    setError(null);
+    setResetSending(true);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+        redirectTo: Linking.createURL('callback', { queryParams: { flow: 'recovery' } }),
+      });
+      if (resetError) throw resetError;
+      Alert.alert('تحقق من بريدك', 'إذا كان البريد مسجلًا، ستصلك رسالة لإعادة تعيين كلمة المرور.');
+    } catch (resetError: unknown) {
+      setError(resetError instanceof Error ? resetError.message : 'تعذر إرسال رابط إعادة التعيين.');
+    } finally {
+      setResetSending(false);
+    }
   };
 
   return (
@@ -213,6 +244,19 @@ export default function EmailAuthScreen() {
 
           {error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
 
+          {mode === 'sign-in' && (
+            <TouchableOpacity
+              style={styles.forgotPassword}
+              onPress={() => void sendPasswordReset()}
+              disabled={loading || resetSending}
+              accessibilityRole="button"
+            >
+              <Text style={styles.forgotPasswordText}>
+                {resetSending ? 'جارٍ إرسال الرابط...' : 'نسيت كلمة المرور؟'}
+              </Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             style={[styles.submitButton, loading && styles.disabled]}
             onPress={submit}
@@ -332,6 +376,8 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, color: colors.text, fontSize: 14, paddingVertical: 12, textAlign: 'right' },
   error: { color: colors.danger, fontSize: 12, textAlign: 'right', lineHeight: 19, marginBottom: 8 },
+  forgotPassword: { alignSelf: 'flex-start', paddingVertical: 8 },
+  forgotPasswordText: { color: colors.primary, fontSize: 12, fontWeight: '700' },
   submitButton: {
     minHeight: 53,
     borderRadius: 15,
