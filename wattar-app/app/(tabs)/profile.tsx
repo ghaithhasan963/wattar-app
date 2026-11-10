@@ -155,8 +155,8 @@ export default function ProfileScreen() {
           onPress={() => router.push('/host-application')}
           accessibilityRole="button"
         >
-          <Mic size={15} color={palette.gold} />
-          <Text style={styles.hostProgramButtonText}>برنامج المضيفات وطلب التوثيق</Text>
+          <BadgeCheck size={15} color={palette.gold} />
+          <Text style={styles.hostProgramButtonText}>طلب توثيق الحساب</Text>
           <BadgeCheck size={14} color={palette.gold} />
         </TouchableOpacity>
         <TouchableOpacity

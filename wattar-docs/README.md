@@ -134,13 +134,14 @@ wattar/
 10. نفّذ `wattar-docs/patch_public_auth_rate_limits.sql` بعد السكيمة الأساسية وقبل نشر دوال التسجيل وطلب OTP.
 11. نفّذ `wattar-docs/patch_membership_wallet_type.sql` وحده أولًا، وتأكد من نجاحه قبل تشغيل `patch_memberships_xp_acceleration.sql`؛ يضيف الثاني عضويات VIP غير متجددة تلقائيًا وسقف تسريع XP يبلغ 250 لكل عملية و500 شهريًا.
 12. نفّذ `wattar-docs/patch_notification_inbox.sql` بعد ترحيلات المجتمع والمحفظة والمضيفات والعضويات.
-13. نفّذ `wattar-docs/patch_platform_activity_log.sql` أخيرًا بعد سجل الإدارة وجميع ترحيلات الغرف والمضيفات والمجتمع والمحفظة؛ يسجل أحداثًا تشغيلية أساسية ولا يسجل محتوى الرسائل أو بيانات الاعتماد.
-14. أنشئ Storage Buckets:
+13. بعد نجاح ترحيلات الرسائل والإشعارات، نفّذ `wattar-docs/patch_paid_messaging_wallet_types.sql` وحده وانتظر اعتماده، ثم نفّذ `wattar-docs/patch_paid_messaging.sql`. ينشئ برنامج المضيفات المستقل عن التوثيق، خمس رسائل مجانية إجمالًا لكل محادثة غير صداقة، ثم سعرًا ابتدائيًا 50 Coin لكل رسالة؛ إعدادات السعر ونسبة المضيفة (60% افتراضيًا، تدفع Diamond بنسبة 1:1) قابلة للتعديل والمدققة من لوحة الإدارة. يزرع 110 افتتاحيات، ويحد الرسائل الافتتاحية بمقدار رسالتين يوميًا لكل مستخدم مع خيار إيقافها من الخصوصية. اختبره على بيئة معاينة قبل أي تطبيق إنتاجي.
+14. نفّذ `wattar-docs/patch_platform_activity_log.sql` أخيرًا بعد سجل الإدارة وجميع ترحيلات الغرف والمضيفات والمجتمع والمحفظة؛ يسجل أحداثًا تشغيلية أساسية ولا يسجل محتوى الرسائل أو بيانات الاعتماد.
+15. أنشئ Storage Buckets:
    - `avatars` (عام)
    - `deposit-proofs` (خاص)
    - `withdrawal-proofs` (خاص)
    - `gift-icons` (عام)
-15. أنشئ مستخدم Auth (Email/Password) للأدمن الأول:
+16. أنشئ مستخدم Auth (Email/Password) للأدمن الأول:
    - في Authentication → Users → Add user
    - بعد إنشائه، نفّذ في SQL Editor:
      ```sql

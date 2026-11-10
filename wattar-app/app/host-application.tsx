@@ -100,7 +100,7 @@ export default function HostApplicationScreen() {
       if (submitError) throw submitError;
       setApplicationText('');
       await load();
-      Alert.alert('تم إرسال الطلب', 'ستراجع الإدارة طلبك، ولن تُمنح شارة المضيفة قبل الموافقة.');
+      Alert.alert('تم إرسال الطلب', 'ستراجع الإدارة طلب توثيق حسابك، ويظل برنامج المضيفات منفصلًا.');
     } catch (caught: unknown) {
       Alert.alert('تعذر إرسال الطلب', caught instanceof Error ? caught.message : 'حاول مرة أخرى.');
     } finally {
@@ -114,7 +114,7 @@ export default function HostApplicationScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="رجوع">
           <ArrowLeft size={20} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>برنامج المضيفات</Text>
+        <Text style={styles.headerTitle}>توثيق الحساب</Text>
       </View>
 
       {loading ? (
@@ -128,9 +128,9 @@ export default function HostApplicationScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.hero}>
             <View style={styles.icon}><Mic size={26} color={colors.gold} /></View>
-            <Text style={styles.title}>صوتك يرحّب بالجميع</Text>
+            <Text style={styles.title}>شارة موثوقية لحسابك</Text>
             <Text style={styles.copy}>
-              قدّمي طلبًا لمراجعة الحساب، واستضيفي غرفًا وتواصلي بهويتك الحقيقية. لا تُرسل رسائل آلية على أنها من المضيفة؛ أي رسالة آلية مستقبلًا ستظهر بوضوح باسم Wattar.
+              هذا الطلب لمراجعة التوثيق فقط، ولا يضيفك إلى برنامج المضيفات أو يمنح صلاحية الرسائل الافتتاحية. برنامج المضيفات منفصل وتعيّنه الإدارة بعد موافقتك.
             </Text>
           </View>
 
@@ -138,8 +138,8 @@ export default function HostApplicationScreen() {
             <View style={styles.statusCard}>
               <BadgeCheck size={24} color={colors.success} />
               <View style={styles.statusCopy}>
-                <Text style={styles.statusTitle}>حسابك مضيفة موثّقة</Text>
-                <Text style={styles.copy}>تظهر شارة التوثيق للآخرين. يمكنك استخدام حسابك الحقيقي لاستضافة الغرف.</Text>
+                <Text style={styles.statusTitle}>حسابك موثّق</Text>
+                <Text style={styles.copy}>تظهر شارة التوثيق للآخرين. هذه الشارة مستقلة عن عضوية برنامج المضيفات.</Text>
               </View>
             </View>
           ) : application?.status === 'pending' ? (
@@ -159,8 +159,8 @@ export default function HostApplicationScreen() {
                 </View>
               )}
               <View style={styles.formCard}>
-                <Text style={styles.formTitle}>قدّمي طلب الانضمام</Text>
-                <Text style={styles.copy}>اكتبي نبذة عن خبرتك، أوقات حضورك، ونوع الغرف التي تودين استضافتها. الحد الأدنى 20 حرفًا.</Text>
+                <Text style={styles.formTitle}>طلب توثيق الحساب</Text>
+                <Text style={styles.copy}>اكتبي نبذة تساعد الإدارة على مراجعة هويتك وموثوقية الحساب. الحد الأدنى 20 حرفًا.</Text>
                 <TextInput
                   value={applicationText}
                   onChangeText={setApplicationText}

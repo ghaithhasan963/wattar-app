@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Bell, ChevronLeft, Globe, HelpCircle, KeyRound, LogOut, Shield, User, Sparkles, Trash2 } from 'lucide-react-native';
+import { Bell, ChevronLeft, Globe, HelpCircle, KeyRound, LogOut, MessageCircle, Shield, User, Sparkles, Trash2 } from 'lucide-react-native';
 import { useAuthStore } from '@/store/auth';
 import { ChatTextSize, usePreferencesStore } from '@/store/preferences';
 import { colors } from '@/lib/theme';
-import { callFunction } from '@/lib/supabase';
+import { callFunction, supabase } from '@/lib/supabase';
 import {
   disableSocialPushNotifications,
   enableSocialPushNotifications,
@@ -17,12 +17,28 @@ export default function SettingsScreen() {
   const { profile, signOut } = useAuthStore();
   const { reduceMotion, chatTextSize, setReduceMotion, setChatTextSize } = usePreferencesStore();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [hostOutreachOptOut, setHostOutreachOptOut] = useState<boolean | null>(null);
   const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     getSocialPushEnabled().then(setNotificationsEnabled).catch((error: unknown) => {
       console.warn('[Wattar] Failed to check notification settings:', error);
     });
+  }, []);
+
+  useEffect(() => {
+    void supabase.rpc('get_my_host_outreach_preference').then(
+      ({ data, error }) => {
+        if (error) {
+          console.warn('[Wattar] Failed to load host outreach preference:', error.message);
+          return;
+        }
+        setHostOutreachOptOut(data === true);
+      },
+      (error: unknown) => {
+        console.warn('[Wattar] Failed to load host outreach preference:', error);
+      },
+    );
   }, []);
 
   const updateMotionPreference = async (enabled: boolean) => {
@@ -48,6 +64,18 @@ export default function SettingsScreen() {
       setNotificationsEnabled(enabled);
     } catch (error: unknown) {
       Alert.alert('تعذر تحديث الإشعارات', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+    }
+  };
+
+  const updateHostOutreach = async (enabled: boolean) => {
+    try {
+      const { error } = await supabase.rpc('set_my_host_outreach_preference', {
+        p_opt_out: !enabled,
+      });
+      if (error) throw error;
+      setHostOutreachOptOut(!enabled);
+    } catch (error: unknown) {
+      Alert.alert('تعذر تحديث الخصوصية', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     }
   };
 
@@ -145,6 +173,27 @@ export default function SettingsScreen() {
             trackColor={{ false: colors.border, true: colors.primary }}
             thumbColor="#F8FAFC"
             accessibilityLabel="إشعارات Wattar"
+          />
+        </View>
+        <View style={[styles.row, styles.rowBorder]}>
+          <View style={styles.rowIcon}><MessageCircle size={18} color={colors.primary} /></View>
+          <View style={styles.settingCopy}>
+            <Text style={styles.rowLabel}>رسائل المضيفات الافتتاحية</Text>
+            <Text style={styles.rowDescription}>
+              {hostOutreachOptOut === null
+                ? 'جارٍ تحميل تفضيلك...'
+                : hostOutreachOptOut
+                  ? 'متوقفة. لن تبدأ المضيفات محادثات جديدة معك.'
+                  : 'قد تصلك رسائل تعارف محدودة، ويمكنك تجاهلها أو حظر المرسل.'}
+            </Text>
+          </View>
+          <Switch
+            value={hostOutreachOptOut === false}
+            onValueChange={updateHostOutreach}
+            disabled={hostOutreachOptOut === null}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor="#F8FAFC"
+            accessibilityLabel="رسائل المضيفات الافتتاحية"
           />
         </View>
         <View style={styles.fontSizeSection}>

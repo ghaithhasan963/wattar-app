@@ -33,6 +33,7 @@ const eventColors: Record<string, string> = {
   gift_received: '#F4BD55',
   deposit_update: '#72DCCA',
   withdrawal_update: '#74A7FF',
+  host_earning: '#72DCCA',
 };
 
 export default function NotificationsScreen() {

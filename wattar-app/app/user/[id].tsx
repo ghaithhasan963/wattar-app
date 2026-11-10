@@ -14,8 +14,11 @@ import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ArrowLeft,
+  BadgeCheck,
   ImagePlus,
   LockKeyhole,
+  MessageCircle,
+  Mic,
   Plus,
   Trash2,
   UserCheck,
@@ -39,6 +42,7 @@ interface WattarProfile {
   is_friend: boolean;
   is_following: boolean;
   is_verified_host?: boolean;
+  is_host_program_member?: boolean;
 }
 
 interface SocialProgress {
@@ -94,17 +98,22 @@ export default function UserProfileScreen() {
         return;
       }
 
-      const { data: hostData, error: hostError } = await supabase
-        .from('verified_hosts')
-        .select('user_id')
-        .eq('user_id', id)
-        .eq('status', 'active')
-        .maybeSingle();
-      if (hostError) throw hostError;
+      const [hostResult, hostProgramResult] = await Promise.all([
+        supabase
+          .from('verified_hosts')
+          .select('user_id')
+          .eq('user_id', id)
+          .eq('status', 'active')
+          .maybeSingle(),
+        supabase.rpc('is_wattar_host_program_member', { p_user_id: id }),
+      ]);
+      if (hostResult.error) throw hostResult.error;
+      if (hostProgramResult.error) throw hostProgramResult.error;
 
       const loadedProfile = {
         ...(profileRow as WattarProfile),
-        is_verified_host: Boolean(hostData),
+        is_verified_host: Boolean(hostResult.data),
+        is_host_program_member: hostProgramResult.data === true,
       };
       setProfile(loadedProfile);
       if (loadedProfile.is_private) {
@@ -157,6 +166,23 @@ export default function UserProfileScreen() {
       Alert.alert('تم إرسال الطلب', `أرسلنا طلب صداقة إلى @${profile.username}.`);
     } catch (caught: unknown) {
       Alert.alert('تعذر إرسال الطلب', caught instanceof Error ? caught.message : 'حاول مرة أخرى.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openConversation = async () => {
+    if (!profile || busy) return;
+    setBusy(true);
+    try {
+      const { data, error: conversationError } = await supabase.rpc('create_private_conversation', {
+        p_other_user_id: profile.user_id,
+      });
+      if (conversationError) throw conversationError;
+      if (!data) throw new Error('لم يتم إنشاء المحادثة.');
+      router.push(`/messages/${data}`);
+    } catch (caught: unknown) {
+      Alert.alert('تعذر فتح المحادثة', caught instanceof Error ? caught.message : 'حاول مرة أخرى.');
     } finally {
       setBusy(false);
     }
@@ -291,9 +317,21 @@ export default function UserProfileScreen() {
             <Text style={styles.username}>@{profile.username}</Text>
             {profile.is_verified_host && (
               <View style={styles.hostBadge}>
-                <Users size={13} color={palette.gold} />
-                <Text style={styles.hostBadgeText}>مضيفة موثّقة</Text>
+                <BadgeCheck size={13} color={palette.gold} />
+                <Text style={styles.hostBadgeText}>حساب موثّق</Text>
               </View>
+            )}
+            {profile.is_host_program_member && (
+              <View style={[styles.hostBadge, styles.hostProgramBadge]}>
+                <Mic size={13} color={palette.primary} />
+                <Text style={styles.hostProgramBadgeText}>عضوة برنامج المضيفات</Text>
+              </View>
+            )}
+            {!isOwnProfile && (
+              <TouchableOpacity style={styles.messageButton} onPress={() => void openConversation()} disabled={busy}>
+                {busy ? <ActivityIndicator size="small" color={palette.text} /> : <MessageCircle size={16} color={palette.text} />}
+                <Text style={styles.primaryButtonText}>مراسلة</Text>
+              </TouchableOpacity>
             )}
             {!profile.is_private && profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
             {profile.is_private ? (
@@ -443,12 +481,15 @@ const styles = StyleSheet.create({
   username: { color: palette.muted, fontSize: 13, marginTop: 3 },
   hostBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 9, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, backgroundColor: '#F4BD5518', borderWidth: 1, borderColor: '#F4BD5533' },
   hostBadgeText: { color: palette.gold, fontSize: 11, fontWeight: '800' },
+  hostProgramBadge: { backgroundColor: '#292044', borderColor: '#62428A' },
+  hostProgramBadgeText: { color: palette.primary, fontSize: 11, fontWeight: '800' },
   bio: { color: palette.text, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 12 },
   privateNotice: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 13 },
   privateText: { color: palette.gold, fontSize: 13, fontWeight: '700' },
   stats: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 15 },
   statsText: { color: palette.muted, fontSize: 12 },
   actions: { flexDirection: 'row', gap: 9, marginTop: 17 },
+  messageButton: { minHeight: 43, marginTop: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 15, borderRadius: 13, backgroundColor: palette.primary },
   primaryButton: {
     minHeight: 43,
     flexDirection: 'row',

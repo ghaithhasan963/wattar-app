@@ -97,7 +97,7 @@ Deno.serve(async (req: Request) => {
     } else if (body.event_type === 'private_message') {
       const { data: sentMessage, error: messageError } = await supabase
         .from('private_messages')
-        .select('conversation_id')
+        .select('conversation_id, host_commission_diamonds')
         .eq('id', body.reference_id)
         .eq('sender_id', ctx.user_id)
         .maybeSingle();
@@ -116,8 +116,13 @@ Deno.serve(async (req: Request) => {
         ? conversation.user_two_id
         : conversation.user_one_id];
       route = `/messages/${sentMessage.conversation_id}`;
-      title = `رسالة من ${senderName}`;
-      message = 'أرسل إليك رسالة خاصة.';
+      if (sentMessage.host_commission_diamonds > 0) {
+        title = 'رسالة جديدة وعمولة';
+        message = `${senderName} أرسل إليك رسالة مدفوعة؛ أُضيفت ${sentMessage.host_commission_diamonds} Diamond إلى رصيدك.`;
+      } else {
+        title = `رسالة من ${senderName}`;
+        message = 'أرسل إليك رسالة خاصة.';
+      }
     } else if (body.event_type === 'room_invitation') {
       const { data, error } = await supabase
         .from('room_invitations')

@@ -69,7 +69,7 @@ export function HostApplicationsPage() {
         user: Array.isArray(row.user) ? row.user[0] ?? null : row.user,
       })));
     } catch (caught: unknown) {
-      const message = caught instanceof Error ? caught.message : 'تعذر تحميل طلبات المضيفات.';
+      const message = caught instanceof Error ? caught.message : 'تعذر تحميل طلبات التوثيق.';
       setError(message);
       toast.error(message);
     } finally {
@@ -114,7 +114,7 @@ export function HostApplicationsPage() {
         };
       }));
     } catch (caught: unknown) {
-      toast.error(caught instanceof Error ? caught.message : 'تعذر تحميل قائمة المضيفات.');
+      toast.error(caught instanceof Error ? caught.message : 'تعذر تحميل الحسابات الموثقة.');
     }
   }, []);
 
@@ -163,10 +163,10 @@ export function HostApplicationsPage() {
     try {
       await callFunction('admin-create-host', newHost);
       setNewHost({ username: '', display_name: '', email: '', phone: '', password: '' });
-      toast.success('أُنشئ الحساب بحالة مضيفة معلّقة. بعد إكمال الملف وتأكيد العمر يمكنك اعتمادها.');
+      toast.success('أُنشئ الحساب بحالة توثيق معلّقة. بعد إكمال الملف وتأكيد العمر يمكنك مراجعة توثيقه.');
       await loadHosts();
     } catch (caught: unknown) {
-      toast.error(caught instanceof Error ? caught.message : 'تعذر إنشاء حساب المضيفة.');
+      toast.error(caught instanceof Error ? caught.message : 'تعذر إنشاء حساب التوثيق.');
     } finally {
       setCreatingHost(false);
     }
@@ -185,15 +185,15 @@ export function HostApplicationsPage() {
         reason: reason.trim(),
       });
       toast.success(
-        action === 'assign' ? 'تم تعيين الحساب كمضيفة.' :
-          action === 'activate' ? 'تمت إعادة تفعيل المضيفة.' : 'تم إيقاف المضيفة.',
+        action === 'assign' ? 'تم توثيق الحساب.' :
+          action === 'activate' ? 'تمت إعادة تفعيل التوثيق.' : 'تم إيقاف التوثيق.',
       );
       setCandidate(null);
       setUsernameSearch('');
       setAssignmentReason('');
       await Promise.all([load(), loadHosts()]);
     } catch (caught: unknown) {
-      toast.error(caught instanceof Error ? caught.message : 'تعذر تنفيذ إجراء المضيفة.');
+      toast.error(caught instanceof Error ? caught.message : 'تعذر تنفيذ إجراء التوثيق.');
     } finally {
       setHostActionId(null);
     }
@@ -212,7 +212,7 @@ export function HostApplicationsPage() {
         approve,
         review_note: reviewNote.trim() || undefined,
       });
-      toast.success(approve ? 'تم اعتماد المضيفة وإظهار شارة التوثيق.' : 'تم رفض الطلب وتسجيل سبب المراجعة.');
+      toast.success(approve ? 'تم توثيق الحساب.' : 'تم رفض الطلب وتسجيل سبب المراجعة.');
       await load();
     } catch (caught: unknown) {
       toast.error(caught instanceof Error ? caught.message : 'تعذرت مراجعة الطلب.');
@@ -227,8 +227,8 @@ export function HostApplicationsPage() {
         <div className="flex items-center gap-3">
           <span className="rounded-xl bg-fuchsia-400/10 p-3 text-fuchsia-300"><BadgeCheck size={22} /></span>
           <div>
-            <h1 className="text-2xl font-bold text-white">طلبات المضيفات</h1>
-            <p className="mt-1 text-sm text-gray-400">إنشاء حساب دخول، مراجعة الطلبات، وإدارة اعتماد المضيفات.</p>
+            <h1 className="text-2xl font-bold text-white">طلبات توثيق الحسابات</h1>
+            <p className="mt-1 text-sm text-gray-400">إدارة التوثيق مستقلة عن برنامج المضيفات والرسائل المدفوعة.</p>
           </div>
         </div>
         <button
@@ -254,9 +254,9 @@ export function HostApplicationsPage() {
           <div className="flex items-start gap-3">
             <span className="rounded-xl bg-fuchsia-400/10 p-2.5 text-fuchsia-300"><UserPlus size={19} /></span>
             <div>
-              <h2 className="font-semibold text-white">إنشاء حساب دخول لمضيفة</h2>
+              <h2 className="font-semibold text-white">إنشاء حساب لمراجعة التوثيق</h2>
               <p className="mt-1 text-xs leading-5 text-gray-400">
-                يُنشأ حساب مستخدمة عادي؛ البريد للدخول بكلمة المرور والهاتف للدخول بعد تأكيده برمز SMS. على صاحبته إكمال الملف وتأكيد العمر بنفسها قبل منح شارة المضيفة.
+                يُنشأ حساب مستخدمة عادي؛ البريد للدخول بكلمة المرور والهاتف للدخول بعد تأكيده برمز SMS. على صاحبته إكمال الملف وتأكيد العمر قبل مراجعة التوثيق. هذا لا يضيفها لبرنامج المضيفات.
               </p>
             </div>
           </div>
@@ -331,7 +331,7 @@ export function HostApplicationsPage() {
           <div className="flex items-start gap-3">
             <span className="rounded-xl bg-fuchsia-400/10 p-2.5 text-fuchsia-300"><UserPlus size={19} /></span>
             <div>
-              <h2 className="font-semibold text-white">تعيين مضيفة من حساب موجود</h2>
+              <h2 className="font-semibold text-white">مراجعة توثيق حساب موجود</h2>
               <p className="mt-1 text-xs leading-5 text-gray-400">
                 ابحث عن حساب مستخدمة حقيقي؛ يجب أن يكون نشطًا ومكتمل الملف والتحقق العمري.
               </p>
@@ -370,7 +370,7 @@ export function HostApplicationsPage() {
                 onChange={(event) => setAssignmentReason(event.target.value)}
                 maxLength={500}
                 rows={2}
-                placeholder="سبب اعتماد هذه المضيفة (إلزامي)"
+                placeholder="سبب توثيق الحساب (إلزامي)"
                 className="mt-3 w-full resize-y rounded-lg border border-wattar-900 bg-dark-elevated px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-wattar-500 focus:outline-none"
               />
               <button
@@ -380,7 +380,7 @@ export function HostApplicationsPage() {
                 className="mt-3 inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
                 {hostActionId === candidate.id ? <Loader2 size={15} className="animate-spin" /> : <BadgeCheck size={15} />}
-                اعتماد المضيفة وتسجيل السبب
+                توثيق الحساب وتسجيل السبب
               </button>
             </div>
           )}
@@ -389,14 +389,14 @@ export function HostApplicationsPage() {
         <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-dark-surface">
           <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
             <div>
-              <h2 className="font-semibold text-white">المضيفات المعتمدات</h2>
-              <p className="mt-1 text-xs text-gray-500">إيقاف المضيفة لا يحذف الحساب أو سجلاته.</p>
+              <h2 className="font-semibold text-white">الحسابات الموثقة</h2>
+              <p className="mt-1 text-xs text-gray-500">إيقاف التوثيق لا يحذف الحساب أو سجلاته.</p>
             </div>
             <button type="button" onClick={() => void loadHosts()} className="text-xs text-wattar-300 hover:text-white">تحديث</button>
           </div>
           <div className="max-h-80 divide-y divide-white/[0.06] overflow-y-auto">
             {hosts.length === 0 ? (
-              <p className="p-8 text-center text-sm text-gray-500">لا توجد مضيفات معتمدات.</p>
+              <p className="p-8 text-center text-sm text-gray-500">لا توجد حسابات موثقة.</p>
             ) : hosts.map((host) => (
               <div key={host.id} className="flex items-center justify-between gap-3 px-5 py-3">
                 <div>
@@ -425,9 +425,9 @@ export function HostApplicationsPage() {
                         : 'activate';
                     const reason = window.prompt(
                       action === 'suspend'
-                        ? 'سبب إيقاف المضيفة:'
+                        ? 'سبب إيقاف التوثيق:'
                         : action === 'assign'
-                          ? 'سبب اعتماد المضيفة بعد اكتمال التحقق:'
+                          ? 'سبب اعتماد التوثيق بعد اكتمال التحقق:'
                           : 'سبب إعادة التفعيل:',
                     );
                     if (reason?.trim()) void manageHost(host.id, action, reason);
@@ -474,7 +474,7 @@ export function HostApplicationsPage() {
                     className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm text-white disabled:opacity-50"
                   >
                     {processingId === application.id ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                    اعتماد المضيفة
+                    توثيق الحساب
                   </button>
                   <button
                     type="button"

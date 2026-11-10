@@ -29,7 +29,20 @@ interface PrivateMessage {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
+  charged_coins: number;
+  host_commission_diamonds: number;
   pending?: boolean;
+}
+
+interface PrivateMessageQuote {
+  free_limit: number;
+  free_used: number;
+  free_remaining: number | null;
+  price_coin: number;
+  host_commission_percent: number;
+  recipient_is_host: boolean;
+  sender_is_host: boolean;
+  is_friend: boolean;
 }
 
 const socialPalette = {
@@ -58,21 +71,26 @@ export default function PrivateMessageScreen() {
   const [partnerUserId, setPartnerUserId] = useState<string | null>(null);
   const [partnerAvatar, setPartnerAvatar] = useState<string | null>(null);
   const [partnerOnline, setPartnerOnline] = useState(false);
+  const [quote, setQuote] = useState<PrivateMessageQuote | null>(null);
   const listRef = useRef<FlatList<PrivateMessage>>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryMessageRef = useRef<{ body: string; key: string } | null>(null);
 
   const loadMessages = useCallback(async (showLoader = false) => {
     if (!id) return;
     if (showLoader) setLoading(true);
     setLoadError(null);
     try {
-      const [messageResult, conversationsResult] = await Promise.all([
+      const [messageResult, conversationsResult, quoteResult] = await Promise.all([
         supabase.rpc('list_private_messages', { p_conversation_id: id }),
         supabase.rpc('list_my_private_conversations'),
+        supabase.rpc('get_private_message_quote', { p_conversation_id: id }),
       ]);
       if (messageResult.error) throw messageResult.error;
       if (conversationsResult.error) throw conversationsResult.error;
+      if (quoteResult.error) throw quoteResult.error;
+      setQuote(quoteResult.data as PrivateMessageQuote);
       const conversation = (conversationsResult.data ?? []).find(
         (item: { conversation_id: string }) => item.conversation_id === id,
       );
@@ -128,6 +146,9 @@ export default function PrivateMessageScreen() {
 
   const updateTyping = (value: string) => {
     setMessage(value);
+    if (retryMessageRef.current && retryMessageRef.current.body !== value.trim()) {
+      retryMessageRef.current = null;
+    }
     const channel = channelRef.current;
     if (!channel || !user?.id) return;
     void channel.send({
@@ -142,7 +163,34 @@ export default function PrivateMessageScreen() {
   const send = async () => {
     const body = message.trim();
     if (!body || sending || !id || !user?.id) return;
+    if (!quote) {
+      Alert.alert('تعذر التحقق من السعر', 'حدّث المحادثة قبل إرسال الرسالة.');
+      return;
+    }
+    let confirmedPrice = 0;
+    if (quote.price_coin > 0) {
+      const confirmed = await new Promise<boolean>((resolve) => {
+        const commissionText = quote.recipient_is_host
+          ? `\nستحصل المضيفة على ${Math.floor(quote.price_coin * quote.host_commission_percent / 100).toLocaleString()} Diamond.`
+          : '';
+        Alert.alert(
+          'رسالة مدفوعة',
+          `سيُخصم ${quote.price_coin.toLocaleString()} Coin من رصيدك.${commissionText}`,
+          [
+            { text: 'إلغاء', style: 'cancel', onPress: () => resolve(false) },
+            { text: 'إرسال', onPress: () => resolve(true) },
+          ],
+          { cancelable: true, onDismiss: () => resolve(false) },
+        );
+      });
+      if (!confirmed) return;
+      confirmedPrice = quote.price_coin;
+    }
     const temporaryId = `pending-${Date.now()}`;
+    const idempotencyKey = retryMessageRef.current?.body === body
+      ? retryMessageRef.current.key
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    retryMessageRef.current = { body, key: idempotencyKey };
     setMessage('');
     setSending(true);
     setMessages((items) => [...items, {
@@ -154,25 +202,33 @@ export default function PrivateMessageScreen() {
       username: profile?.username ?? '',
       display_name: profile?.display_name ?? null,
       avatar_url: profile?.avatar_url ?? null,
+      charged_coins: 0,
+      host_commission_diamonds: 0,
       pending: true,
     }]);
     try {
       const { data, error } = await supabase.rpc('send_private_message', {
         p_conversation_id: id,
         p_body: body,
+        p_idempotency_key: idempotencyKey,
+        p_confirmed_price_coin: confirmedPrice,
       });
       if (error) throw error;
-      if (typeof data === 'string') {
-        void notifySocialEvent('private_message', data).catch((notificationError: unknown) => {
+      retryMessageRef.current = null;
+      const result = data as { message_id?: string; charged_coins?: number };
+      if (result?.message_id) {
+        void notifySocialEvent('private_message', result.message_id).catch((notificationError: unknown) => {
           console.warn('[Wattar] Private message push failed:', notificationError);
           Alert.alert('تعذر إرسال الإشعار', notificationError instanceof Error
             ? notificationError.message
             : 'أُرسلت الرسالة، لكن تعذر إرسال الإشعار.');
         });
       }
+      await loadMessages();
     } catch (error: unknown) {
       setMessages((items) => items.filter((item) => item.message_id !== temporaryId));
       setMessage(body);
+      await loadMessages();
       Alert.alert('تعذر إرسال الرسالة', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     } finally {
       setSending(false);
@@ -204,7 +260,7 @@ export default function PrivateMessageScreen() {
         <View style={styles.headerCopy}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.subtitle}>
-            {partnerTyping ? 'يكتب الآن...' : partnerOnline ? 'متصل الآن' : 'محادثة خاصة بين الأصدقاء'}
+            {partnerTyping ? 'يكتب الآن...' : partnerOnline ? 'متصل الآن' : quote?.is_friend ? 'محادثة الأصدقاء مجانية' : 'محادثة خاصة'}
           </Text>
         </View>
         </TouchableOpacity>
@@ -240,6 +296,14 @@ export default function PrivateMessageScreen() {
                 <View style={[styles.messageBubble, ownMessage ? styles.ownBubble : styles.otherBubble]}>
                   {!ownMessage && <Text style={styles.senderName}>{item.display_name || item.username}</Text>}
                   <Text style={styles.messageText}>{item.body}</Text>
+                  {item.charged_coins > 0 && (
+                    <Text style={[styles.billingNote, ownMessage && styles.ownMessageTime]}>
+                      {item.charged_coins.toLocaleString()} Coin
+                      {item.host_commission_diamonds > 0
+                        ? ` · ${item.host_commission_diamonds.toLocaleString()} Diamond للمضيفة`
+                        : ''}
+                    </Text>
+                  )}
                   <Text style={[styles.messageTime, ownMessage && styles.ownMessageTime]}>
                     {new Date(item.created_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}
                     {ownMessage && item.pending ? ' · جارٍ الإرسال' : ownMessage && item.read_at ? ' · تمت القراءة' : ownMessage ? ' · أُرسلت' : ''}
@@ -279,6 +343,17 @@ export default function PrivateMessageScreen() {
           </View>
         </View>
       )}
+      {quote && (
+        <View style={styles.pricingNotice}>
+          <Text style={styles.pricingText}>
+            {quote.is_friend || quote.sender_is_host
+              ? 'الرسائل مجانية'
+              : quote.free_remaining !== null && quote.free_remaining > 0
+                ? `متبقي ${quote.free_remaining} من الرسائل المجانية في هذه المحادثة`
+                : `سعر الرسالة ${quote.price_coin.toLocaleString()} Coin${quote.recipient_is_host ? ` · حصة المضيفة ${quote.host_commission_percent}% Diamond` : ''}`}
+          </Text>
+        </View>
+      )}
       <View style={styles.composer}>
         <TouchableOpacity
           style={[styles.emojiToggle, showEmojiPicker && styles.emojiToggleActive]}
@@ -297,12 +372,12 @@ export default function PrivateMessageScreen() {
           placeholderTextColor={socialPalette.muted}
           multiline
           maxLength={2000}
-          editable={!sending}
+          editable={!sending && quote !== null}
         />
         <TouchableOpacity
           style={[styles.sendButton, (!message.trim() || sending) && styles.sendDisabled]}
           onPress={send}
-          disabled={!message.trim() || sending}
+          disabled={!message.trim() || sending || quote === null}
           accessibilityRole="button"
           accessibilityLabel="إرسال الرسالة"
         >
@@ -336,6 +411,7 @@ const styles = StyleSheet.create({
   otherBubble: { alignSelf: 'flex-start', backgroundColor: socialPalette.surface, borderColor: socialPalette.border, borderBottomLeftRadius: 5 },
   senderName: { color: socialPalette.gold, fontSize: 11, fontWeight: '700', marginBottom: 4 },
   messageText: { color: socialPalette.text, fontSize: 15, lineHeight: 22, textAlign: 'right' },
+  billingNote: { color: socialPalette.gold, fontSize: 10, textAlign: 'right', marginTop: 5 },
   messageTime: { color: socialPalette.muted, fontSize: 10, textAlign: 'right', marginTop: 6 },
   ownMessageTime: { color: 'rgba(255,255,255,0.75)' },
   emptyText: { color: socialPalette.muted, textAlign: 'center', marginVertical: 32, fontSize: 13 },
@@ -347,6 +423,8 @@ const styles = StyleSheet.create({
   retryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   refreshWarning: { color: '#FFC777', fontSize: 12, lineHeight: 18, marginBottom: 12, textAlign: 'center' },
   composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 9, paddingHorizontal: 12, paddingVertical: 11, borderTopWidth: 1, borderTopColor: socialPalette.border, backgroundColor: socialPalette.background },
+  pricingNotice: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: socialPalette.surface, borderTopWidth: 1, borderTopColor: socialPalette.border },
+  pricingText: { color: socialPalette.gold, fontSize: 11, textAlign: 'right' },
   input: { flex: 1, minHeight: 48, maxHeight: 120, color: socialPalette.text, fontSize: 14, paddingHorizontal: 14, paddingVertical: 11, textAlign: 'right', borderWidth: 1, borderColor: socialPalette.border, borderRadius: 16, backgroundColor: socialPalette.surface },
   sendButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: socialPalette.primaryDeep },
   sendDisabled: { opacity: 0.55 },

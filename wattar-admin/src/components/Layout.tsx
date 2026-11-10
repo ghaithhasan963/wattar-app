@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  MessageCircle,
   Mic,
   Settings,
   ShieldAlert,
@@ -43,7 +44,8 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
       { to: '/users', label: 'المستخدمون', icon: Users },
       { to: '/reports', label: 'بلاغات المستخدمين', icon: ShieldAlert, roles: ['admin', 'super_admin'] },
       { to: '/agents', label: 'الوكلاء', icon: UserCheck, roles: ['admin', 'super_admin'] },
-      { to: '/hosts', label: 'طلبات المضيفات', icon: Mic, roles: ['admin', 'super_admin'] },
+      { to: '/hosts', label: 'طلبات التوثيق', icon: Mic, roles: ['admin', 'super_admin'] },
+      { to: '/messaging', label: 'الرسائل وبرنامج المضيفات', icon: MessageCircle, roles: ['admin', 'super_admin'] },
     ],
   },
   {

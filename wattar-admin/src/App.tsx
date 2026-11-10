@@ -27,6 +27,7 @@ import { UserReportsPage } from '@/pages/UserReportsPage';
 import { AgentDashboardPage } from '@/pages/AgentDashboardPage';
 import { HostApplicationsPage } from '@/pages/HostApplicationsPage';
 import { MembershipsPage } from '@/pages/MembershipsPage';
+import { MessagingPage } from '@/pages/MessagingPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -219,6 +220,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <MembershipsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/messaging"
+            element={
+              <ProtectedRoute>
+                <MessagingPage />
               </ProtectedRoute>
             }
           />

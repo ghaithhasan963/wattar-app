@@ -125,6 +125,32 @@ export default function RootLayout() {
   }, [session?.user.id]);
 
   useEffect(() => {
+    if (!initialized || !session) return;
+    let active = true;
+    const requestHostIntroductions = () => {
+      if (!active || AppState.currentState !== 'active') return;
+      void supabase.rpc('send_host_intro_batch', { p_limit: 1 }).then(
+        ({ error }) => {
+          if (error && active) console.warn('[Wattar] Scheduled host introductions failed:', error.message);
+        },
+        (error: unknown) => {
+          if (active) console.warn('[Wattar] Scheduled host introductions failed:', error);
+        },
+      );
+    };
+    requestHostIntroductions();
+    const interval = setInterval(requestHostIntroductions, 6 * 60 * 60 * 1000);
+    const appStateSubscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') requestHostIntroductions();
+    });
+    return () => {
+      active = false;
+      clearInterval(interval);
+      appStateSubscription.remove();
+    };
+  }, [initialized, session?.user.id]);
+
+  useEffect(() => {
     if ((initialized && hydrated) || reduceMotion) return;
     const animation = Animated.loop(
       Animated.sequence([
