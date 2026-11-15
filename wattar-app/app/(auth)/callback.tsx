@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
+import { saveSessionMark } from '@/lib/recovery';
 
 export default function AuthCallbackScreen() {
   const router = useRouter();
@@ -30,6 +32,10 @@ export default function AuthCallbackScreen() {
       if (!profile) throw new Error('تم تسجيل الدخول، لكن تعذر تحميل ملف الحساب.');
       if (active) {
         if (flow === 'recovery') {
+          // علامة جلسة استعادة: شاشة إعادة التعيين ترفض العمل بدونها.
+          if (data.user) {
+            await saveSessionMark(AsyncStorage, { userId: data.user.id, startedAt: Date.now() });
+          }
           router.replace('/recover-password');
           return;
         }

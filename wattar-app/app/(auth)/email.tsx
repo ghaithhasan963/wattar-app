@@ -14,10 +14,13 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChevronRight, Eye, EyeOff, Lock, Mail, ShieldCheck, Sparkles } from 'lucide-react-native';
 import { useAuthStore } from '@/store/auth';
 import { colors } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
+import { describeAuthError, describeRecoveryRequestError, RECOVERY_EMAIL_SENT_MESSAGE } from '@/lib/authMessages';
+import { checkRecoveryAllowance, describeRecoveryWait, readAttempts, recordAttempt } from '@/lib/recovery';
 
 type EmailMode = 'sign-in' | 'sign-up';
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -83,7 +86,7 @@ export default function EmailAuthScreen() {
       }
       router.replace('/(auth)/complete-profile');
     } catch (submitError: unknown) {
-      setError(submitError instanceof Error ? submitError.message : 'تعذر إكمال العملية. حاول مرة أخرى.');
+      setError(describeAuthError(submitError));
     }
   };
 
@@ -101,16 +104,35 @@ export default function EmailAuthScreen() {
     }
 
     setError(null);
+
+    // حدّ محاولات محلي (يُكمله حدّ Supabase على الخادم).
+    const requestedAt = Date.now();
+    try {
+      const allowance = checkRecoveryAllowance(await readAttempts(AsyncStorage, requestedAt), requestedAt);
+      if (!allowance.allowed) {
+        setError(describeRecoveryWait(allowance.reason ?? 'cooldown', allowance.retryAfterMs));
+        return;
+      }
+    } catch {
+      // تعذّر قراءة التخزين المحلي: نكمل، والخادم يفرض حدّه.
+    }
+
     setResetSending(true);
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
         redirectTo: Linking.createURL('callback', { queryParams: { flow: 'recovery' } }),
       });
       if (resetError) throw resetError;
-      Alert.alert('تحقق من بريدك', 'إذا كان البريد مسجلًا، ستصلك رسالة لإعادة تعيين كلمة المرور.');
+      // رسالة محايدة: لا تكشف إن كان البريد مسجّلاً.
+      Alert.alert('تحقق من بريدك', RECOVERY_EMAIL_SENT_MESSAGE);
     } catch (resetError: unknown) {
-      setError(resetError instanceof Error ? resetError.message : 'تعذر إرسال رابط إعادة التعيين.');
+      setError(describeRecoveryRequestError(resetError));
     } finally {
+      try {
+        await recordAttempt(AsyncStorage, Date.now());
+      } catch {
+        // لا نُفشل الطلب بسبب التخزين المحلي.
+      }
       setResetSending(false);
     }
   };
