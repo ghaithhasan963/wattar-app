@@ -2,14 +2,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Loader2, MessageCircle, RefreshCw, Search, ShieldCheck, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-
-interface MessagingSettings {
-  free_message_limit: number;
-  price_coin: number;
-  host_commission_percent: number;
-  host_intro_daily_limit: number;
-  host_outreach_enabled: boolean;
-}
+import { validateMessagingSettings, type MessagingSettings } from '@/lib/messagingSettings';
 
 interface HostProgramMember {
   user_id: string;
@@ -124,18 +117,9 @@ export function MessagingPage() {
 
   const saveSettings = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const values = [
-      settings.free_message_limit,
-      settings.price_coin,
-      settings.host_commission_percent,
-      settings.host_intro_daily_limit,
-    ];
-    if (values.some((value) => !Number.isSafeInteger(value))
-      || settings.free_message_limit < 0 || settings.free_message_limit > 100
-      || settings.price_coin < 1 || settings.price_coin > 1_000_000
-      || settings.host_commission_percent < 0 || settings.host_commission_percent > 100
-      || settings.host_intro_daily_limit < 0 || settings.host_intro_daily_limit > 10) {
-      toast.error('تحقق من حدود السعر والرسائل المجانية ونسبة المضيفة.');
+    const rangeError = validateMessagingSettings(settings);
+    if (rangeError) {
+      toast.error(rangeError);
       return;
     }
 

@@ -23,6 +23,7 @@ import {
   Trash2,
   UserCheck,
   UserPlus,
+  UserRoundX,
   Users,
 } from 'lucide-react-native';
 import { supabase, uploadPrivateMedia } from '@/lib/supabase';
@@ -216,6 +217,36 @@ export default function UserProfileScreen() {
     }
   };
 
+  const blockUser = () => {
+    if (!profile || busy) return;
+    Alert.alert(
+      'حظر المستخدم؟',
+      'لن تتمكنا من مراسلة أو متابعة بعضكما، وستُلغى طلبات الصداقة المعلّقة والدعوات.',
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        {
+          text: 'حظر',
+          style: 'destructive',
+          onPress: async () => {
+            setBusy(true);
+            try {
+              const { error: blockError } = await supabase.rpc('block_wattar_user', {
+                p_user_id: profile.user_id,
+              });
+              if (blockError) throw blockError;
+              Alert.alert('تم الحظر', 'لن يظهر لك هذا المستخدم بعد الآن. يمكنك إلغاء الحظر من الإعدادات.');
+              router.back();
+            } catch (caught: unknown) {
+              Alert.alert('تعذر حظر المستخدم', caught instanceof Error ? caught.message : 'حاول مرة أخرى.');
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const createPost = async () => {
     if (!user?.id || uploading) return;
     setUploading(true);
@@ -337,7 +368,7 @@ export default function UserProfileScreen() {
             {profile.is_private ? (
               <View style={styles.privateNotice}>
                 <LockKeyhole size={17} color={palette.gold} />
-                <Text style={styles.privateText}>هذا الملف للأصدقاء فقط</Text>
+                <Text style={styles.privateText}>هذا الملف مقيّد الخصوصية</Text>
               </View>
             ) : (
               <>
@@ -365,13 +396,24 @@ export default function UserProfileScreen() {
                 )}
               </>
             )}
+            {!isOwnProfile && (
+              <TouchableOpacity
+                style={styles.blockButton}
+                onPress={blockUser}
+                disabled={busy}
+                accessibilityLabel="حظر المستخدم"
+              >
+                <UserRoundX size={15} color={palette.danger} />
+                <Text style={styles.blockButtonText}>حظر المستخدم</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {profile.is_private ? (
             <View style={styles.emptyCard}>
               <LockKeyhole size={27} color={palette.gold} />
-              <Text style={styles.emptyTitle}>المنشورات خاصة</Text>
-              <Text style={styles.mutedText}>أرسل طلب صداقة ليتمكن صاحب الملف من مشاركة منشوراته معك.</Text>
+              <Text style={styles.emptyTitle}>الصور غير متاحة</Text>
+              <Text style={styles.mutedText}>قد تكون متاحة للأصدقاء فقط. أرسل طلب صداقة إن كان صاحب الملف يعرفك.</Text>
               {!profile.is_friend && !isOwnProfile && (
                 <TouchableOpacity style={styles.primaryButton} onPress={() => void sendFriendRequest()} disabled={busy}>
                   <UserPlus size={16} color={palette.text} />
@@ -514,6 +556,19 @@ const styles = StyleSheet.create({
     backgroundColor: palette.elevated,
   },
   secondaryButtonText: { color: palette.text, fontSize: 13, fontWeight: '700' },
+  blockButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 16,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    borderRadius: 11,
+    borderWidth: 1,
+    borderColor: '#FF718E55',
+    backgroundColor: '#FF718E14',
+  },
+  blockButtonText: { color: palette.danger, fontSize: 12, fontWeight: '700' },
   sectionTitle: { color: palette.text, fontSize: 16, fontWeight: '800', textAlign: 'right', marginTop: 22, marginBottom: 12 },
   createCard: { marginTop: 18, padding: 15, borderRadius: 18, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
   captionInput: {

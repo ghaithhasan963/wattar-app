@@ -136,6 +136,43 @@ Deno.serve(async (req: Request) => {
       if (!invitation) throw new HttpError(403, 'PRIVATE_ROOM', 'الغرفة خاصة');
     }
 
+    // M1.7 + M1.6: الحظر وخصوصية الغرف تُفحص قبل إصدار التوكن،
+    // لأن التوكن يُصدر مباشرة ولا يمرّ إلزاماً بدالة room-join.
+    if (room.owner_id !== ctx.user_id) {
+      const [
+        { data: blockedByOwner, error: blockedByOwnerErr },
+        { data: ownerBlockedByMe, error: ownerBlockedByMeErr },
+      ] = await Promise.all([
+        supabase
+          .from('user_blocks')
+          .select('blocker_id')
+          .eq('blocker_id', room.owner_id)
+          .eq('blocked_id', ctx.user_id)
+          .limit(1),
+        supabase
+          .from('user_blocks')
+          .select('blocked_id')
+          .eq('blocker_id', ctx.user_id)
+          .eq('blocked_id', room.owner_id)
+          .limit(1),
+      ]);
+      if (blockedByOwnerErr) throw blockedByOwnerErr;
+      if (ownerBlockedByMeErr) throw ownerBlockedByMeErr;
+      if ((blockedByOwner?.length ?? 0) > 0 || (ownerBlockedByMe?.length ?? 0) > 0) {
+        throw new HttpError(403, 'USER_BLOCKED', 'لا يمكنك دخول غرفة هذا المستخدم');
+      }
+
+      const { data: canEnter, error: privacyErr } = await supabase.rpc('check_privacy_permission', {
+        p_target_user_id: room.owner_id,
+        p_action: 'enter_rooms',
+        p_actor_user_id: ctx.user_id,
+      });
+      if (privacyErr) throw privacyErr;
+      if (canEnter !== true) {
+        throw new HttpError(403, 'ROOM_PRIVACY_RESTRICTED', 'صاحب الغرفة لا يسمح لك بدخول غرفته');
+      }
+    }
+
     const roomName = `wattar-room-${room.id}`;
     const identity = ctx.user_id;
 

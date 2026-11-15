@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Bell, ChevronLeft, Globe, HelpCircle, KeyRound, LogOut, MessageCircle, Shield, User, Sparkles, Trash2 } from 'lucide-react-native';
+import { Bell, ChevronLeft, Globe, HelpCircle, KeyRound, LogOut, MessageCircle, Shield, Smartphone, Sparkles, Trash2, User } from 'lucide-react-native';
 import { useAuthStore } from '@/store/auth';
 import { ChatTextSize, usePreferencesStore } from '@/store/preferences';
 import { colors } from '@/lib/theme';
@@ -224,15 +224,21 @@ export default function SettingsScreen() {
       <View style={styles.group}>
         <SettingRow
           icon={Shield}
-          label="الخصوصية والأمان"
-          value="نصائح"
-          onPress={() => Alert.alert('الخصوصية والأمان', 'لا تشارك كلمة المرور أو رمز التحقق مع أي شخص.')}
+          label="إعدادات الخصوصية"
+          value="إدارة"
+          onPress={() => router.push('/privacy-settings')}
         />
         <SettingRow
           icon={KeyRound}
           label="كلمة المرور"
           value="تغيير"
           onPress={() => router.push('/password')}
+        />
+        <SettingRow
+          icon={Smartphone}
+          label="الأجهزة والجلسات"
+          value="إدارة"
+          onPress={() => router.push('/sessions')}
         />
         <SettingRow
           icon={Shield}

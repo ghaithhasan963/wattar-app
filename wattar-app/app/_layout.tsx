@@ -212,6 +212,8 @@ export default function RootLayout() {
         <Stack.Screen name="game" />
         <Stack.Screen name="host-application" />
         <Stack.Screen name="recover-password" />
+        <Stack.Screen name="sessions" />
+        <Stack.Screen name="privacy-settings" />
       </Stack>
     </>
   );

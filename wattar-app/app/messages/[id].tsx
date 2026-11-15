@@ -17,6 +17,14 @@ import { ChevronRight, Send, Smile } from 'lucide-react-native';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { notifySocialEvent } from '@/lib/notifications';
+import {
+  createIdempotencyKey,
+  getConversationSubtitle,
+  getPriceConfirmationText,
+  getPricingNotice,
+  requiresPriceConfirmation,
+  type MessageQuote as PrivateMessageQuote,
+} from '@/lib/messagePricing';
 import { useAuthStore } from '@/store/auth';
 import { colors } from '@/lib/theme';
 
@@ -32,17 +40,6 @@ interface PrivateMessage {
   charged_coins: number;
   host_commission_diamonds: number;
   pending?: boolean;
-}
-
-interface PrivateMessageQuote {
-  free_limit: number;
-  free_used: number;
-  free_remaining: number | null;
-  price_coin: number;
-  host_commission_percent: number;
-  recipient_is_host: boolean;
-  sender_is_host: boolean;
-  is_friend: boolean;
 }
 
 const socialPalette = {
@@ -168,14 +165,11 @@ export default function PrivateMessageScreen() {
       return;
     }
     let confirmedPrice = 0;
-    if (quote.price_coin > 0) {
+    if (requiresPriceConfirmation(quote)) {
       const confirmed = await new Promise<boolean>((resolve) => {
-        const commissionText = quote.recipient_is_host
-          ? `\nستحصل المضيفة على ${Math.floor(quote.price_coin * quote.host_commission_percent / 100).toLocaleString()} Diamond.`
-          : '';
         Alert.alert(
           'رسالة مدفوعة',
-          `سيُخصم ${quote.price_coin.toLocaleString()} Coin من رصيدك.${commissionText}`,
+          getPriceConfirmationText(quote),
           [
             { text: 'إلغاء', style: 'cancel', onPress: () => resolve(false) },
             { text: 'إرسال', onPress: () => resolve(true) },
@@ -189,7 +183,7 @@ export default function PrivateMessageScreen() {
     const temporaryId = `pending-${Date.now()}`;
     const idempotencyKey = retryMessageRef.current?.body === body
       ? retryMessageRef.current.key
-      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+      : createIdempotencyKey();
     retryMessageRef.current = { body, key: idempotencyKey };
     setMessage('');
     setSending(true);
@@ -260,7 +254,7 @@ export default function PrivateMessageScreen() {
         <View style={styles.headerCopy}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.subtitle}>
-            {partnerTyping ? 'يكتب الآن...' : partnerOnline ? 'متصل الآن' : quote?.is_friend ? 'محادثة الأصدقاء مجانية' : 'محادثة خاصة'}
+            {partnerTyping ? 'يكتب الآن...' : partnerOnline ? 'متصل الآن' : getConversationSubtitle(quote)}
           </Text>
         </View>
         </TouchableOpacity>
@@ -346,11 +340,7 @@ export default function PrivateMessageScreen() {
       {quote && (
         <View style={styles.pricingNotice}>
           <Text style={styles.pricingText}>
-            {quote.is_friend || quote.sender_is_host
-              ? 'الرسائل مجانية'
-              : quote.free_remaining !== null && quote.free_remaining > 0
-                ? `متبقي ${quote.free_remaining} من الرسائل المجانية في هذه المحادثة`
-                : `سعر الرسالة ${quote.price_coin.toLocaleString()} Coin${quote.recipient_is_host ? ` · حصة المضيفة ${quote.host_commission_percent}% Diamond` : ''}`}
+            {getPricingNotice(quote)}
           </Text>
         </View>
       )}

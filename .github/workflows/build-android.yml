@@ -4,7 +4,9 @@ on:
   push:
     branches:
       - master
-      - preview/wattar-finish-2026-11-10
+  pull_request:
+    branches:
+      - master
   workflow_dispatch:
 
 permissions:
@@ -15,7 +17,51 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Pull requests get type checks only. No APK is built, so review does not
+  # consume Android build minutes.
+  verify:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: |
+            wattar-app/package-lock.json
+            wattar-admin/package-lock.json
+
+      - name: Install app dependencies
+        working-directory: wattar-app
+        run: npm ci --no-audit --no-fund
+
+      - name: Type-check app
+        working-directory: wattar-app
+        run: npx tsc --noEmit
+
+      - name: Run unit tests
+        working-directory: wattar-app
+        run: npm test
+
+      - name: Install admin dependencies
+        working-directory: wattar-admin
+        run: npm ci --no-audit --no-fund
+
+      - name: Type-check admin
+        working-directory: wattar-admin
+        run: npx tsc --noEmit
+
+      - name: Run admin unit tests
+        working-directory: wattar-admin
+        run: npm test
+
   build:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     defaults:
@@ -30,7 +76,9 @@ jobs:
         with:
           node-version: 22.22.0
           cache: npm
-          cache-dependency-path: wattar-app/package-lock.json
+          cache-dependency-path: |
+            wattar-app/package-lock.json
+            wattar-admin/package-lock.json
 
       - name: Set up Java
         uses: actions/setup-java@v6
@@ -81,11 +129,26 @@ jobs:
           NODE
           printf '%s' "$GOOGLE_SERVICES_JSON" > google-services.json
 
-      - name: Type-check
+      - name: Type-check app
         env:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
         run: npx tsc --noEmit
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Install admin dependencies
+        working-directory: wattar-admin
+        run: npm ci --no-audit --no-fund
+
+      - name: Type-check admin
+        working-directory: wattar-admin
+        run: npx tsc --noEmit
+
+      - name: Run admin unit tests
+        working-directory: wattar-admin
+        run: npm test
 
       - name: Generate Android project
         env:

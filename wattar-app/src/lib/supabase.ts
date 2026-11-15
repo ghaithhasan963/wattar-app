@@ -5,6 +5,13 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
+import {
+  DEFAULT_REQUEST_TIMEOUT_MS,
+  createNetworkError,
+  runWithTimeout,
+  statusToErrorKind,
+  toNetworkError,
+} from './network';
 
 // يُقرأ من متغيرات البيئة (.env)
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? 'https://YOUR_PROJECT.supabase.co';
@@ -27,32 +34,53 @@ export const supabase: SupabaseClient = createClient(
   },
 );
 
-// استدعاء Edge Function
+// استدعاء Edge Function — بمهلة وإلغاء وتصنيف أخطاء (M1.3)
 export async function callFunction<T = unknown>(
   name: string,
   body: unknown,
   idempotencyKey?: string,
+  options: { timeoutMs?: number } = {},
 ): Promise<T> {
-  const { data: session } = await supabase.auth.getSession();
-  const token = session.session?.access_token;
+  const timeoutMs = options.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
 
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : {}),
-    },
-    body: JSON.stringify(body),
-  });
+  try {
+    const { data: session } = await supabase.auth.getSession();
+    const token = session.session?.access_token;
 
-  const data = await response.json();
+    const response = await runWithTimeout(timeoutMs, (signal) =>
+      fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : {}),
+        },
+        body: JSON.stringify(body),
+        signal,
+      }),
+    );
 
-  if (!response.ok) {
-    throw new Error(data.message || data.error || 'فشل الطلب');
+    let data: unknown = null;
+    try {
+      data = await response.json();
+    } catch {
+      throw createNetworkError('server', { message: 'تعذّرت قراءة رد الخادم.' });
+    }
+
+    if (!response.ok) {
+      const payload = data as { message?: string; error?: string } | null;
+      const serverMessage = payload?.message ?? payload?.error;
+      throw createNetworkError(statusToErrorKind(response.status), {
+        message: serverMessage || undefined,
+        status: response.status,
+        cause: data,
+      });
+    }
+
+    return data as T;
+  } catch (error) {
+    throw toNetworkError(error);
   }
-
-  return data as T;
 }
 
 // رفع صورة إلى Supabase Storage (يعمل مع React Native عبر base64)

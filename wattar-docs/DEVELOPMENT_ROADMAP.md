@@ -298,3 +298,55 @@
 - [ ] بناء القصص؛ التصميم الأولي المعتمد: صورة أو فيديو قصير، انتهاء العرض بعد 24 ساعة، الأصدقاء افتراضيًا مع خيار عام، مشاهدات، رد خاص، إبلاغ وحظر.
 - [ ] تنفيذ مراحل الغرف، إجراءات الحساب/كلمة المرور/الحذف، إثبات العمر 18+، والتوثيق منخفض التكلفة بعد مراجعة السياسات والاختبارات.
 - [x] بدء تطبيق الهوية البنفسجية/الذهبية الداكنة على ألوان التطبيق العامة، الشاشة الرئيسية وشريط التبويب، وإضافة صورة أيقونة Wattar إلى إعداد Android وiOS.
+
+### 2026-11-14 — الدفع مقابل الرسائل الخاصة
+
+- [x] أكد المدير تطبيق `patch_paid_messaging_wallet_types.sql` (قيمتا `message_sent` و`message_commission`) والنتيجة: `Success. No rows returned`.
+- [x] أخذ المدير نسخة احتياطية كاملة قبل التعديل، وفوّض المهندس بالتعديل المباشر على المشروع.
+- [x] إضافة المتابعة المتبادلة إلى سياسة الرسائل: `patch_paid_messaging_followers.sql`.
+- [x] واجهة المحادثة تعرض «محادثة مجانية بلا حد» للأصدقاء والمتابعين المتبادلين والمضيف (`app/messages/[id].tsx`)، واجتاز `npx tsc --noEmit`.
+- [x] أول اختبارات فعلية: ١٩ اختباراً (١٤ للتطبيق · ٥ للوحة) تمر محلياً، ومنطق التسعير والتحقق انتقل إلى ملفات نقية قابلة للاختبار، ومربوطة بـCI.
+- [x] تطبيق `patch_paid_messaging.sql` (2026-11-14 عبر `supabase db query --remote`) ثم `patch_paid_messaging_followers.sql`، ونجاح `diagnostics/02_paid_messaging_verify.sql` (الدليل: `PLAN_APPLY_PAID_MESSAGING.md` §6٫2).
+- [ ] اختبار دورة المحادثة الكاملة من حسابين (١٠ خطوات) بعد إعادة بناء APK.
+
+### 2026-11-14 — M1.3 شبكة آمنة (تطبيق)
+
+- [x] `wattar-app/src/lib/network.ts`: مهلة ٢٠ ثانية لكل طلب، `AbortController`، وتصنيف الأخطاء (مهلة/إلغاء/شبكة/خادم/صلاحية) برسائل عربية موحّدة.
+- [x] `callFunction` في `src/lib/supabase.ts` يستخدم الطبقة الجديدة؛ بقي التوقيع متوافقاً مع كل المنادين (١٤ موضعاً).
+- [x] ١٤ اختباراً جديداً للطبقة (`network.test.ts`) → المجموع ٢٨ اختباراً ناجحاً، و`npx tsc --noEmit` نظيف.
+- [ ] M1.5 الأجهزة والجلسات: متوقّف على نسخة احتياطية لقاعدة الإنتاج (الجدول `user_sessions` موجود وفارغ، ولا توجد دوال تعرض/تُلغي الجلسات).
+
+### 2026-11-14 — M1.5 الأجهزة والجلسات
+
+- [x] قرار المدير: الحسابات تجريبية، فلا نسخة احتياطية مطلوبة قبل هذا الـmigration (إضافات فقط).
+- [x] `patch_session_management.sql` مطبّق على الإنتاج: عمود `user_sessions.device_id` + فهرس تفرد + `record_my_session_started(text,jsonb,text)` (يحفظ الجهاز فعلاً) + `list_my_sessions()` + `revoke_all_my_sessions(text)`؛ وحُذفت النسخة القديمة بلا وسائط.
+- [x] `wattar-app/src/lib/deviceId.ts` + `device.ts`: معرّف جهاز ثابت لكل تثبيت.
+- [x] `wattar-app/src/lib/sessions.ts`: تحويل الصفوف والتنسيق العربي (منصة/إصدار/IP/آخر استخدام نسبي) — ١١ اختباراً.
+- [x] شاشة `app/sessions.tsx` + صف في الإعدادات + تسجيل الجهاز عند كل دخول.
+- [x] الرفع: `npx tsc --noEmit` نظيف، و٤٣ اختباراً ناجحاً (الجهاز ٤ + الجلسات ١١ + الشبكة ١٤ + التسعير ١٤).
+- [ ] اختبار عملي: تسجيل الدخول من جهازين ثم «إنهاء جميع الجلسات الأخرى».
+- [ ] ملاحظة منصّية: GoTrue لا يوفّر إنهاء جهاز مفرد من طرف العميل، فالشاشة تعرض «إنهاء جميع الجلسات الأخرى» (فعلي) بدل زر لكل جهاز.
+
+### 2026-11-15 — M1.6 الخصوصية الست
+
+- [x] `patch_privacy_settings.sql` (#38) مطبّق: ٦ أعمدة `privacy_can_*` على `users` (public/friends/none) + `get_my_privacy_settings` / `update_my_privacy_settings` / `check_privacy_permission` + تحديث `follow_wattar_user` و `send_friend_request` و `create_private_conversation` لفحص الخصوصية.
+- [x] `wattar-app/src/lib/privacy.ts`: أنواع + ثوابت + تسميات عربية.
+- [x] `wattar-app/src/hooks/usePrivacySettings.ts`: هوك جلب/تحديث عبر RPC.
+- [x] `wattar-app/app/privacy-settings.tsx`: شاشة ٦ مفاتيح (الكل/أصدقاء/لا أحد) بأيقونات عربية.
+- [x] دخول من الإعدادات ← «إعدادات الخصوصية».
+- [x] `npx tsc --noEmit` نظيف، تصدير أندرويد ناجح (٩٫٦MB)، ٤٣ اختباراً ناجحاً.
+
+### 2026-11-15 — M1.6 تكملة + M1.7 الحظر + إصلاحان إنتاجيان
+
+- [x] `patch_block_enhancements.sql` (#39): الحظر والخصوصية مفروضان في `list_active_stories` و`wattar_can_read_story_object` و`record_wattar_room_presence` و`get_private_message_quote` و`send_private_message` — بتعديل جراحي (overlay) بلا مسّ النص العربي ولا أنواع الإرجاع.
+- [x] `patch_privacy_view_info.sql` (#40): «من يستطيع رؤية معلوماتي» مفروض داخل `wattar_can_view_profile` (فيسري على الملف والصور وعدّاد التقدّم).
+- [x] `patch_privacy_service_role_grant.sql` (#41): تنفيذ `check_privacy_permission` لـ`service_role` (تحتاجه الدوال السحابية).
+- [x] `patch_block_cleanup.sql` (#42): الحظر يلغي الصداقة المقبولة ويحذف المتابعة بالاتجاهين، لا الطلبات المعلّقة فقط.
+- [x] تطبيق: زر «حظر المستخدم» في `app/user/[id].tsx` مع تأكيد، ونصوص الخصوصية أوضح.
+- [x] `wattar-functions/functions/livekit-token/index.ts`: فحص الحظر وخصوصية الغرف قبل إصدار التوكن (**غير منشور**).
+- [x] **إصلاح عطل إنتاجي** `patch_fix_audit_trigger_room_seats.sql` (#43): `log_platform_activity_change` كان يقرأ `OLD.user_id` على كل جدول، فكان أي تحديث لطلب صداقة يفشل بـ42703.
+- [x] **إصلاح عطل إنتاجي** `patch_fix_event_notification_trigger.sql` (#44): `create_wattar_event_notification` كان يقرأ `NEW.status`/`OLD.status` قبل التحقق من الجدول، فكان أي متابعة جديدة تفشل بـ42703.
+- [x] فحص شامل لكل تريغرات القاعدة: **0** نمط خطر متبقٍّ.
+- [x] `diagnostics/04_privacy_block_functional_test.sql`: اختبار وظيفي حقيقي (T1–T18، 19 تأكيداً) على قاعدة الإنتاج داخل `BEGIN … ROLLBACK` — **19/19 ناجح**.
+- [x] `npx tsc --noEmit` نظيف للتطبيق والإدارة، **٥٥ اختبار تطبيق + ٥ اختبار إدارة** ناجحة، تصدير أندرويد ناجح (٩٫٦MB)، بناء الإدارة ناجح.
+- [ ] بانتظار: نشر الدوال السحابية + بناء APK + اختبار حسابين للمراسلة المدفوعة.

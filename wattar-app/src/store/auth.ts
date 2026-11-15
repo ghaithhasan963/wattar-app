@@ -6,6 +6,7 @@ import { Session, User } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { callFunction, supabase } from '@/lib/supabase';
+import { describeDevice } from '@/lib/device';
 
 let authSubscription: { unsubscribe: () => void } | null = null;
 
@@ -100,8 +101,17 @@ async function signInWithOAuthProvider(provider: 'google'): Promise<void> {
 }
 
 async function recordSessionStarted(): Promise<void> {
-  const { error } = await supabase.rpc('record_my_session_started');
-  if (error) console.warn('[Wattar] Failed to record authenticated session:', error.message);
+  try {
+    const device = await describeDevice();
+    const { error } = await supabase.rpc('record_my_session_started', {
+      p_device_id: device.deviceId,
+      p_device_info: device.deviceInfo,
+      p_user_agent: device.userAgent,
+    });
+    if (error) console.warn('[Wattar] Failed to record authenticated session:', error.message);
+  } catch (error: unknown) {
+    console.warn('[Wattar] Failed to record authenticated session:', error);
+  }
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
