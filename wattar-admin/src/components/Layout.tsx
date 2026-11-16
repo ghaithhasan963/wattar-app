@@ -10,6 +10,7 @@ import {
   Crown,
   Gift,
   Gamepad2,
+  Gavel,
   Headset,
   LayoutDashboard,
   LogOut,
@@ -44,6 +45,7 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
     items: [
       { to: '/users', label: 'المستخدمون', icon: Users },
       { to: '/reports', label: 'بلاغات المستخدمين', icon: ShieldAlert, roles: ['admin', 'super_admin'] },
+      { to: '/moderation', label: 'الإشراف والفلترة', icon: Gavel, roles: ['admin', 'super_admin'] },
       { to: '/agents', label: 'الوكلاء', icon: UserCheck, roles: ['admin', 'super_admin'] },
       { to: '/hosts', label: 'طلبات التوثيق', icon: Mic, roles: ['admin', 'super_admin'] },
       { to: '/messaging', label: 'الرسائل وبرنامج المضيفات', icon: MessageCircle, roles: ['admin', 'super_admin'] },

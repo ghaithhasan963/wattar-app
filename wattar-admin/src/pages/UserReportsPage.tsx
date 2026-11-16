@@ -1,15 +1,32 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, RefreshCw, Search, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, RefreshCw, Search, ShieldAlert, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
+import { supabase, callFunction } from '@/lib/supabase';
 
 interface UserReport {
   id: string;
   reason: string;
   created_at: string;
+  status: 'pending' | 'actioned' | 'dismissed';
+  decision_note: string | null;
   reporter: { id: string; username: string; display_name: string | null } | null;
   reported: { id: string; username: string; display_name: string | null } | null;
 }
+
+const STATUS_LABELS: Record<UserReport['status'], string> = {
+  pending: 'قيد المراجعة',
+  actioned: 'تم اتخاذ إجراء',
+  dismissed: 'مرفوض',
+};
+
+const PENALTY_OPTIONS: Array<{ value: string; label: string; needsDuration?: boolean }> = [
+  { value: 'none', label: 'تسجيل مخالفة فقط (بدون عقوبة)' },
+  { value: 'warning', label: 'تحذير' },
+  { value: 'mute', label: 'كتم', needsDuration: true },
+  { value: 'temp_ban', label: 'حظر مؤقت', needsDuration: true },
+  { value: 'permanent_ban', label: 'حظر دائم' },
+];
 
 function displayUser(user: UserReport['reporter']) {
   return user?.display_name || (user?.username ? `@${user.username}` : 'مستخدم غير متاح');
@@ -18,8 +35,10 @@ function displayUser(user: UserReport['reporter']) {
 export function UserReportsPage() {
   const [reports, setReports] = useState<UserReport[]>([]);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | UserReport['status']>('pending');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -27,7 +46,7 @@ export function UserReportsPage() {
     try {
       const { data, error: queryError } = await supabase
         .from('user_reports')
-        .select('id, reason, created_at, reporter:users!user_reports_reporter_id_fkey(id, username, display_name), reported:users!user_reports_reported_id_fkey(id, username, display_name)')
+        .select('id, reason, created_at, status, decision_note, reporter:users!user_reports_reporter_id_fkey(id, username, display_name), reported:users!user_reports_reported_id_fkey(id, username, display_name)')
         .order('created_at', { ascending: false })
         .limit(200);
       if (queryError) throw queryError;
@@ -54,15 +73,67 @@ export function UserReportsPage() {
 
   const visibleReports = useMemo(() => {
     const term = search.trim().toLocaleLowerCase();
-    if (!term) return reports;
-    return reports.filter((report) => [
-      report.reason,
-      report.reporter?.username,
-      report.reporter?.display_name,
-      report.reported?.username,
-      report.reported?.display_name,
-    ].some((value) => value?.toLocaleLowerCase().includes(term)));
-  }, [reports, search]);
+    return reports
+      .filter((report) => (statusFilter === 'all' ? true : report.status === statusFilter))
+      .filter((report) => {
+        if (!term) return true;
+        return [
+          report.reason,
+          report.reporter?.username,
+          report.reporter?.display_name,
+          report.reported?.username,
+          report.reported?.display_name,
+        ].some((value) => value?.toLocaleLowerCase().includes(term));
+      });
+  }, [reports, search, statusFilter]);
+
+  const reviewReport = useCallback(
+    async (report: UserReport, decision: 'actioned' | 'dismissed') => {
+      let penalty: string | null = null;
+      let durationMinutes: number | null = null;
+      let note = '';
+      if (decision === 'actioned') {
+        const labels = PENALTY_OPTIONS.map((option, index) => `${index + 1}. ${option.label}`).join('\n');
+        const answer = window.prompt(
+          `اختر الإجراء على ${displayUser(report.reported)} (اكتب الرقم):\n${labels}`,
+          '1',
+        );
+        const index = Number(answer) - 1;
+        if (!Number.isInteger(index) || index < 0 || index >= PENALTY_OPTIONS.length) return;
+        const selected = PENALTY_OPTIONS[index];
+        penalty = selected.value === 'none' ? null : selected.value;
+        if (selected.needsDuration) {
+          const duration = window.prompt('المدة بالدقائق (مثال: 60 أو 1440):', '60');
+          const minutes = Number(duration);
+          if (!Number.isFinite(minutes) || minutes < 1 || minutes > 43200) {
+            alert('مدة غير صالحة (1 إلى 43200 دقيقة).');
+            return;
+          }
+          durationMinutes = minutes;
+        }
+      }
+      note = window.prompt('ملاحظة المراجعة (اختياري):') ?? '';
+
+      setBusy(true);
+      try {
+        await callFunction('admin-moderation', {
+          action: 'review_report',
+          report_id: report.id,
+          decision,
+          note: note.trim() || undefined,
+          penalty_type: penalty ?? undefined,
+          duration_minutes: durationMinutes ?? undefined,
+        });
+        toast.success(decision === 'actioned' ? 'تم تأكيد البلاغ وتنفيذ الإجراء' : 'تم رفض البلاغ');
+        await load();
+      } catch (caught: unknown) {
+        toast.error(caught instanceof Error ? caught.message : 'فشلت المراجعة');
+      } finally {
+        setBusy(false);
+      }
+    },
+    [load],
+  );
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -100,6 +171,28 @@ export function UserReportsPage() {
         </span>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        {([
+          { key: 'pending', label: 'قيد المراجعة' },
+          { key: 'actioned', label: 'تم اتخاذ إجراء' },
+          { key: 'dismissed', label: 'مرفوضة' },
+          { key: 'all', label: 'الكل' },
+        ] as const).map((filter) => (
+          <button
+            key={filter.key}
+            type="button"
+            onClick={() => setStatusFilter(filter.key)}
+            className={`rounded-xl px-3.5 py-1.5 text-xs font-medium transition ${
+              statusFilter === filter.key
+                ? 'border border-wattar-500/40 bg-wattar-500/20 text-wattar-200'
+                : 'border border-white/10 bg-dark-surface text-gray-300 hover:bg-dark-elevated'
+            }`}
+          >
+            {filter.label}
+          </button>
+        ))}
+      </div>
+
       {error && (
         <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
           <span>تعذر تحميل البلاغات: {error}</span>
@@ -127,22 +220,58 @@ export function UserReportsPage() {
                     <span className="text-gray-600">←</span>
                     <span className="text-gray-500">الحساب المُبلّغ عنه</span>
                     <span className="font-semibold text-rose-200">{displayUser(report.reported)}</span>
+                    <span
+                      className={`rounded-lg px-2 py-0.5 text-[11px] font-bold ${
+                        report.status === 'pending'
+                          ? 'bg-amber-400/10 text-amber-300'
+                          : report.status === 'actioned'
+                            ? 'bg-emerald-400/10 text-emerald-300'
+                            : 'bg-gray-400/10 text-gray-400'
+                      }`}
+                    >
+                      {STATUS_LABELS[report.status]}
+                    </span>
                   </div>
                   <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-gray-400">{report.reason}</p>
+                  {report.decision_note && (
+                    <p className="mt-1 text-xs text-gray-500">ملاحظة المراجعة: {report.decision_note}</p>
+                  )}
                   <p className="mt-2 text-[11px] text-gray-600">رقم البلاغ: {report.id}</p>
                 </div>
                 <div className="flex items-center justify-between gap-4 md:flex-col md:items-end">
                   <time className="text-xs text-gray-500" dateTime={report.created_at}>
                     {new Date(report.created_at).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' })}
                   </time>
-                  {report.reported && (
-                    <Link
-                      to={`/users?search=${encodeURIComponent(report.reported.id)}`}
-                      className="rounded-lg border border-wattar-700/50 bg-wattar-500/10 px-3 py-1.5 text-xs font-medium text-wattar-200 transition hover:bg-wattar-500/20"
-                    >
-                      مراجعة الحساب
-                    </Link>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {report.reported && (
+                      <Link
+                        to={`/users?search=${encodeURIComponent(report.reported.id)}`}
+                        className="rounded-lg border border-wattar-700/50 bg-wattar-500/10 px-3 py-1.5 text-xs font-medium text-wattar-200 transition hover:bg-wattar-500/20"
+                      >
+                        مراجعة الحساب
+                      </Link>
+                    )}
+                    {report.status === 'pending' && report.reported && (
+                      <>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void reviewReport(report, 'actioned')}
+                          className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-300 transition hover:bg-emerald-500/20 disabled:opacity-50"
+                        >
+                          <CheckCircle2 size={13} /> تأكيد وإجراء
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void reviewReport(report, 'dismissed')}
+                          className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
+                        >
+                          <XCircle size={13} /> رفض
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </article>
             ))}

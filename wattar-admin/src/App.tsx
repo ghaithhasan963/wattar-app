@@ -24,6 +24,7 @@ import { PlatformActivityPage } from '@/pages/PlatformActivityPage';
 import { MissionsPage } from '@/pages/MissionsPage';
 import { StoreItemsPage } from '@/pages/StoreItemsPage';
 import { UserReportsPage } from '@/pages/UserReportsPage';
+import { ModerationPage } from '@/pages/ModerationPage';
 import { AgentDashboardPage } from '@/pages/AgentDashboardPage';
 import { HostApplicationsPage } from '@/pages/HostApplicationsPage';
 import { MembershipsPage } from '@/pages/MembershipsPage';
@@ -207,6 +208,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <UserReportsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/moderation"
+            element={
+              <ProtectedRoute>
+                <ModerationPage />
               </ProtectedRoute>
             }
           />

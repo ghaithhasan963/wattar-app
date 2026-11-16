@@ -208,6 +208,11 @@ export default function PrivateMessageScreen() {
         p_confirmed_price_coin: confirmedPrice,
       });
       if (error) throw error;
+      // M2.5: رسالة اعترضها فلتر الكلمات — تُعاد بنجاح مع علم blocked (لا استثناء)
+      const blockedResult = data as { blocked?: boolean; message?: string } | null;
+      if (blockedResult?.blocked) {
+        throw new Error(blockedResult.message ?? 'الرسالة تحتوي على كلمات غير مسموح بها');
+      }
       retryMessageRef.current = null;
       const result = data as { message_id?: string; charged_coins?: number };
       if (result?.message_id) {

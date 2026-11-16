@@ -5,7 +5,7 @@
  * - Rate limiting (قاعدي: rate_limit_buckets عبر check_rate_limit)
  * - مساعد التدقيق
  *
- * @version 2.0.0
+ * @version 2.1.0
  */
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
@@ -63,6 +63,32 @@ export async function authenticate(
 
   if (userErr || !userData) {
     throw new HttpError(403, 'USER_NOT_FOUND', 'User profile not found');
+  }
+
+  // M2.5: حظر مؤقت منتهي — استعادة تلقائية قبل الرفض (متسقة مع is_account_active في القاعدة)
+  if (userData.status === 'banned') {
+    const { error: restoreError } = await supabase
+      .from('users')
+      .update({
+        status: 'active',
+        banned_reason: null,
+        banned_until: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', user.id)
+      .eq('status', 'banned')
+      .not('banned_until', 'is', null)
+      .lte('banned_until', new Date().toISOString());
+    if (!restoreError) {
+      const { data: refreshed } = await supabase
+        .from('users')
+        .select('status')
+        .eq('id', user.id)
+        .single();
+      if (refreshed?.status) {
+        userData.status = refreshed.status;
+      }
+    }
   }
 
   if (userData.status !== 'active') {

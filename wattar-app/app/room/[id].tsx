@@ -391,6 +391,15 @@ export default function RoomScreen() {
       Alert.alert('تعذر إرسال الرسالة', error.message);
       return;
     }
+
+    // M2.5: رسالة اعترضها فلتر الكلمات — تُعاد بنجاح مع علم blocked (لا استثناء)
+    const blockedResult = data as { blocked?: boolean; message?: string } | null;
+    if (blockedResult?.blocked) {
+      setMessages(prev => prev.filter(message => message.id !== optimisticId));
+      setNewMessage(msg);
+      Alert.alert('تعذر إرسال الرسالة', blockedResult.message ?? 'الرسالة تحتوي على كلمات غير مسموح بها');
+      return;
+    }
     const savedMessage: Message = {
       ...(data as unknown as Omit<Message, 'user' | 'pending'>),
       user: optimisticMessage.user,

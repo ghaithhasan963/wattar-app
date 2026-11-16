@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Bell, ChevronLeft, Globe, HelpCircle, KeyRound, LogOut, MessageCircle, Shield, Smartphone, Sparkles, Trash2, User } from 'lucide-react-native';
+import { Bell, ChevronLeft, Globe, HelpCircle, KeyRound, LogOut, MessageCircle, Shield, ShieldAlert, Smartphone, Sparkles, Trash2, User } from 'lucide-react-native';
 import { useAuthStore } from '@/store/auth';
 import { ChatTextSize, usePreferencesStore } from '@/store/preferences';
 import { colors } from '@/lib/theme';
@@ -245,6 +245,12 @@ export default function SettingsScreen() {
           label="المستخدمون المحظورون"
           value="إدارة"
           onPress={() => router.push('/blocked-users')}
+        />
+        <SettingRow
+          icon={ShieldAlert}
+          label="المخالفات والعقوبات"
+          value="سجلي"
+          onPress={() => router.push('/moderation')}
         />
         <SettingRow
           icon={HelpCircle}
