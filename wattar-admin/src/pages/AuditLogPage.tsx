@@ -8,6 +8,7 @@ interface AuditRow {
   action: string;
   target_type: string | null;
   target_id: string | null;
+  reason: string | null;
   before: unknown;
   after: unknown;
   metadata: Record<string, unknown> | null;
@@ -65,7 +66,7 @@ export function AuditLogPage() {
     try {
       const { data, error: queryError } = await supabase
         .from('admin_audit_log')
-        .select('id, admin_id, action, target_type, target_id, before, after, metadata, created_at, admin:users!admin_audit_log_admin_id_fkey(username, display_name)')
+        .select('id, admin_id, action, target_type, target_id, reason, before, after, metadata, created_at, admin:users!admin_audit_log_admin_id_fkey(username, display_name)')
         .order('created_at', { ascending: false })
         .limit(200);
       if (queryError) throw queryError;
@@ -96,6 +97,7 @@ export function AuditLogPage() {
         row.action,
         row.target_type,
         row.target_id,
+        row.reason,
       ].some((value) => value?.toLocaleLowerCase().includes(term));
     });
   }, [actionFilter, rows, search]);
@@ -181,6 +183,12 @@ export function AuditLogPage() {
                         {row.target_type ? `الهدف: ${row.target_type}` : 'إجراء عام'}
                         {row.target_id ? ` · ${row.target_id}` : ''}
                       </p>
+                      {row.reason ? (
+                        <p className="mt-1 break-all text-xs text-gray-300">
+                          <span className="text-gray-500">السبب: </span>
+                          {row.reason}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="flex items-center gap-3">
                       <time className="text-xs text-gray-500" dateTime={row.created_at}>

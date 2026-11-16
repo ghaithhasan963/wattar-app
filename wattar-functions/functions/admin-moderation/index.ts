@@ -82,6 +82,7 @@ Deno.serve(async (req: Request) => {
           p_severity: body.severity ?? 'medium',
           p_room_id: body.room_id ?? null,
           p_is_active: body.is_active ?? true,
+          p_reason: body.reason?.trim() || null,
         });
         if (error) throw new HttpError(400, 'WORD_UPSERT_FAILED', error.message);
         return jsonResponse({ success: true, word_id: data });
@@ -92,6 +93,7 @@ Deno.serve(async (req: Request) => {
         const { data, error } = await supabase.rpc('admin_delete_moderation_word', {
           p_admin_id: adminId,
           p_word_id: wordId,
+          p_reason: body.reason?.trim() || null,
         });
         if (error) throw new HttpError(400, 'WORD_DELETE_FAILED', error.message);
         return jsonResponse({ success: true, result: data });
@@ -104,6 +106,7 @@ Deno.serve(async (req: Request) => {
         const { data, error } = await supabase.rpc('admin_update_moderation_settings', {
           p_admin_id: adminId,
           p_settings: body.settings,
+          p_reason: body.reason?.trim() || null,
         });
         if (error) throw new HttpError(400, 'SETTINGS_UPDATE_FAILED', error.message);
         return jsonResponse({ success: true, settings: data });
