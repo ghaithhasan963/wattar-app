@@ -90,8 +90,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          # تخزين مؤقت لـGradle والاعتماديات — يوفر ~10-15 دقيقة لكل بناء
-          cache: gradle
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
