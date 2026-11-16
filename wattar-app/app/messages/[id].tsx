@@ -15,6 +15,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronRight, Send, Smile } from 'lucide-react-native';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { notifySocialEvent } from '@/lib/notifications';
 import {
@@ -53,9 +54,25 @@ const socialPalette = {
 } as const;
 const CHAT_EMOJIS = ['😀', '😂', '🥰', '😍', '🤩', '😎', '🥳', '😭', '👏', '🔥', '❤️', '🌹', '🎉', '✨', '💎', '🎁'];
 
+function dayKey(iso: string): string {
+  const date = new Date(iso);
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+function formatDayLabel(iso: string): string {
+  const date = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (date.toDateString() === today.toDateString()) return 'اليوم';
+  if (date.toDateString() === yesterday.toDateString()) return 'أمس';
+  return date.toLocaleDateString('ar', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 export default function PrivateMessageScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user, profile } = useAuthStore();
   const [messages, setMessages] = useState<PrivateMessage[]>([]);
   const [message, setMessage] = useState('');
@@ -237,10 +254,10 @@ export default function PrivateMessageScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.screen}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 84 : 0}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="رجوع">
           <ChevronRight size={22} color={colors.textSecondary} />
         </TouchableOpacity>
@@ -251,17 +268,18 @@ export default function PrivateMessageScreen() {
           accessibilityRole="button"
           accessibilityLabel="فتح الملف الشخصي"
         >
-        <View style={styles.partnerAvatar}>
-          {partnerAvatar
-            ? <Image source={{ uri: partnerAvatar }} style={styles.partnerAvatarImage} />
-            : <Text style={styles.partnerAvatarText}>{title.slice(0, 1).toUpperCase()}</Text>}
-        </View>
-        <View style={styles.headerCopy}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>
-            {partnerTyping ? 'يكتب الآن...' : partnerOnline ? 'متصل الآن' : getConversationSubtitle(quote)}
-          </Text>
-        </View>
+          <View style={styles.partnerAvatar}>
+            {partnerAvatar
+              ? <Image source={{ uri: partnerAvatar }} style={styles.partnerAvatarImage} />
+              : <Text style={styles.partnerAvatarText}>{title.slice(0, 1).toUpperCase()}</Text>}
+            {partnerOnline && <View style={styles.onlineDot} />}
+          </View>
+          <View style={styles.headerCopy}>
+            <Text style={styles.title} numberOfLines={1}>{title}</Text>
+            <Text style={[styles.subtitle, partnerTyping && styles.typingText]} numberOfLines={1}>
+              {partnerTyping ? 'يكتب الآن...' : partnerOnline ? 'متصل الآن' : getConversationSubtitle(quote)}
+            </Text>
+          </View>
         </TouchableOpacity>
       </View>
       {loading && messages.length === 0 ? (
@@ -280,45 +298,71 @@ export default function PrivateMessageScreen() {
           data={messages}
           keyExtractor={(item) => item.message_id}
           contentContainerStyle={styles.messageList}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
-          renderItem={({ item }) => {
+          renderItem={({ item, index }) => {
+            const previous = messages[index - 1];
+            const showDay = !previous || dayKey(previous.created_at) !== dayKey(item.created_at);
+            const sameSender = Boolean(previous) && !showDay && previous.sender_id === item.sender_id;
             const ownMessage = item.sender_id === user?.id;
+            const senderLabel = item.display_name || item.username || 'عضو';
             return (
-              <View style={[styles.messageRow, ownMessage && styles.ownMessageRow]}>
-                {!ownMessage && (
-                  <View style={styles.messageAvatar}>
-                    {item.avatar_url
-                      ? <Image source={{ uri: item.avatar_url }} style={styles.messageAvatarImage} />
-                      : <Text style={styles.messageAvatarText}>{(item.display_name || item.username || '؟').slice(0, 1)}</Text>}
+              <React.Fragment key={item.message_id}>
+                {showDay && (
+                  <View style={styles.dayDivider}>
+                    <View style={styles.dayLine} />
+                    <Text style={styles.dayLabel}>{formatDayLabel(item.created_at)}</Text>
+                    <View style={styles.dayLine} />
                   </View>
                 )}
-                <View style={[styles.messageBubble, ownMessage ? styles.ownBubble : styles.otherBubble]}>
-                  {!ownMessage && <Text style={styles.senderName}>{item.display_name || item.username}</Text>}
-                  <Text style={styles.messageText}>{item.body}</Text>
-                  {item.charged_coins > 0 && (
-                    <Text style={[styles.billingNote, ownMessage && styles.ownMessageTime]}>
-                      {item.charged_coins.toLocaleString()} Coin
-                      {item.host_commission_diamonds > 0
-                        ? ` · ${item.host_commission_diamonds.toLocaleString()} Diamond للمضيفة`
-                        : ''}
-                    </Text>
-                  )}
-                  <Text style={[styles.messageTime, ownMessage && styles.ownMessageTime]}>
-                    {new Date(item.created_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}
-                    {ownMessage && item.pending ? ' · جارٍ الإرسال' : ownMessage && item.read_at ? ' · تمت القراءة' : ownMessage ? ' · أُرسلت' : ''}
-                  </Text>
+                <View style={[styles.messageRow, ownMessage && styles.ownMessageRow, sameSender && styles.messageRowTight]}>
+                  {!ownMessage && (sameSender ? <View style={styles.avatarSpacer} /> : (
+                    <View style={styles.messageAvatar}>
+                      {item.avatar_url
+                        ? <Image source={{ uri: item.avatar_url }} style={styles.messageAvatarImage} />
+                        : <Text style={styles.messageAvatarText}>{senderLabel.slice(0, 1)}</Text>}
+                    </View>
+                  ))}
+                  <View style={[styles.messageBubble, ownMessage ? styles.ownBubble : styles.otherBubble]}>
+                    {!ownMessage && !sameSender && <Text style={styles.senderName}>{senderLabel}</Text>}
+                    <Text style={styles.messageText}>{item.body}</Text>
+                    {item.charged_coins > 0 && (
+                      <Text style={[styles.billingNote, ownMessage && styles.ownMessageTime]}>
+                        {item.charged_coins.toLocaleString()} Coin
+                        {item.host_commission_diamonds > 0
+                          ? ` · ${item.host_commission_diamonds.toLocaleString()} Diamond للمضيفة`
+                          : ''}
+                      </Text>
+                    )}
+                    <View style={styles.messageMeta}>
+                      <Text style={[styles.messageTime, ownMessage && styles.ownMessageTime]}>
+                        {new Date(item.created_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                      {ownMessage && (
+                        <Text style={[styles.messageTime, styles.ownMessageTime]}>
+                          {item.pending ? '···' : item.read_at ? '✓✓' : '✓'}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  {ownMessage && (sameSender ? <View style={styles.avatarSpacer} /> : (
+                    <View style={[styles.messageAvatar, styles.ownMessageAvatar]}>
+                      {profile?.avatar_url
+                        ? <Image source={{ uri: profile.avatar_url }} style={styles.messageAvatarImage} />
+                        : <Text style={styles.messageAvatarText}>{(profile?.display_name || profile?.username || 'أ').slice(0, 1)}</Text>}
+                    </View>
+                  ))}
                 </View>
-                {ownMessage && (
-                  <View style={[styles.messageAvatar, styles.ownMessageAvatar]}>
-                    {profile?.avatar_url
-                      ? <Image source={{ uri: profile.avatar_url }} style={styles.messageAvatarImage} />
-                      : <Text style={styles.messageAvatarText}>{(profile?.display_name || profile?.username || 'أ').slice(0, 1)}</Text>}
-                  </View>
-                )}
-              </View>
+              </React.Fragment>
             );
           }}
-          ListEmptyComponent={<Text style={styles.emptyText}>ابدأ أول محادثة بينكما.</Text>}
+          ListEmptyComponent={(
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>لا رسائل بعد</Text>
+              <Text style={styles.emptyText}>اكتب أول رسالة وابدأ المحادثة.</Text>
+            </View>
+          )}
           ListHeaderComponent={loadError ? (
             <Text style={styles.refreshWarning}>تعذر تحديث بعض الرسائل: {loadError}</Text>
           ) : null}
@@ -349,26 +393,28 @@ export default function PrivateMessageScreen() {
           </Text>
         </View>
       )}
-      <View style={styles.composer}>
+      <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
         <TouchableOpacity
           style={[styles.emojiToggle, showEmojiPicker && styles.emojiToggleActive]}
           onPress={() => setShowEmojiPicker((visible) => !visible)}
           accessibilityRole="button"
           accessibilityLabel={showEmojiPicker ? 'إغلاق لوحة الإيموجي' : 'فتح لوحة الإيموجي'}
         >
-          <Smile size={19} color={showEmojiPicker ? socialPalette.gold : socialPalette.muted} />
+          <Smile size={20} color={showEmojiPicker ? socialPalette.gold : socialPalette.muted} />
         </TouchableOpacity>
-        <TextInput
-          style={styles.input}
-          value={message}
-          onChangeText={updateTyping}
-          onFocus={() => setShowEmojiPicker(false)}
-          placeholder="اكتب رسالة..."
-          placeholderTextColor={socialPalette.muted}
-          multiline
-          maxLength={2000}
-          editable={!sending && quote !== null}
-        />
+        <View style={styles.inputShell}>
+          <TextInput
+            style={styles.input}
+            value={message}
+            onChangeText={updateTyping}
+            onFocus={() => setShowEmojiPicker(false)}
+            placeholder="اكتب رسالة..."
+            placeholderTextColor={socialPalette.muted}
+            multiline
+            maxLength={2000}
+            editable={!sending && quote !== null}
+          />
+        </View>
         <TouchableOpacity
           style={[styles.sendButton, (!message.trim() || sending) && styles.sendDisabled]}
           onPress={send}
@@ -376,7 +422,7 @@ export default function PrivateMessageScreen() {
           accessibilityRole="button"
           accessibilityLabel="إرسال الرسالة"
         >
-          {sending ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Send size={18} color="#FFFFFF" />}
+          {sending ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Send size={19} color="#FFFFFF" />}
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -394,22 +440,32 @@ const styles = StyleSheet.create({
   headerCopy: { flex: 1 },
   title: { color: socialPalette.text, fontSize: 17, fontWeight: '800', textAlign: 'right' },
   subtitle: { color: socialPalette.muted, fontSize: 11, marginTop: 4, textAlign: 'right' },
-  messageList: { flexGrow: 1, justifyContent: 'flex-end', paddingHorizontal: 14, paddingVertical: 18, gap: 10 },
+  typingText: { color: socialPalette.gold },
+  onlineDot: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#3FCF8E', borderWidth: 2, borderColor: socialPalette.background },
+  messageList: { flexGrow: 1, justifyContent: 'flex-end', paddingHorizontal: 12, paddingVertical: 14, gap: 8 },
   messageRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 7, maxWidth: '94%', alignSelf: 'flex-start' },
+  messageRowTight: { marginTop: -4 },
   ownMessageRow: { alignSelf: 'flex-end' },
-  messageAvatar: { width: 29, height: 29, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A1940', borderWidth: 1, borderColor: socialPalette.border, overflow: 'hidden' },
+  messageAvatar: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A1940', borderWidth: 1, borderColor: socialPalette.border, overflow: 'hidden' },
+  avatarSpacer: { width: 30 },
   ownMessageAvatar: { backgroundColor: '#55209A', borderColor: '#8E3FD1' },
   messageAvatarImage: { width: '100%', height: '100%' },
   messageAvatarText: { color: socialPalette.text, fontSize: 12, fontWeight: '800' },
-  messageBubble: { maxWidth: '88%', paddingHorizontal: 14, paddingVertical: 11, borderRadius: 18, borderWidth: 1 },
-  ownBubble: { alignSelf: 'flex-end', backgroundColor: '#55209A', borderColor: '#8E3FD1', borderBottomRightRadius: 5 },
-  otherBubble: { alignSelf: 'flex-start', backgroundColor: socialPalette.surface, borderColor: socialPalette.border, borderBottomLeftRadius: 5 },
+  messageBubble: { maxWidth: '88%', paddingHorizontal: 13, paddingVertical: 9, borderRadius: 18, borderWidth: 1 },
+  ownBubble: { alignSelf: 'flex-end', backgroundColor: '#55209A', borderColor: '#8E3FD1', borderBottomRightRadius: 6 },
+  otherBubble: { alignSelf: 'flex-start', backgroundColor: socialPalette.surface, borderColor: socialPalette.border, borderBottomLeftRadius: 6 },
   senderName: { color: socialPalette.gold, fontSize: 11, fontWeight: '700', marginBottom: 4 },
   messageText: { color: socialPalette.text, fontSize: 15, lineHeight: 22, textAlign: 'right' },
   billingNote: { color: socialPalette.gold, fontSize: 10, textAlign: 'right', marginTop: 5 },
-  messageTime: { color: socialPalette.muted, fontSize: 10, textAlign: 'right', marginTop: 6 },
+  messageMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5, marginTop: 5 },
+  messageTime: { color: socialPalette.muted, fontSize: 10, textAlign: 'right' },
   ownMessageTime: { color: 'rgba(255,255,255,0.75)' },
-  emptyText: { color: socialPalette.muted, textAlign: 'center', marginVertical: 32, fontSize: 13 },
+  dayDivider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 12, paddingHorizontal: 8 },
+  dayLine: { flex: 1, height: 1, backgroundColor: socialPalette.border },
+  dayLabel: { color: socialPalette.muted, fontSize: 11, fontWeight: '700' },
+  emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 44, gap: 6 },
+  emptyTitle: { color: socialPalette.text, fontSize: 16, fontWeight: '800' },
+  emptyText: { color: socialPalette.muted, textAlign: 'center', marginVertical: 4, fontSize: 13 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadError: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, gap: 12 },
   loadErrorTitle: { color: socialPalette.text, fontSize: 18, fontWeight: '800' },
@@ -417,17 +473,18 @@ const styles = StyleSheet.create({
   retryButton: { paddingHorizontal: 18, paddingVertical: 11, borderRadius: 13, backgroundColor: socialPalette.primaryDeep },
   retryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   refreshWarning: { color: '#FFC777', fontSize: 12, lineHeight: 18, marginBottom: 12, textAlign: 'center' },
-  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 9, paddingHorizontal: 12, paddingVertical: 11, borderTopWidth: 1, borderTopColor: socialPalette.border, backgroundColor: socialPalette.background },
+  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 9, paddingHorizontal: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: socialPalette.border, backgroundColor: socialPalette.background },
   pricingNotice: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: socialPalette.surface, borderTopWidth: 1, borderTopColor: socialPalette.border },
   pricingText: { color: socialPalette.gold, fontSize: 11, textAlign: 'right' },
-  input: { flex: 1, minHeight: 48, maxHeight: 120, color: socialPalette.text, fontSize: 14, paddingHorizontal: 14, paddingVertical: 11, textAlign: 'right', borderWidth: 1, borderColor: socialPalette.border, borderRadius: 16, backgroundColor: socialPalette.surface },
-  sendButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: socialPalette.primaryDeep },
+  inputShell: { flex: 1, borderRadius: 20, borderWidth: 1, borderColor: socialPalette.border, backgroundColor: socialPalette.surface },
+  input: { minHeight: 46, maxHeight: 120, color: socialPalette.text, fontSize: 14, paddingHorizontal: 14, paddingVertical: 11, textAlign: 'right', backgroundColor: 'transparent' },
+  sendButton: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 23, backgroundColor: socialPalette.primaryDeep },
   sendDisabled: { opacity: 0.55 },
   emojiTray: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 7, backgroundColor: socialPalette.surface, borderTopWidth: 1, borderTopColor: socialPalette.border },
   emojiTrayTitle: { color: socialPalette.muted, fontSize: 10, fontWeight: '700', marginBottom: 8, textAlign: 'right' },
   emojiGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 5 },
   emojiChoice: { minWidth: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: '#241B33' },
   emojiChoiceText: { fontSize: 21 },
-  emojiToggle: { width: 42, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 15, backgroundColor: socialPalette.surface },
+  emojiToggle: { width: 42, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 23, backgroundColor: socialPalette.surface },
   emojiToggleActive: { backgroundColor: '#3A2B48' },
 });

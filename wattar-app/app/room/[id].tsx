@@ -598,9 +598,6 @@ export default function RoomScreen() {
       if (typeof data !== 'string') throw new Error('لم يتم إنشاء الدعوة');
       void notifySocialEvent('room_invitation', data).catch((notificationError: unknown) => {
         console.warn('[Wattar] Room invitation push failed:', notificationError);
-        Alert.alert('تعذر إرسال الإشعار', notificationError instanceof Error
-          ? notificationError.message
-          : 'أُرسلت الدعوة، لكن تعذر إرسال الإشعار.');
       });
       Alert.alert('تم إرسال الدعوة', `دعوت ${target.display_name || target.username} إلى الغرفة.`);
       setInviteFriends((items) => items.filter((item) => item.user_id !== target.user_id));

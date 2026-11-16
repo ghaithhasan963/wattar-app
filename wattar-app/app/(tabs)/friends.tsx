@@ -200,9 +200,6 @@ export default function FriendsScreen() {
       if (typeof data !== 'string') throw new Error('لم يتم إنشاء طلب الصداقة');
       void notifySocialEvent('friend_request', data).catch((notificationError: unknown) => {
         console.warn('[Wattar] Friend request push failed:', notificationError);
-        Alert.alert('تعذر إرسال الإشعار', notificationError instanceof Error
-          ? notificationError.message
-          : 'أُرسل طلب الصداقة، لكن تعذر إرسال الإشعار.');
       });
       Alert.alert('تم إرسال الطلب', `أرسلنا طلب صداقة إلى ${target.display_name || target.username}.`);
       setSearchResults((items) => items.filter((item) => item.user_id !== target.user_id));
@@ -318,9 +315,6 @@ export default function FriendsScreen() {
       if (typeof data !== 'string') throw new Error('لم يتم إنشاء التحدي');
       void notifySocialEvent('dice_challenge', data).catch((notificationError: unknown) => {
         console.warn('[Wattar] Dice challenge push failed:', notificationError);
-        Alert.alert('تعذر إرسال الإشعار', notificationError instanceof Error
-          ? notificationError.message
-          : 'أُرسل التحدي، لكن تعذر إرسال الإشعار.');
       });
       setSelectedOpponents([]);
       Alert.alert('تم إرسال التحدي', 'التحدي مجاني ولا يستخدم رصيد الذهب.');

@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
+import { syncSocialPushRegistration, watchPushTokenRotation } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 
@@ -102,6 +103,22 @@ export default function RootLayout() {
 
     return () => responseSubscription.remove();
   }, [initialized, router, session?.user.id]);
+
+  // F2: تسجيل رمز الدفع تلقائياً بعد الدخول (بدل الاعتماد على مفتاح الإعدادات).
+  useEffect(() => {
+    if (!initialized || !session) return;
+    let active = true;
+    void syncSocialPushRegistration({ requestPermission: true }).then((status) => {
+      if (active && status === 'failed') {
+        console.warn('[Wattar] Push registration did not complete; user can retry from settings.');
+      }
+    });
+    const stopWatching = watchPushTokenRotation();
+    return () => {
+      active = false;
+      stopWatching();
+    };
+  }, [initialized, session?.user.id]);
 
   useEffect(() => {
     if (!session) return;

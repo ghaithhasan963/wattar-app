@@ -6,6 +6,7 @@ import { Session, User } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { callFunction, supabase } from '@/lib/supabase';
+import { clearPushRegistrationOnSignOut } from '@/lib/notifications';
 import { describeDevice } from '@/lib/device';
 
 let authSubscription: { unsubscribe: () => void } | null = null;
@@ -290,6 +291,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signOut: async (scope = 'global') => {
     try {
+      if (scope !== 'others') await clearPushRegistrationOnSignOut();
       const { error } = await supabase.auth.signOut({ scope });
       if (error) console.warn('[Wattar] Supabase sign-out failed:', error);
     } catch (error: unknown) {
