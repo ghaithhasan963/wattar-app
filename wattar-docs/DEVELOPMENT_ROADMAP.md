@@ -362,3 +362,22 @@
 - [x] `diagnostics/05_age_consent_functional_test.sql`: اختبار وظيفي (C1–C7) على الإنتاج داخل `BEGIN … ROLLBACK` — **7/7 ناجح** (سجل واحد لكل مستخدم، تطابق الوقت، لا تكرار، منع الإدخال والتعديل، عزل القراءة، منع anon).
 - [x] `npx tsc --noEmit` نظيف، **٩٠ اختبار تطبيق** ناجح (٥٥ + ٣٥ جديد)، بناء الإدارة واختباراتها بلا تغيير.
 - [ ] مؤجل بوعي: التحكم الجغرافي حسب الدولة (R28) إلى M5 — يحتاج حقل دولة ومراجعة قانونية.
+
+### 2026-11-15 — M2.1 مصفوفة RLS + M2.2 مصفوفة الدوال + M2.3 إغلاق ثقة العميل (غرف/شات/مقاعد)
+
+- [x] **M2.1**: تدقيق كامل لـ ٦٢ جدول — RLS مفعّل على الجميع، صفر جداول `FORCE RLS`، ٦٤ سياسة، ١٤ سياسة كتابة، **صفر سياسات مشبوهة**. ٢٣ جدولاً بلا سياسات (تصميم: RPC فقط). الموثقة في `wattar-docs/AUDIT_M2_SECURITY_MATRIX.md`.
+- [x] **M2.2**: تدقيق ٣٦٠ دالة — ١٣٣ `SECURITY DEFINER`، ٥٠ قابلة للتنفيذ من `anon` (لا تجاوزات فعالة، تعتمد على `auth.uid()`)، **صفر `search_path` مفقود**. سحب كل صلاحيات `anon` من جداول `public` + سحب `TRUNCATE/REFERENCES/TRIGGER/MAINTAIN` من `authenticated` + منع الكتابة المباشرة على ١٨ جدولاً مالياً/هوية (`migration #46`).
+- [x] **M2.3**: أربع دوال RPC حصرية — `claim_room_seat`, `leave_room_seat`, `set_room_mic`, `send_room_message` — مع فحوصات: الهوية، العمر، حالة الحساب، حالة الغرفة، الملكية/الدعوة، الحظر المتبادل، الخصوصية، الكتم، معدل الإرسال (٥ رسائل/١٠ ث، ٢٠/دقيقة). قيد تفرّد `room_seats(room_id,user_id)`. إلغاء ٤ سياسات كتابة مباشرة + سحب `INSERT/UPDATE/DELETE` من `room_messages` و`room_seats` (`migration #47`).
+- [x] تطبيق `app/room/[id].tsx` يستبدل ٤ كتابات مباشرة بـRPC. `npx tsc --noEmit` نظيف، **٩٠ اختبار تطبيق** و**٥ اختبارات إدارة** ناجحة.
+- [x] `diagnostics/06_room_rpc_functional_test.sql`: **20/20 تأكيداً ناجحاً** (احتلال/ترك المقعد، الميكروفون، إرسال/كتم/فك كتم الرسائل، حد المعدل، الغرفة المغلقة، الحظر، الغرفة الخاصة، anon، الكتابة المباشرة الممنوعة).
+
+### 2026-11-16 — M2.4 حد الطلبات القاعدي + تقييم المخاطر (من طرف إلى طرف)
+
+- [x] **migration #48** `patch_rate_limiting_risk.sql`: ٤ جداول جديدة بلا أي وصول عميل — `rate_limit_buckets` (نوافذ منزلقة لكل إجراء/معرّف)، `device_fingerprints` (بصمات أجهزة بدرجة خطر وتتبّع مستخدمين مميزين في `metadata->user_ids`)، `ip_reputation`، `risk_events`. دوال: `check_rate_limit` (upsert ذرّي + `retry_after_ms` + تسجيل `rate_limit_exceeded` تلقائياً)، `record_risk_event` (upsert لدرجات الجهاز/IP)، `register_device_fingerprint` (رصد `multiple_accounts` فوق ٥ مستخدمين)، `get_risk_score` (مركّبة: جهاز ٥٠٪ + IP ٣٠٪ + أحداث ٢٤س ٢٠٪ → توصية allow/monitor/challenge/block)، و٥ دوال مختصرة (auth/room/social/financial/game).
+- [x] اكتشاف وإغلاق ثغرة منح: `DEFAULT PRIVILEGES` (#46) تمنح `authenticated` تنفيذ كل دالة جديدة ينشئها postgres — تم سحب EXECUTE صراحةً من `anon`+`authenticated` لدوال المخاطر الثلاث (خدمة فقط). موثّق في `AUDIT_M2_SECURITY_MATRIX.md` (P8).
+- [x] **migration #49** `patch_wire_rate_limit_rpc.sql`: ربط الحد بدوال الغرف — `claim_room_seat` ١٠/دقيقة (كان بلا حد)، `set_room_mic` ٢٠/دقيقة (كان بلا حد)، `send_room_message` ٣٠/دقيقة (تكميلي للحد الأدق ٥/١٠ث و٢٠/د).
+- [x] `diagnostics/07_rate_limit_risk_functional_test.sql`: **18/18 ناجح** (سماح حتى الحد، رفض بعده مع مهلة، تسجيل حدث الخطر، تصفير النافذة، بصمة الجهاز وتتبّع المستخدمين، حدث `multiple_accounts`، درجات الجهاز/IP، الدرجة المركبة بمستوياتها، الحظر=block، anon ممنوع، المستخدم لا يسجّل أحداث خطر بنفسه، المدخلات غير الصالحة مرفوضة).
+- [x] `diagnostics/06_room_rpc_functional_test.sql` موسّع بـT21: **21/21 ناجح** — الاحتلال الناجح الحادي عشر يُرفض بالحد. ملاحظة سلوك موثّقة: المحاولة الفاشلة تُتراجع مع كامل الحركة (طبيعة Postgres) فالعدّاد يعدّ العمليات الناجحة.
+- [x] **Edge Functions**: `rateLimitByUser` في `_shared/supabase.ts` (v2.0.0) أصبح async يستدعي `check_rate_limit` بدل الذاكرة المؤقتة — نشر **١٩ دالة** (F02–F20). `agent-phone-login` يحدّ بـIP (٢٠/١٥د) عبر `checkDbRateLimit`. سياسة fail-open عند تعطل القاعدة (استمرارية الخدمة) مع تسجيل الخطأ.
+- [x] **إثبات طرف-إلى-طرف**: استدعاء `agent-phone-login` المنشورة ببيانات خاطئة → `401 INVALID_CREDENTIALS` **وسُجّل عدّاد** `agent_phone_login:ip:150.228.106.6` في `rate_limit_buckets` (count=1, max=20, window=900s) — أي أن الحد القاعدي يعمل فعلاً من الدوال السحابية المنشورة.
+- [x] `consume_public_auth_rate_limits` تُركت كما هي بلا تعديل — تعمل بواجهتها الحالية مع `public_auth_rate_limits` (قرار موثّق: إعادة بنائها كانت ستكسر نوع المعرف `hash`).

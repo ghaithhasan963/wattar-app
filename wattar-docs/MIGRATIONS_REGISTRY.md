@@ -1,5 +1,5 @@
 # سجل الـMigrations — مالك الحقيقة لقاعدة البيانات
-**التاريخ:** 2026-11-14 · **الحالة:** تسجيل فقط. **لم يُنشأ ولا يُطبّق أي migration بعد.**
+**التاريخ:** 2026-11-16 · **الحالة:** ٤٩ ترقية مطبّقة (9–49 عبر `supabase db query --remote`) + نشر ٢٠ نسخة دالة سحابية.
 
 > القاعدة الذهبية: **لا migration بلا نسخة احتياطية، ولا migration بلا رقم، ولا تعديل على migration مُطبّق.**
 > حتى تصل نسخة `pg_dump`، هذا الملف يسجّل ما نعرفه فقط. لا نكتب SQL «من الذاكرة».
@@ -90,8 +90,12 @@
 | 43 | `patch_fix_audit_trigger_room_seats.sql` | **✅ مطبّق** 2026-11-15 (**إصلاح عطل إنتاجي**: `OLD.user_id` على `friend_requests`) | `...0043` |
 | 44 | `patch_fix_event_notification_trigger.sql` | **✅ مطبّق** 2026-11-15 (**إصلاح عطل إنتاجي**: `NEW.status`/`OLD.status` قبل التحقق من الجدول) | `...0044` |
 | 45 | `patch_adult_consent_log.sql` | **✅ مطبّق** 2026-11-15 (M1.4: جدول `user_consents` append-only + تريغران لتسجيل موافقة ١٨+ + تعبئة رجعية ٨ صفوف) | `...0045` |
+| 46 | `patch_harden_table_grants.sql` | **✅ مطبّق** 2026-11-15 (M2.2: سحب صلاحيات `anon` كاملة من `public`، سحب `TRUNCATE/REFERENCES/TRIGGER/MAINTAIN` من `authenticated`، منع الكتابة المباشرة على ١٨ جدولاً مالياً/هوية، توحيد `search_path` لثلاث دوال) | `...0046` |
+| 47 | `patch_room_rpc.sql` | **✅ مطبّق** 2026-11-15 (M2.3: أربع دوال RPC حصرية — `claim_room_seat`, `leave_room_seat`, `set_room_mic`, `send_room_message` — + قيد تفرّد `room_seats(room_id,user_id)` + إلغاء ٤ سياسات كتابة مباشرة + سحب `INSERT/UPDATE/DELETE` من `room_messages` و`room_seats` لـ`authenticated` و`anon`) | `...0047` |
+| 48 | `patch_rate_limiting_risk.sql` | **✅ مطبّق** 2026-11-16 (M2.4: حد طلبات قاعدي + تقييم مخاطر — ٤ جداول `rate_limit_buckets`/`device_fingerprints`/`ip_reputation`/`risk_events` بلا أي وصول عميل + دوال `check_rate_limit` و`record_risk_event` و`register_device_fingerprint` و`get_risk_score` و٥ دوال مختصرة؛ سحب تنفيذ دوال المخاطر من `anon`/`authenticated` رغم DEFAULT PRIVILEGES) | `...0048` |
+| 49 | `patch_wire_rate_limit_rpc.sql` | **✅ مطبّق** 2026-11-16 (M2.4: ربط `check_room_rate_limit` بدوال الغرف — `claim_room_seat` 10/دقيقة، `set_room_mic` 20/دقيقة، `send_room_message` 30/دقيقة تكميلي) | `...0049` |
 
-**استثناء مرسّخ:** المدير قرر 2026-11-14 أن **الحسابات كلها تجريبية**، فلا نسخة احتياطية مطلوبة قبل migration #37 (إضافات فقط: عمود + ٣ دوال، بلا حذف ولا تعديل بيانات).
+**استثناء مرسّخ:** المدير قرر 2026-11-14 أن **الحسابات كلها تجريبية**، فلا نسخة احتياطية مطلوبة قبل migration #37 (إضافات فقط: عمود + ٣ دوال، بلا حذف ولا تعديل بيانات). تنطبق نفس القاعدة على #45-#47 (إضافات/تضييق فقط، بلا حذف بيانات).
 
 **عدد «غير مُتحقَّق»:** ٦. تُحسم كلها بنسخة `pg_dump` (enums + grants).
 
@@ -102,6 +106,7 @@
 | # | الدالة | النسخة | التاريخ | التغيير | التحقق |
 |---|---|---|---|---|---|
 | F01 | `livekit-token` | 7 → **8** | 2026-11-15T10:42:16Z | فحص الحظر + `check_privacy_permission(...,'enter_rooms')` قبل إصدار توكن الصوت | الملف المنزَّل من الإنتاج مطابق SHA256 للملف المحلي (٦٨١١ بايت) · استدعاء بمفتاح anon رجّع `401 INVALID_TOKEN` أي أن الدالة **أقلعت** ولم ترجع `BOOT_ERROR` |
+| F02–F20 | ١٩ دالة: `admin-create-host`, `admin-create-support`, `admin-delete-user`, `admin-manage-host`, `daily-bonus`, `deposit-request`, `game-aviator`, `game-dice`, `game-plinko`, `game-slots`, `game-wheel`, `gift-send`, `livekit-token`, `room-join`, `room-leave`, `room-owner-action`, `social-push`, `withdrawal-request`, `agent-phone-login` | → **M2.4** | 2026-11-16 | استبدال الحد الذاكري بحد قاعدي: `rateLimitByUser` أصبح async يستدعي `check_rate_limit` (#48)؛ `agent-phone-login` يحدّ بـIP عبر `checkDbRateLimit` (20/15د)؛ fail-open عند تعطل القاعدة (استمرارية الخدمة) | `Deployed Functions` لكل دالة · **إثبات طرف-إلى-طرف**: استدعاء `agent-phone-login` ببيانات خاطئة رجّع `401 INVALID_CREDENTIALS` **وسُجّل عدّاد** `agent_phone_login:ip:150.228.106.6` في `rate_limit_buckets` (count=1, max=20, window=900s) |
 
 **القاعدة:** كل نشر دالة يُسجَّل هنا بتاريخه ونسخته وطريقة التحقق. لا نشر بلا سطر هنا.
 

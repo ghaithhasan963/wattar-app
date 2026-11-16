@@ -31,7 +31,7 @@ Deno.serve(async (req: Request) => {
   try {
     const admin = await authenticate(req, { allowStaffWithoutAdultConfirmation: true });
     requireRole(admin, 'admin', 'super_admin');
-    rateLimitByUser(admin, 'admin_account_control', 20, 60_000);
+    await rateLimitByUser(admin, 'admin_account_control', 20, 60_000);
 
     const body = validateBody<AccountControlBody>(
       await parseBody<AccountControlBody>(req),

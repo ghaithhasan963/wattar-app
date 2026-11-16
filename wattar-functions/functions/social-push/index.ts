@@ -32,7 +32,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
-    rateLimitByUser(ctx, 'social_push', 20, 60_000);
+    await rateLimitByUser(ctx, 'social_push', 20, 60_000);
     const body = validateBody<PushRequest>(
       await parseBody<PushRequest>(req),
       ['event_type', 'reference_id'],

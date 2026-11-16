@@ -1,12 +1,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import {
+  checkDbRateLimit,
   errorResponse,
   getClientIp,
   getSupabaseAdmin,
   HttpError,
   jsonResponse,
   parseBody,
-  rateLimit,
 } from '../_shared/supabase.ts';
 
 interface LoginBody {
@@ -25,8 +25,9 @@ Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return jsonResponse({ error: 'METHOD_NOT_ALLOWED' }, 405);
 
   try {
-    const clientIp = req.headers.get('CF-Connecting-IP')?.trim() || getClientIp(req) || 'unknown';
-    if (!rateLimit(`agent-phone-login:${clientIp}`, 20, 15 * 60 * 1000)) {
+    const clientIp = req.headers.get('CF-Connecting-IP')?.trim() || getClientIp(req) || null;
+    const rl = await checkDbRateLimit('agent_phone_login', 'ip', clientIp, 20, 15 * 60);
+    if (!rl.allowed) {
       throw new HttpError(429, 'RATE_LIMITED', 'محاولات كثيرة. حاول مجددًا بعد قليل.');
     }
 

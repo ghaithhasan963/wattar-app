@@ -380,15 +380,10 @@ export default function RoomScreen() {
     setNewMessage('');
     setTimeout(() => chatListRef.current?.scrollToEnd(), 50);
 
-    const { data, error } = await supabase
-      .from('room_messages')
-      .insert({
-        room_id: id,
-        user_id: profile.id,
-        message: msg,
-      })
-      .select('id, user_id, message, is_system, created_at')
-      .single();
+    const { data, error } = await supabase.rpc('send_room_message', {
+      p_room_id: id,
+      p_message: msg,
+    });
 
     if (error) {
       setMessages(prev => prev.filter(message => message.id !== optimisticId));
@@ -396,7 +391,10 @@ export default function RoomScreen() {
       Alert.alert('تعذر إرسال الرسالة', error.message);
       return;
     }
-    const savedMessage: Message = { ...data, user: optimisticMessage.user };
+    const savedMessage: Message = {
+      ...(data as unknown as Omit<Message, 'user' | 'pending'>),
+      user: optimisticMessage.user,
+    };
     setMessages(prev => {
       const withoutPending = prev.filter(message => message.id !== optimisticId);
       const existingIndex = withoutPending.findIndex(message => message.id === savedMessage.id);
@@ -412,24 +410,13 @@ export default function RoomScreen() {
     const seat = seats.find(s => s.seat_index === seatIndex);
     if (!seat || seat.status !== 'empty') return;
 
-    const { data: claimedSeats, error } = await supabase
-      .from('room_seats')
-      .update({
-        user_id: profile.id,
-        status: 'occupied',
-        is_mic_on: false,
-        joined_at: new Date().toISOString(),
-      })
-      .eq('id', seat.id)
-      .eq('status', 'empty')
-      .is('user_id', null)
-      .select('id');
+    const { error } = await supabase.rpc('claim_room_seat', {
+      p_room_id: id,
+      p_seat_index: seatIndex,
+    });
 
     if (error) {
-      Alert.alert('خطأ', 'فشل احتلال المقعد');
-    } else if (!claimedSeats?.length) {
-      Alert.alert('المقعد مشغول', 'سبق مستخدم آخر إلى هذا المقعد. حدّث الغرفة واختر مقعدًا آخر.');
-      await loadRoom();
+      Alert.alert('خطأ', error.message || 'فشل احتلال المقعد');
     } else {
       setMySeat(seatIndex);
     }
@@ -440,17 +427,9 @@ export default function RoomScreen() {
     const seat = seats.find(s => s.seat_index === mySeat);
     if (!seat) return;
 
-    const { error } = await supabase
-      .from('room_seats')
-      .update({
-        user_id: null,
-        status: 'empty',
-        is_mic_on: false,
-        joined_at: null,
-      })
-      .eq('id', seat.id);
+    const { error } = await supabase.rpc('leave_room_seat', { p_room_id: id });
     if (error) {
-      Alert.alert('خطأ', 'تعذر ترك المقعد. حاول مرة أخرى.');
+      Alert.alert('خطأ', error.message || 'تعذر ترك المقعد. حاول مرة أخرى.');
       return;
     }
     setMySeat(null);
@@ -487,10 +466,10 @@ export default function RoomScreen() {
     try {
       // الكتم/التفعيل الفعلي على الصوت الحي
       await setMicEnabled(lkRoomRef.current, !newMute);
-      const { error } = await supabase
-        .from('room_seats')
-        .update({ is_mic_on: !newMute })
-        .eq('id', seat.id);
+      const { error } = await supabase.rpc('set_room_mic', {
+        p_room_id: id,
+        p_enabled: !newMute,
+      });
       if (error) throw error;
       setIsMuted(newMute);
     } catch (error: unknown) {

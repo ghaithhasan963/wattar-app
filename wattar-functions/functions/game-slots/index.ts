@@ -45,7 +45,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
-    rateLimitByUser(ctx, 'place_bet', 5, 1000);
+    await rateLimitByUser(ctx, 'place_bet', 5, 1000);
     const idempotencyKey = requireIdempotencyKey(req);
     const body = await parseBody<SlotsBody>(req);
 

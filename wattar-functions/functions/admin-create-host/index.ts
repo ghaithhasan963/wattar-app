@@ -28,7 +28,7 @@ Deno.serve(async (req: Request) => {
   try {
     const admin = await authenticate(req, { allowStaffWithoutAdultConfirmation: true });
     requireRole(admin, 'admin', 'super_admin');
-    rateLimitByUser(admin, 'create_host_account', 10, 60_000);
+    await rateLimitByUser(admin, 'create_host_account', 10, 60_000);
 
     const body = validateBody<CreateHostBody>(
       await parseBody<CreateHostBody>(req),

@@ -2,10 +2,10 @@
  * Wattar — مكتبة مشتركة بين Edge Functions
  * - عميل Supabase مع service_role
  * - التحقق من JWT
- * - Rate limiting
+ * - Rate limiting (قاعدي: rate_limit_buckets عبر check_rate_limit)
  * - مساعد التدقيق
  *
- * @version 1.0.1
+ * @version 2.0.0
  */
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
@@ -130,32 +130,52 @@ export function jsonResponse(data: unknown, status = 200): Response {
 }
 
 // ============================================================================
-// Rate Limiting
+// Rate Limiting — على مستوى القاعدة (M2.4 / migration #48)
+// عدّادات نوافذ منزلقة في جدول rate_limit_buckets عبر دالة check_rate_limit.
+// ملاحظة: عند فشل الاتصال بالقاعدة نسمح بالمرور (fail-open) مع تسجيل الخطأ —
+// استمرارية الخدمة أولى، والحد يُطبَّق فور عودة الاتصال.
 // ============================================================================
-interface RateBucket {
-  count: number;
-  resetAt: number;
+export interface RateLimitResult {
+  allowed: boolean;
+  retryAfterMs: number;
 }
 
-const rateBuckets = new Map<string, RateBucket>();
-
-export function rateLimit(key: string, maxRequests: number, windowMs: number): boolean {
-  const now = Date.now();
-  const bucket = rateBuckets.get(key);
-  if (!bucket || bucket.resetAt < now) {
-    rateBuckets.set(key, { count: 1, resetAt: now + windowMs });
-    return true;
+export async function checkDbRateLimit(
+  action: string,
+  identifierType: 'user' | 'ip' | 'device' | 'phone' | 'email',
+  identifierValue: string | null,
+  maxRequests: number,
+  windowSeconds: number,
+): Promise<RateLimitResult> {
+  if (!identifierValue) {
+    return { allowed: true, retryAfterMs: 0 };
   }
-  if (bucket.count >= maxRequests) {
-    return false;
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.rpc('check_rate_limit', {
+    p_action: action,
+    p_identifier_type: identifierType,
+    p_identifier_value: identifierValue,
+    p_window_seconds: windowSeconds,
+    p_max_requests: maxRequests,
+  });
+  if (error || !data) {
+    console.error('[Wattar] rate limit check failed (allowing):', error);
+    return { allowed: true, retryAfterMs: 0 };
   }
-  bucket.count++;
-  return true;
+  return {
+    allowed: !!data.allowed,
+    retryAfterMs: Number(data.retry_after_ms ?? 0),
+  };
 }
 
-export function rateLimitByUser(ctx: AuthContext, action: string, max: number, windowMs: number): void {
-  const key = `rl:${ctx.user_id}:${action}`;
-  if (!rateLimit(key, max, windowMs)) {
+export async function rateLimitByUser(
+  ctx: AuthContext,
+  action: string,
+  max: number,
+  windowMs: number,
+): Promise<void> {
+  const result = await checkDbRateLimit(action, 'user', ctx.user_id, max, Math.ceil(windowMs / 1000));
+  if (!result.allowed) {
     throw new HttpError(429, 'RATE_LIMITED', 'Too many requests, please slow down');
   }
 }

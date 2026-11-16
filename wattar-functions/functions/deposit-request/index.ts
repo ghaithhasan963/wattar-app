@@ -29,7 +29,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
-    rateLimitByUser(ctx, 'deposit_request', 3, 60_000);
+    await rateLimitByUser(ctx, 'deposit_request', 3, 60_000);
 
     const body = await parseBody<DepositRequestBody>(req);
     validateBody(body, ['method', 'amount_usd', 'external_ref', 'proof_url']);

@@ -13,7 +13,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
-    rateLimitByUser(ctx, 'daily_bonus', 1, 60_000);
+    await rateLimitByUser(ctx, 'daily_bonus', 1, 60_000);
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase.rpc('claim_daily_game_points_for_user', {
       p_user_id: ctx.user_id,

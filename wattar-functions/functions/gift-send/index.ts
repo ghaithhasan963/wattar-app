@@ -24,7 +24,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
-    rateLimitByUser(ctx, 'send_gift', 2, 1000);
+    await rateLimitByUser(ctx, 'send_gift', 2, 1000);
 
     const body = await parseBody<GiftSendBody>(req);
     validateBody(body, ['to_user_id', 'gift_id']);

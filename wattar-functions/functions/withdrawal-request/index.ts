@@ -24,7 +24,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
-    rateLimitByUser(ctx, 'diamond_withdrawal_request', 5, 60_000);
+    await rateLimitByUser(ctx, 'diamond_withdrawal_request', 5, 60_000);
     const body = await parseBody<WithdrawalRequestBody>(req);
     validateBody(body, ['amount_diamond', 'method']);
 

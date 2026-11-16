@@ -25,7 +25,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
-    rateLimitByUser(ctx, 'room_leave', 60, 60_000);
+    await rateLimitByUser(ctx, 'room_leave', 60, 60_000);
     const body = validateBody<{ room_id: string; session_id?: string }>(
       await parseBody(req),
       ['room_id'],

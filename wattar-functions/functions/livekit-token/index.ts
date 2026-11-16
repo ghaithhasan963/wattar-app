@@ -98,7 +98,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
-    rateLimitByUser(ctx, 'livekit_token', 10, 60_000);
+    await rateLimitByUser(ctx, 'livekit_token', 10, 60_000);
 
     const body = await parseBody<{ room_id: string }>(req);
     validateBody(body, ['room_id']);
