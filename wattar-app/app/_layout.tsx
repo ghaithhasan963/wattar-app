@@ -75,17 +75,11 @@ export default function RootLayout() {
     let lastHandledNotificationId: string | null = null;
     const openNotificationRoute = (route: unknown) => {
       if (typeof route !== 'string') return;
-      if (route === '/(tabs)/friends') {
-        router.push('/(tabs)/friends');
-        return;
-      }
-      const messageMatch = route.match(/^\/messages\/([0-9a-f-]{36})$/i);
-      if (messageMatch) {
-        router.push(`/messages/${messageMatch[1]}` as Href);
-        return;
-      }
-      const roomMatch = route.match(/^\/room\/([0-9a-f-]{36})$/i);
-      if (roomMatch) router.push(`/room/${roomMatch[1]}` as Href);
+      // كل مسارات الإشعارات الداخلية فقط (المصدر: زناد الإشعارات في القاعدة).
+      const allowed = /^\/(?:\(tabs\)\/[a-z0-9-]+|messages\/[0-9a-f-]{36}|room\/[0-9a-f-]{36}|host-application|membership|privacy-settings|support)$/i;
+      const clean = route.split('?')[0];
+      if (!allowed.test(clean)) return;
+      router.push(clean as Href);
     };
     const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
       const identifier = response.notification.request.identifier;
