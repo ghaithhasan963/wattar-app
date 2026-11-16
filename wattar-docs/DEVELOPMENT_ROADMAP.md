@@ -457,3 +457,15 @@
 - [x] **migration #55f** `patch_gift_commissions_fix.sql`: تصحيحين كشفهما الاختبار — المضيفة تستلم `host_net` لا `gross`، و`credited_usd` يشمل كل المخرجات (`gross * diamond_usdt`) لتتوازن المطابقة.
 - [x] **اختبارات 3 سيناريوهات داخل معاملة ثم تراجع:** أ) افتراضيات صفرية → المضيفة 50 Diamond، هامش 0.04 USD لمنصة؛ ب) تخصيص مضيفة 10% منصة + 20% وكيل → المضيفة 36 Diamond، وكيل 9 Diamond، منصة 5 Diamond + 0.04 USD هامش؛ ج) مستلم عادي → 50 Coin، هامش 0.045 USD. **مطابقة اقتصاد الهدايا ✅** (صفر القيمة لكل هدية) + **مطابقة المحافظ ✅**.
 - [x] لا عمولة مقتطعة من المرسل؛ الاقتصاد لم يتغير لأن الافتراضيات صفر.
+
+### 2026-11-16 — M3.7: اقتصاد الألعاب (نمط Bigo Live)
+
+- [x] **قرار الإدارة:** Coin فقط، 1$ = 3000 Coin، لا نقاط ألعاب منفصلة، مهام يومية ≤100 Coin، ألعاب تراهن بـbalance_gold مباشرة.
+- [x] **migration #56** `patch_game_economy_bigo.sql`: تحديث `paid_coins_per_usd` = 3000؛ تحويل `game_points` الموجود (32 مستخدم) إلى `balance_gold` مع قيد تدقيق؛ إضافة دوال جديدة:
+  - `play_game_with_coin(user_id, game_type, bet_amount, idempotency_key)` — يراهن بـ`balance_gold`، ينشئ قيود `bet`/`win` بالذهب
+  - `claim_daily_bonus_coin(user_id, idempotency_key)` — يعطي مكافأة يومية (من `daily_bonus_gold`، سقف 100)
+  - `claim_daily_task_coin(user_id, mission_key, idempotency_key)` — يعطي مكافأة مهمة (من `daily_missions.reward_gold`، سقف 100)
+- [x] حقل `reward_gold` في `daily_missions` (افتراضي 10، سقف 100)
+- [x] الدوال القديمة (`play_game_with_points`، `claim_daily_game_points*`، `claim_daily_mission`) موثّقة كمجمّدة بتعليق DEPRECATED
+- [x] عمود `users.game_points` مجمَّد للتدقيق فقط (تعليق FROZEN)
+- [x] **اختبارات حقيقية داخل معاملة ثم تراجع:** مكافأة يومية 100 Coin + مهمة 100 Coin + رهان 50 Coin + مطابقة محفظة نظيفة — كلها ناجحة.
