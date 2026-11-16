@@ -41,6 +41,9 @@ jobs:
             wattar-app/package-lock.json
             wattar-admin/package-lock.json
 
+      - name: Scan for committed secrets
+        run: node scripts/check-secrets.mjs
+
       - name: Install app dependencies
         working-directory: wattar-app
         run: npm ci --no-audit --no-fund
@@ -90,6 +93,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+
+      - name: Scan for committed secrets
+        working-directory: .
+        run: node scripts/check-secrets.mjs
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
