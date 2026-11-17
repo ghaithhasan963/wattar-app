@@ -1,8 +1,11 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
-import { Loader2, MessageCircle, RefreshCw, Search, ShieldCheck, UserPlus } from 'lucide-react';
+import { Loader2, MessageCircle, RefreshCw, ShieldCheck, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { validateMessagingSettings, type MessagingSettings } from '@/lib/messagingSettings';
+import { Toggle } from '@/components/ui';
+import { UserPicker, type PickedUser } from '@/components/UserPicker';
+import { ReasonPickerModal } from '@/components/ReasonPicker';
 
 interface HostProgramMember {
   user_id: string;
@@ -27,12 +30,23 @@ interface HostIntroTemplate {
   created_at: string;
 }
 
-interface HostCandidate {
-  id: string;
-  username: string;
-  display_name: string | null;
-  adult_confirmed_at: string | null;
-}
+const hostAddReasons = [
+  'تقدمت بطلب الانضمام واكتمل التحقق',
+  'تحقق عمري مؤكد وموافقة على الشروط',
+  'قرار إداري بعد المراجعة',
+];
+
+const hostSuspendReasons = [
+  'طلبت إيقاف العضوية بنفسها',
+  'مخالفة شروط برنامج المضيفات',
+  'شكاوى متكررة من المستخدمين',
+  'عدم نشاط لفترة طويلة',
+];
+
+const hostReactivateReasons = [
+  'انتهت مدة الإيقاف',
+  'قرار إداري بعد المراجعة',
+];
 
 const initialSettings: MessagingSettings = {
   free_message_limit: 5,
@@ -49,12 +63,12 @@ export function MessagingPage() {
   const [templates, setTemplates] = useState<HostIntroTemplate[]>([]);
   const [templateDraft, setTemplateDraft] = useState('');
   const [templateBusyId, setTemplateBusyId] = useState<number | null>(null);
-  const [username, setUsername] = useState('');
-  const [reason, setReason] = useState('');
-  const [candidate, setCandidate] = useState<HostCandidate | null>(null);
+  const [pickedUser, setPickedUser] = useState<PickedUser | null>(null);
+  const [pickedAdultConfirmed, setPickedAdultConfirmed] = useState<boolean | null>(null);
+  const [addReason, setAddReason] = useState(hostAddReasons[0]);
+  const [membershipPicker, setMembershipPicker] = useState<{ user: HostProgramMember; active: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [searching, setSearching] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -142,39 +156,32 @@ export function MessagingPage() {
     }
   };
 
-  const findCandidate = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const value = username.trim();
-    if (!/^[a-zA-Z0-9._-]{3,50}$/.test(value)) {
-      toast.error('أدخل اسم مستخدم صحيحًا.');
+  // التحقق من تأكيد العمر للحساب المختار (شرط العضوية في برنامج المضيفات)
+  useEffect(() => {
+    if (!pickedUser) {
+      setPickedAdultConfirmed(null);
       return;
     }
-    setSearching(true);
-    setCandidate(null);
-    try {
-      const { data, error: searchError } = await supabase
-        .from('users')
-        .select('id, username, display_name, adult_confirmed_at')
-        .eq('username', value)
-        .eq('role', 'user')
-        .eq('status', 'active')
-        .maybeSingle();
-      if (searchError) throw searchError;
-      if (!data) {
-        toast.error('لم يُعثر على مستخدم نشط بهذا الاسم.');
-        return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error: checkError } = await supabase
+          .from('users')
+          .select('adult_confirmed_at')
+          .eq('id', pickedUser.id)
+          .maybeSingle();
+        if (checkError) throw checkError;
+        if (!cancelled) setPickedAdultConfirmed(data ? Boolean(data.adult_confirmed_at) : null);
+      } catch {
+        if (!cancelled) setPickedAdultConfirmed(null);
       }
-      setCandidate(data as HostCandidate);
-    } catch (caught: unknown) {
-      toast.error(caught instanceof Error ? caught.message : 'تعذر البحث عن الحساب.');
-    } finally {
-      setSearching(false);
-    }
-  };
+    })();
+    return () => { cancelled = true; };
+  }, [pickedUser]);
 
-  const changeMembership = async (userId: string, active: boolean) => {
-    if (reason.trim().length < 3) {
-      toast.error('اكتب سببًا واضحًا من 3 أحرف على الأقل.');
+  const changeMembership = async (userId: string, active: boolean, providedReason: string) => {
+    if (providedReason.trim().length < 3) {
+      toast.error('اختر سببًا واضحًا من الخيارات.');
       return;
     }
     setProcessingId(userId);
@@ -182,13 +189,11 @@ export function MessagingPage() {
       const { error: actionError } = await supabase.rpc('admin_set_host_program_member', {
         p_user_id: userId,
         p_active: active,
-        p_reason: reason.trim(),
+        p_reason: providedReason.trim(),
       });
       if (actionError) throw actionError;
       toast.success(active ? 'أُضيفت المضيفة إلى برنامج المضيفات.' : 'أُوقفت عضوية المضيفة.');
-      setCandidate(null);
-      setUsername('');
-      setReason('');
+      setPickedUser(null);
       await load();
     } catch (caught: unknown) {
       toast.error(caught instanceof Error ? caught.message : 'تعذر تحديث عضوية المضيفة.');
@@ -236,11 +241,13 @@ export function MessagingPage() {
           <NumberField label="افتتاحيات مضيفات يوميًا لكل مستخدم" min={0} max={10} value={settings.host_intro_daily_limit}
             onChange={(value) => setSettings({ ...settings, host_intro_daily_limit: value })} />
         </div>
-        <label className="flex items-center gap-2 text-sm text-gray-200">
-          <input type="checkbox" checked={settings.host_outreach_enabled}
-            onChange={(event) => setSettings({ ...settings, host_outreach_enabled: event.target.checked })} />
-          تفعيل الرسائل الافتتاحية المجدولة من المضيفات
-        </label>
+        <Toggle
+          label="الرسائل الافتتاحية المجدولة من المضيفات"
+          description="عند الإيقاف لا تُرسل أي افتتاحية جديدة، وتبقى المكتبة والسجلات محفوظة."
+          checked={settings.host_outreach_enabled}
+          onChange={(checked) => setSettings({ ...settings, host_outreach_enabled: checked })}
+          disabled={saving || loading}
+        />
         <button disabled={saving || loading} className="rounded-lg bg-wattar-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
           {saving ? <Loader2 className="inline animate-spin" size={16} /> : 'حفظ الإعدادات'}
         </button>
@@ -251,28 +258,53 @@ export function MessagingPage() {
           <h2 className="flex items-center gap-2 font-semibold text-white"><ShieldCheck size={18} className="text-emerald-300" /> أعضاء برنامج المضيفات</h2>
           <p className="mt-1 text-xs text-gray-400">هذه العضوية منفصلة عن توثيق الحساب. أضف حسابًا نشطًا ومؤكد العمر مع تسجيل سبب إداري.</p>
         </div>
-        <form onSubmit={findCandidate} className="grid gap-3 md:grid-cols-[1fr_2fr_auto]">
-          <input className={inputClass} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="اسم المستخدم" />
-          <input className={inputClass} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="سبب التعيين أو الإيقاف (مدقق)" maxLength={500} />
-          <button disabled={searching} className="flex items-center justify-center gap-2 rounded-lg border border-wattar-700 px-4 py-2 text-sm text-white disabled:opacity-50">
-            {searching ? <Loader2 className="animate-spin" size={16} /> : <Search size={16} />} بحث
-          </button>
-        </form>
-        {candidate && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-wattar-800 bg-dark-bg p-3">
-            <div className="text-sm text-white">
-              <strong>{candidate.display_name || candidate.username}</strong>
-              <span className="mr-2 text-gray-400">@{candidate.username}</span>
-              {!candidate.adult_confirmed_at && <span className="mr-2 text-amber-300">غير مؤكد العمر</span>}
+        <div className="space-y-3">
+          <UserPicker
+            label="اختيار حساب لتعيينه مضيفة"
+            description="ابحث بالاسم أو الهاتف واختر بضغطة واحدة — يجب أن يكون حسابًا نشطًا."
+            value={pickedUser}
+            onChange={setPickedUser}
+          />
+          {pickedUser && (
+            <div className="space-y-3 rounded-lg border border-wattar-800 bg-dark-bg p-3">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-white">
+                <strong>{pickedUser.display_name || pickedUser.username}</strong>
+                <span className="text-gray-400">@{pickedUser.username}</span>
+                {pickedAdultConfirmed === null && <span className="text-gray-400">· جارٍ التحقق من العمر…</span>}
+                {pickedAdultConfirmed === false && <span className="text-amber-300">· غير مؤكد العمر — لا يمكن التعيين</span>}
+                {pickedUser.role && pickedUser.role !== 'user' && <span className="text-red-300">· دوره {pickedUser.role} وليس مستخدمًا عاديًا</span>}
+              </div>
+              <div>
+                <p className="mb-2 text-sm font-medium text-gray-200">سبب التعيين (يُسجَّل في سجل الإدارة)</p>
+                <div className="flex flex-wrap gap-2">
+                  {hostAddReasons.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setAddReason(option)}
+                      className={`rounded-xl border px-3 py-2 text-xs transition ${
+                        addReason === option
+                          ? 'border-wattar-400/50 bg-wattar-600/20 font-semibold text-white'
+                          : 'border-white/[0.07] bg-white/[0.02] text-gray-300 hover:border-white/15'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={pickedAdultConfirmed !== true || (pickedUser.role ?? 'user') !== 'user' || processingId === pickedUser.id}
+                onClick={() => void changeMembership(pickedUser.id, true, addReason)}
+                className="flex items-center gap-2 rounded-lg bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50"
+              >
+                {processingId === pickedUser.id ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />}
+                تعيين كمضيفة
+              </button>
             </div>
-            <button disabled={!candidate.adult_confirmed_at || processingId === candidate.id}
-              onClick={() => void changeMembership(candidate.id, true)}
-              className="flex items-center gap-2 rounded-lg bg-emerald-700 px-3 py-2 text-sm text-white disabled:opacity-50">
-              {processingId === candidate.id ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />}
-              تعيين كمضيفة
-            </button>
-          </div>
-        )}
+          )}
+        </div>
         {loading ? <p className="text-sm text-gray-400">جاري التحميل...</p> : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[560px] text-right text-sm">
@@ -287,7 +319,7 @@ export function MessagingPage() {
                     <td className="p-3 text-gray-400">{new Date(host.approved_at).toLocaleDateString('ar')}</td>
                     <td className="p-3">
                       <button disabled={processingId === host.user_id}
-                        onClick={() => void changeMembership(host.user_id, host.status !== 'active')}
+                        onClick={() => setMembershipPicker({ user: host, active: host.status === 'active' ? false : true })}
                         className="rounded-md border border-wattar-800 px-3 py-1.5 text-xs text-white disabled:opacity-50">
                         {host.status === 'active' ? 'إيقاف' : 'إعادة تفعيل'}
                       </button>
@@ -331,8 +363,7 @@ export function MessagingPage() {
       </section>
 
       <section className="rounded-xl border border-wattar-900 bg-dark-surface p-5">
-        <h2 className="mb-3 font-semibold text-white">آخر عمولات الرسائل (Diamond)</h2>
-        <div className="overflow-x-auto">
+        <h2 className="mb-3 font-semibold text-white">آخر عمولات الرسائل (Diamond)</h2>        <div className="overflow-x-auto">
           <table className="w-full min-w-[460px] text-right text-sm">
             <thead className="text-xs text-gray-400"><tr>
               <th className="p-3">المضيفة</th><th className="p-3">العمولة</th><th className="p-3">التاريخ</th>
@@ -350,6 +381,26 @@ export function MessagingPage() {
           </table>
         </div>
       </section>
+
+      {membershipPicker && (
+        <ReasonPickerModal
+          title={membershipPicker.active ? 'إعادة تفعيل مضيفة' : 'إيقاف عضوية مضيفة'}
+          subtitle={`${membershipPicker.user.display_name || membershipPicker.user.username} · @${membershipPicker.user.username}`}
+          description={membershipPicker.active
+            ? 'ستعود المضيفة لإرسال الافتتاحيات واستلام العمولات فوراً.'
+            : 'يستمر صرف عمولاتها المستحقة، لكنها تتوقف عن إرسال افتتاحيات جديدة.'}
+          options={membershipPicker.active ? hostReactivateReasons : hostSuspendReasons}
+          confirmLabel={membershipPicker.active ? 'تأكيد إعادة التفعيل' : 'تأكيد الإيقاف'}
+          tone={membershipPicker.active ? 'info' : 'warning'}
+          processing={processingId === membershipPicker.user.user_id}
+          onClose={() => { if (!processingId) setMembershipPicker(null); }}
+          onSubmit={(reason) => {
+            const picker = membershipPicker;
+            setMembershipPicker(null);
+            void changeMembership(picker.user.user_id, picker.active, reason);
+          }}
+        />
+      )}
     </div>
   );
 }

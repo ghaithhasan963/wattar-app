@@ -5,9 +5,11 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  BookOpen,
   Building2,
   Check,
   CircleDollarSign,
+  History,
   Loader2,
   Plus,
   RefreshCw,
@@ -23,6 +25,7 @@ import { toast } from 'sonner';
 import { callFunction, supabase } from '@/lib/supabase';
 import { PageHeader, SectionCard, SelectField, Segmented, Toggle, Badge, EmptyState, TextField, NumberField } from '@/components/ui';
 import { ReasonPickerModal } from '@/components/ReasonPicker';
+import { LedgerModal } from '@/components/LedgerModal';
 
 interface Agency {
   id: string;
@@ -120,6 +123,38 @@ const fundingRejectReasons = [
   'طلب مكرر',
 ];
 
+const FUNDING_STATUS_LABELS: Record<string, string> = {
+  pending: 'معلّق',
+  approved: 'معتمد',
+  rejected: 'مرفوض',
+  cancelled: 'ملغى من الطالب',
+};
+
+const FUNDING_STATUS_TONES: Record<string, 'warning' | 'success' | 'danger' | 'neutral'> = {
+  pending: 'warning',
+  approved: 'success',
+  rejected: 'danger',
+  cancelled: 'neutral',
+};
+
+const agencyFreezeReasons = [
+  'مراجعة مالية إدارية',
+  'شبهة تلاعب بالسجلات',
+  'مطابقة جرد دورية',
+];
+
+const agencyUnfreezeReasons = [
+  'انتهت المراجعة المالية',
+  'تأكدت سلامة السجلات',
+];
+
+const agentAdjustReasonsAgency = [
+  'تسوية فرق مالي مؤكد',
+  'تغطية طلبات سحب معلّقة',
+  'تصحيح قيد خاطئ',
+  'تحويل من محفظة الوكالة',
+];
+
 export function AgenciesPage() {
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [agents, setAgents] = useState<AgencyAgent[]>([]);
@@ -131,8 +166,10 @@ export function AgenciesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [createOpen, setCreateOpen] = useState(false);
   const [manageAgency, setManageAgency] = useState<Agency | null>(null);
+  const [ledgerAgency, setLedgerAgency] = useState<Agency | null>(null);
   const [statusPicker, setStatusPicker] = useState<{ agency: Agency; status: 'suspended' | 'revoked' } | null>(null);
   const [fundingPicker, setFundingPicker] = useState<{ request: FundingRequest; decision: 'approved' | 'rejected' } | null>(null);
+  const [freezePicker, setFreezePicker] = useState<Agency | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -146,8 +183,8 @@ export function AgenciesPage() {
         supabase
           .from('agent_funding_requests')
           .select('id, requester_kind, agent_id, agency_id, amount_usd, reason, status, decision_note, created_at')
-          .eq('status', 'pending')
-          .order('created_at', { ascending: true }),
+          .order('created_at', { ascending: false })
+          .limit(120),
       ]);
       const failure = agencyRes.error ?? agentRes.error ?? fundingRes.error;
       if (failure) throw failure;
@@ -209,6 +246,12 @@ export function AgenciesPage() {
     });
   }, [agencies, managers, search, statusFilter]);
 
+  const pendingFunding = useMemo(
+    () => funding.filter((request) => request.status === 'pending').sort((a, b) => a.created_at.localeCompare(b.created_at)),
+    [funding],
+  );
+  const fundingHistory = useMemo(() => funding.filter((request) => request.status !== 'pending'), [funding]);
+
   const kpis = useMemo(() => ({
     total: agencies.length,
     active: agencies.filter((agency) => agency.status === 'active').length,
@@ -249,7 +292,7 @@ export function AgenciesPage() {
         <KpiCard icon={Building2} label="الوكالات" value={String(kpis.total)} hint={`${kpis.active} معتمدة`} />
         <KpiCard icon={UserCheck} label="الوكلاء" value={String(kpis.agents)} hint="كل الوكلاء المسجّلين" />
         <KpiCard icon={Wallet} label="أرصدة المحافظ" value={`$${kpis.wallets.toFixed(2)}`} hint="وكالات + وكلاء" />
-        <KpiCard icon={CircleDollarSign} label="طلبات تمويل معلّقة" value={String(funding.length)} hint="تحتاج قراراً" tone={funding.length ? 'warning' : 'default'} />
+        <KpiCard icon={CircleDollarSign} label="طلبات تمويل معلّقة" value={String(pendingFunding.length)} hint="تحتاج قراراً" tone={pendingFunding.length ? 'warning' : 'default'} />
       </div>
 
       <SectionCard
@@ -285,7 +328,7 @@ export function AgenciesPage() {
         </div>
       </SectionCard>
 
-      {funding.length > 0 && (
+      {pendingFunding.length > 0 && (
         <SectionCard
           title="طلبات التمويل المعلّقة"
           icon={CircleDollarSign}
@@ -293,7 +336,7 @@ export function AgenciesPage() {
           description="الوكيل أو مدير الوكالة يطلب تمويلاً عندما لا يكفي رصيده. الاعتماد يشحن المحفظة فوراً بقيد في الدفتر."
         >
           <div className="divide-y divide-white/[0.06]">
-            {funding.map((request) => {
+            {pendingFunding.map((request) => {
               const agency = agencies.find((row) => row.id === request.agency_id);
               const agent = agents.find((row) => row.id === request.agent_id);
               const target = request.requester_kind === 'agency'
@@ -329,6 +372,37 @@ export function AgenciesPage() {
                       رفض
                     </button>
                   </div>
+                </div>
+              );
+            })}
+          </div>
+        </SectionCard>
+      )}
+
+      {fundingHistory.length > 0 && (
+        <SectionCard
+          title={`سجل طلبات التمويل (${fundingHistory.length})`}
+          icon={History}
+          description="كل القرارات السابقة — المعتمد والمرفوض والملغى — مع سبب القرار كما سُجّل."
+        >
+          <div className="max-h-[380px] divide-y divide-white/[0.06] overflow-y-auto">
+            {fundingHistory.map((request) => {
+              const agency = agencies.find((row) => row.id === request.agency_id);
+              const agent = agents.find((row) => row.id === request.agent_id);
+              const target = request.requester_kind === 'agency'
+                ? `وكالة: ${agency?.name ?? '—'}`
+                : `وكيل: ${agent?.user?.display_name ?? agent?.user?.username ?? '—'}`;
+              return (
+                <div key={request.id} className="flex flex-wrap items-center gap-3 py-2.5">
+                  <Badge tone={FUNDING_STATUS_TONES[request.status] ?? 'neutral'}>
+                    {FUNDING_STATUS_LABELS[request.status] ?? request.status}
+                  </Badge>
+                  <Badge tone="info">${Number(request.amount_usd).toFixed(2)}</Badge>
+                  <span className="text-sm text-gray-100">{target}</span>
+                  <span className="min-w-0 flex-1 truncate text-xs text-gray-400">
+                    {request.decision_note ? `القرار: ${request.decision_note}` : request.reason}
+                  </span>
+                  <span className="text-[11px] text-gray-500">{new Date(request.created_at).toLocaleString('ar', { dateStyle: 'short', timeStyle: 'short' })}</span>
                 </div>
               );
             })}
@@ -454,12 +528,16 @@ export function AgenciesPage() {
                     <span className="flex-1" />
                     <button
                       type="button"
+                      onClick={() => setLedgerAgency(agency)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2.5 py-1.5 text-[11px] text-gray-300 transition hover:bg-white/[0.06]"
+                    >
+                      <BookOpen size={12} />
+                      دفتر المحفظة
+                    </button>
+                    <button
+                      type="button"
                       disabled={busy !== null}
-                      onClick={() => void call(
-                        { action: 'freeze_wallet', kind: 'agency', id: agency.id, frozen: !agency.wallet_frozen_at, reason: agency.wallet_frozen_at ? 'انتهت المراجعة المالية' : 'مراجعة مالية إدارية' },
-                        agency.wallet_frozen_at ? 'تم فك تجميد المحفظة.' : 'تم تجميد المحفظة.',
-                        `freeze-${agency.id}`,
-                      )}
+                      onClick={() => setFreezePicker(agency)}
                       className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2.5 py-1.5 text-[11px] text-gray-300 transition hover:bg-white/[0.06] disabled:opacity-50"
                     >
                       <Snowflake size={12} />
@@ -538,6 +616,40 @@ export function AgenciesPage() {
               `funding-${picker.request.id}`,
             );
           }}
+        />
+      )}
+
+      {freezePicker && (
+        <ReasonPickerModal
+          title={freezePicker.wallet_frozen_at ? 'فك تجميد محفظة الوكالة' : 'تجميد محفظة الوكالة'}
+          subtitle={freezePicker.name}
+          description={freezePicker.wallet_frozen_at
+            ? 'يستأنف كل عمل الوكالة المالي بعد فك التجميد.'
+            : 'التجميد يوقف كل الحركات المالية للوكالة ووكلائها فوراً.'}
+          options={freezePicker.wallet_frozen_at ? agencyUnfreezeReasons : agencyFreezeReasons}
+          confirmLabel={freezePicker.wallet_frozen_at ? 'تأكيد فك التجميد' : 'تأكيد التجميد'}
+          tone={freezePicker.wallet_frozen_at ? 'info' : 'warning'}
+          processing={busy === `freeze-${freezePicker.id}`}
+          onClose={() => { if (!busy) setFreezePicker(null); }}
+          onSubmit={(reason) => {
+            const target = freezePicker;
+            setFreezePicker(null);
+            void call(
+              { action: 'freeze_wallet', kind: 'agency', id: target.id, frozen: !target.wallet_frozen_at, reason },
+              target.wallet_frozen_at ? 'تم فك تجميد المحفظة.' : 'تم تجميد المحفظة.',
+              `freeze-${target.id}`,
+            );
+          }}
+        />
+      )}
+
+      {ledgerAgency && (
+        <LedgerModal
+          kind="agency"
+          targetId={ledgerAgency.id}
+          title="دفتر محفظة الوكالة"
+          subtitle={`${ledgerAgency.name} — الرصيد الحالي $${Number(ledgerAgency.wallet_usd).toFixed(2)}`}
+          onClose={() => setLedgerAgency(null)}
         />
       )}
     </div>
@@ -754,6 +866,11 @@ function ManageAgencyModal({
   const [walletReason, setWalletReason] = useState(walletReasons[0]);
   const [targetAgent, setTargetAgent] = useState('');
 
+  const [agentLedger, setAgentLedger] = useState<AgencyAgent | null>(null);
+  const [agentFreeze, setAgentFreeze] = useState<AgencyAgent | null>(null);
+  const [agentAdjust, setAgentAdjust] = useState<AgencyAgent | null>(null);
+  const [agencyLedgerOpen, setAgencyLedgerOpen] = useState(false);
+
   const agencyAgents = agents.filter((agent) => agent.agency_id === agency.id);
   const unassigned = agents.filter((agent) => !agent.agency_id);
   const manager = agency.owner_user_id ? managers[agency.owner_user_id] : null;
@@ -915,8 +1032,34 @@ function ManageAgencyModal({
                       <div key={agent.id} className="flex flex-wrap items-center gap-2 px-3 py-2.5">
                         <Users size={14} className="text-gray-500" />
                         <span className="text-sm text-gray-100">{agent.user?.display_name ?? agent.user?.username ?? 'وكيل'}</span>
-                        <Badge tone={agent.wallet_frozen_at ? 'danger' : 'neutral'}>${Number(agent.wallet_usd).toFixed(2)}</Badge>
+                        <Badge tone={agent.wallet_frozen_at ? 'danger' : 'neutral'}>
+                          {agent.wallet_frozen_at ? <Snowflake size={10} /> : null} ${Number(agent.wallet_usd).toFixed(2)}
+                        </Badge>
                         <span className="flex-1" />
+                        <button
+                          type="button"
+                          onClick={() => setAgentLedger(agent)}
+                          className="rounded-md border border-white/10 px-2 py-1 text-[11px] text-gray-300 transition hover:bg-white/[0.06]"
+                        >
+                          دفتر
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy !== null}
+                          onClick={() => setAgentAdjust(agent)}
+                          className="rounded-md border border-white/10 px-2 py-1 text-[11px] text-gray-300 transition hover:bg-white/[0.06] disabled:opacity-50"
+                        >
+                          تسوية
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy !== null}
+                          onClick={() => setAgentFreeze(agent)}
+                          className="inline-flex items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-[11px] text-gray-300 transition hover:bg-white/[0.06] disabled:opacity-50"
+                        >
+                          <Snowflake size={11} />
+                          {agent.wallet_frozen_at ? 'فك' : 'تجميد'}
+                        </button>
                         <button
                           type="button"
                           disabled={busy === identifier}
@@ -979,6 +1122,14 @@ function ManageAgencyModal({
                 {agency.wallet_frozen_at ? (
                   <p className="mt-2 text-[11px] text-red-300">مجمّدة: {agency.wallet_frozen_reason ?? 'بدون سبب'}</p>
                 ) : null}
+                <button
+                  type="button"
+                  onClick={() => setAgencyLedgerOpen(true)}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-[11px] text-gray-300 transition hover:bg-white/[0.06]"
+                >
+                  <BookOpen size={12} />
+                  دفتر محفظة الوكالة
+                </button>
               </div>
 
               <div className="space-y-3 rounded-xl border border-white/[0.07] p-3">
@@ -1048,6 +1199,159 @@ function ManageAgencyModal({
               </div>
             </>
           )}
+        </div>
+
+        {agentLedger && (
+          <LedgerModal
+            kind="agent"
+            targetId={agentLedger.id}
+            title="دفتر محفظة الوكيل"
+            subtitle={`${agentLedger.user?.display_name ?? agentLedger.user?.username ?? 'وكيل'} — الرصيد الحالي $${Number(agentLedger.wallet_usd).toFixed(2)}`}
+            onClose={() => setAgentLedger(null)}
+          />
+        )}
+        {agentFreeze && (
+          <ReasonPickerModal
+            title={agentFreeze.wallet_frozen_at ? 'فك تجميد محفظة الوكيل' : 'تجميد محفظة الوكيل'}
+            subtitle={agentFreeze.user?.display_name ?? agentFreeze.user?.username ?? ''}
+            description={agentFreeze.wallet_frozen_at
+              ? 'يستأنف الوكيل الشحن والسحب فوراً بعد فك التجميد.'
+              : 'التجميد يوقف كل حركة على محفظة الوكيل فوراً.'}
+            options={agentFreeze.wallet_frozen_at ? agencyUnfreezeReasons : agencyFreezeReasons}
+            confirmLabel={agentFreeze.wallet_frozen_at ? 'تأكيد فك التجميد' : 'تأكيد التجميد'}
+            tone={agentFreeze.wallet_frozen_at ? 'info' : 'warning'}
+            processing={busy === identifier}
+            onClose={() => { if (!busy) setAgentFreeze(null); }}
+            onSubmit={(reason) => {
+              const target = agentFreeze;
+              setAgentFreeze(null);
+              void onCall(
+                { action: 'freeze_wallet', kind: 'agent', id: target.id, frozen: !target.wallet_frozen_at, reason },
+                target.wallet_frozen_at ? 'تم فك تجميد محفظة الوكيل.' : 'تم تجميد محفظة الوكيل.',
+                identifier,
+              );
+            }}
+          />
+        )}
+        {agentAdjust && (
+          <AgencyAgentAdjustModal
+            agent={agentAdjust}
+            busy={busy !== null}
+            onClose={() => setAgentAdjust(null)}
+            onDone={() => setAgentAdjust(null)}
+            onCall={onCall}
+          />
+        )}
+        {agencyLedgerOpen && (
+          <LedgerModal
+            kind="agency"
+            targetId={agency.id}
+            title="دفتر محفظة الوكالة"
+            subtitle={`${agency.name} — الرصيد الحالي $${Number(agency.wallet_usd).toFixed(2)}`}
+            onClose={() => setAgencyLedgerOpen(false)}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AgencyAgentAdjustModal({
+  agent,
+  busy,
+  onClose,
+  onDone,
+  onCall,
+}: {
+  agent: AgencyAgent;
+  busy: boolean;
+  onClose: () => void;
+  onDone: () => void;
+  onCall: (body: Record<string, unknown>, message: string, identifier: string) => Promise<boolean>;
+}) {
+  const [direction, setDirection] = useState<'credit' | 'debit'>('credit');
+  const [amount, setAmount] = useState('');
+  const [reason, setReason] = useState(agentAdjustReasonsAgency[0]);
+
+  const value = Number(amount) || 0;
+  const projected = direction === 'credit' ? Number(agent.wallet_usd) + value : Number(agent.wallet_usd) - value;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#171a2c]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between border-b border-white/[0.07] p-5">
+          <div>
+            <h2 className="text-lg font-semibold text-white">تسوية محفظة الوكيل</h2>
+            <p className="mt-1 text-xs text-gray-400">
+              {agent.user?.display_name ?? agent.user?.username ?? 'وكيل'} — الرصيد الحالي ${Number(agent.wallet_usd).toFixed(2)}
+            </p>
+          </div>
+          <button type="button" onClick={onClose} className="text-gray-400 hover:text-white" aria-label="إغلاق"><X size={20} /></button>
+        </div>
+        <div className="space-y-4 p-5">
+          {agent.wallet_frozen_at ? (
+            <p className="rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+              المحفظة مجمّدة — يجب فك التجميد أولاً.
+            </p>
+          ) : null}
+          <Segmented
+            options={[
+              { label: 'إضافة رصيد +', value: 'credit' },
+              { label: 'خصم رصيد −', value: 'debit' },
+            ]}
+            value={direction}
+            onChange={setDirection}
+            columns={2}
+          />
+          <NumberField label="المبلغ" value={amount} onChange={setAmount} unit="$" min={1} />
+          <div>
+            <p className="mb-2 text-sm font-medium text-gray-200">سبب التسوية</p>
+            <div className="space-y-2">
+              {agentAdjustReasonsAgency.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setReason(option)}
+                  className={`block w-full rounded-xl border px-3 py-2 text-right text-xs transition ${
+                    reason === option
+                      ? 'border-wattar-400/50 bg-wattar-600/20 font-semibold text-white'
+                      : 'border-white/[0.07] bg-white/[0.02] text-gray-300 hover:border-white/15'
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2 text-xs text-gray-300">
+            الرصيد بعد التسوية: <span className={`font-bold ${projected < 0 ? 'text-red-300' : 'text-white'}`}>${projected.toFixed(2)}</span>
+            {projected < 0 ? ' — لا يمكن أن يصبح الرصيد سالباً.' : ''}
+          </p>
+          <button
+            type="button"
+            disabled={busy || value <= 0 || projected < 0 || Boolean(agent.wallet_frozen_at)}
+            onClick={() => void onCall(
+              {
+                action: 'adjust_agent_wallet',
+                agent_id: agent.id,
+                amount_usd: direction === 'credit' ? value : -value,
+                reason,
+                idempotency_key: crypto.randomUUID(),
+              },
+              'نُفّذت التسوية بقيد في دفتر محفظة الوكيل.',
+              `adjust-${agent.id}`,
+            ).then((ok) => { if (ok) onDone(); })}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-wattar-600 py-2.5 text-sm font-semibold text-white transition hover:bg-wattar-500 disabled:opacity-50"
+          >
+            {busy ? <Loader2 size={16} className="animate-spin" /> : <Wallet size={16} />}
+            تنفيذ التسوية بقيد
+          </button>
         </div>
       </div>
     </div>

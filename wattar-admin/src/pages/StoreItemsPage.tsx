@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Loader2, Plus, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { Toggle } from '@/components/ui';
 
 interface GiftItem {
   id: string;
@@ -170,10 +171,12 @@ export function StoreItemsPage() {
           <Input label="نسبة Diamonds للمستلم (%)" type="number" value={form.recipient_diamond_ratio} onChange={(v) => setForm({ ...form, recipient_diamond_ratio: v })} />
           <Input label="التصنيف" value={form.category} onChange={(v) => setForm({ ...form, category: v })} />
           <Input label="ترتيب العرض" type="number" value={form.sort_order} onChange={(v) => setForm({ ...form, sort_order: v })} />
-          <label className="flex items-center gap-2 text-sm text-gray-300">
-            <input type="checkbox" checked={form.is_premium} onChange={(e) => setForm({ ...form, is_premium: e.target.checked })} className="h-4 w-4 accent-wattar-600" />
-            هدية مميزة
-          </label>
+            <Toggle
+              label="هدية مميزة"
+              description="تظهر في قسم الهدايا المميزة"
+              checked={form.is_premium}
+              onChange={(checked) => setForm({ ...form, is_premium: checked })}
+            />
         </div>
         <button disabled={creating} className="flex items-center gap-2 rounded-lg bg-wattar-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
           {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
@@ -200,10 +203,13 @@ export function StoreItemsPage() {
                     <p className="mt-1 text-xs text-gray-400">{gift.name}</p>
                   </div>
                 </div>
-                <label className="flex items-center gap-2 text-sm text-gray-300">
-                  <input type="checkbox" checked={gift.is_active} onChange={(e) => updateGift(gift.id, 'is_active', e.target.checked)} className="h-4 w-4 accent-wattar-600" />
-                  {gift.is_active ? 'متاحة' : 'موقوفة'}
-                </label>
+                <div className="w-full max-w-[220px]">
+                  <Toggle
+                    label={gift.is_active ? 'متاحة في المتجر' : 'موقوفة'}
+                    checked={gift.is_active}
+                    onChange={(checked) => updateGift(gift.id, 'is_active', checked)}
+                  />
+                </div>
               </div>
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 <Input label="اسم داخلي" value={gift.name} onChange={(v) => updateGift(gift.id, 'name', v)} />
@@ -214,10 +220,11 @@ export function StoreItemsPage() {
                 <Input label="نسبة Diamonds للمستلم (%)" type="number" value={String(gift.recipient_diamond_ratio)} onChange={(v) => updateGift(gift.id, 'recipient_diamond_ratio', Number(v))} />
                 <Input label="التصنيف" value={gift.category ?? ''} onChange={(v) => updateGift(gift.id, 'category', v || null)} />
                 <Input label="ترتيب العرض" type="number" value={String(gift.sort_order)} onChange={(v) => updateGift(gift.id, 'sort_order', Number(v))} />
-                <label className="flex items-center gap-2 text-sm text-gray-300">
-                  <input type="checkbox" checked={gift.is_premium} onChange={(e) => updateGift(gift.id, 'is_premium', e.target.checked)} className="h-4 w-4 accent-wattar-600" />
-                  هدية مميزة
-                </label>
+                <Toggle
+                  label="هدية مميزة"
+                  checked={gift.is_premium}
+                  onChange={(checked) => updateGift(gift.id, 'is_premium', checked)}
+                />
               </div>
               <div className="flex justify-end">
                 <button onClick={() => void save(gift)} disabled={savingId === gift.id} className="flex items-center gap-2 rounded-lg bg-wattar-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">

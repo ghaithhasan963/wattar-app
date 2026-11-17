@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Loader2, Plus, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { Toggle } from '@/components/ui';
 
 type MissionEvent = 'daily_grant' | 'story_post' | 'gift_sent' | 'gift_received' | 'following';
 
@@ -192,15 +193,14 @@ export function MissionsPage() {
                   <h2 className="font-semibold text-white">{mission.mission_key}</h2>
                   <p className="mt-1 text-xs text-gray-400">{eventLabels[mission.event_type]}</p>
                 </div>
-                <label className="flex items-center gap-2 text-sm text-gray-300">
-                  <input
-                    type="checkbox"
+                <div className="w-full max-w-xs">
+                  <Toggle
+                    label="حالة المهمة"
+                    description={mission.is_enabled ? 'مفعّلة وتُحتسب للمستخدمين' : 'معطّلة'}
                     checked={mission.is_enabled}
-                    onChange={(event) => updateMission(mission.id, 'is_enabled', event.target.checked)}
-                    className="h-4 w-4 accent-wattar-600"
+                    onChange={(checked) => updateMission(mission.id, 'is_enabled', checked)}
                   />
-                  {mission.is_enabled ? 'مفعّلة' : 'معطّلة'}
-                </label>
+                </div>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <Input label="العنوان" value={mission.title} onChange={(v) => updateMission(mission.id, 'title', v)} />

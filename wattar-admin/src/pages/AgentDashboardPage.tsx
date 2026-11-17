@@ -1,12 +1,12 @@
 /**
- * Wattar Admin ط£آ¢أ¢â€ڑآ¬أ¢â‚¬â€Œ ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ·ط¢آ­ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ / ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ© (M5)
+ * Wattar Admin — لوحة الوكيل / مدير الوكالة (M5)
  *
- * ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ ط·آ¸أ¢â‚¬آ ط·آ¸ط¸آ¾ط·آ·ط¢آ³ط·آ¸أ¢â‚¬طŒ ط·آ¸ط¸آ¹ط·آ·ط¢آ®ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ­ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ :
- *  - ط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ: ط·آ·ط¹آ¾ط·آ·ط¢آ´ط·آ·ط·â€؛ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ  ط·آ¸ط«â€ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨ط·آ·ط¥â€™ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¢آ© ط·آ¸ط«â€ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ·ط¹آ¾ط·آ·ط¢آ±ط·آ·ط¥â€™ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چط·آ·ط¥â€™ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’ط·آ·ط¥â€™ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ±.
- *  - ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ·ط¢آ± ط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©: ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ ط·آ·ط¢آ³ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘ (ط·آ·ط¢آ¥ط·آ¸أ¢â‚¬آ  ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ  ط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¹ ط·آ·ط¢آ£ط·آ¸ط¸آ¹ط·آ·ط¢آ¶ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¹) + ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ·ط¢آ­ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ© ط·آ¸ط«â€ ط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ¤ط·آ¸أ¢â‚¬طŒط·آ·ط¢آ§.
+ * الحساب نفسه يخدم حالتين:
+ *  - وكيل: تشغيل الشحن والسحب، المحفظة والدفتر، طلبات التمويل، العملاء، التقارير.
+ *  - مدير وكالة: كل ما سبق (إن كان وكيلاً أيضاً) + لوحة الوكالة ووكلاؤها.
  *
- * ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ£ط·آ·ط¢آ±ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¹آ¾ط·آ¸ط¹ث†ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ±ط·آ·ط¢آ£ ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ¯ط·آ¸ط«â€ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ§ط·آ·ط¢آ¹ط·آ·ط¢آ¯ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬طŒط·آ¸ط«â€ ط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ³ط·آ·ط¹آ¾ط·آ·ط¢آ®ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¦ط·آ·ط¥â€™
- * ط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ¸ط¦â€™ط·آ·ط¹آ¾ط·آ·ط¢آ§ط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ±ط·آ¸أ¢â‚¬ع© ط·آ·ط¢آ¹ط·آ·ط¢آ¨ط·آ·ط¢آ± Edge Function ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ³ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬ع©ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ© ط·آ¸ط¸آ¾ط·آ¸ط¸آ¹ ط·آ·ط¢آ³ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬ع‘.
+ * كل الأرقام تُقرأ من دوال قاعدة البيانات المحمية بهوية المستخدم،
+ * وكل عملية كتابية تمرّ عبر Edge Function مسجّلة في سجل التدقيق.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -31,25 +31,25 @@ import { Badge, EmptyState, NumberField, Segmented, TextField } from '@/componen
 import { ReasonPickerModal } from '@/components/ReasonPicker';
 
 const depositRejectReasons = [
-  'ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ ط·آ¸ط¸آ¹ط·آ·ط¢آµط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ ط·آ·ط¢آ¥ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ° ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ',
-  'ط·آ·ط¢آµط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ«ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط·â€؛ط·آ¸ط¸آ¹ط·آ·ط¢آ± ط·آ¸ط«â€ ط·آ·ط¢آ§ط·آ·ط¢آ¶ط·آ·ط¢آ­ط·آ·ط¢آ©',
-  'ط·آ·ط¢آ±ط·آ¸أ¢â‚¬ع‘ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ·ط·â€؛ط·آ¸ط¸آ¹ط·آ·ط¢آ± ط·آ·ط¢آµط·آ·ط¢آ­ط·آ¸ط¸آ¹ط·آ·ط¢آ­ ط·آ·ط¢آ£ط·آ¸ط«â€  ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¦â€™ط·آ·ط¢آ±ط·آ·ط¢آ±',
-  'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ¸ط¸آ¹ط·آ·ط¢آ·ط·آ·ط¢آ§ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ·ط¢آ¨',
-  'ط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ±ط·آ·ط¢آ³ط·آ¸أ¢â‚¬â€چ ط·آ·ط·â€؛ط·آ¸ط¸آ¹ط·آ·ط¢آ± ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ·ط·آ·ط¢آ§ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ©',
+  'لم يصل المبلغ إلى محفظة الوكيل',
+  'صورة الإثبات غير واضحة',
+  'رقم العملية غير صحيح أو مكرر',
+  'المبلغ لا يطابق المطلوب',
+  'بيانات المرسل غير مطابقة',
 ];
 
 const withdrawalRejectReasons = [
-  'ط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ³ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¦ ط·آ·ط·â€؛ط·آ¸ط¸آ¹ط·آ·ط¢آ± ط·آ·ط¢آµط·آ·ط¢آ­ط·آ¸ط¸آ¹ط·آ·ط¢آ­ط·آ·ط¢آ©',
-  'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ³ط·آ·ط¹آ¾ط·آ·ط¢آ®ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¦ ط·آ·ط·â€؛ط·آ¸ط¸آ¹ط·آ·ط¢آ± ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¤ط·آ¸أ¢â‚¬طŒط·آ¸أ¢â‚¬â€چ ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸ط¸آ¹',
-  'ط·آ·ط¹آ¾ط·آ·ط¢آ¬ط·آ·ط¢آ§ط·آ¸ط«â€ ط·آ·ط¢آ² ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ¸ط«â€ ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹',
-  'ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¦â€™ط·آ·ط¢آ±ط·آ·ط¢آ± ط·آ·ط¢آ£ط·آ¸ط«â€  ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ´ط·آ·ط¢آ¨ط·آ¸ط«â€ ط·آ¸أ¢â‚¬طŒ',
+  'بيانات الاستلام غير صحيحة',
+  'المستخدم غير مؤهل للسحب النقدي',
+  'تجاوز الحد اليومي',
+  'طلب مكرر أو مشبوه',
 ];
 
 const fundingReasons = [
-  'ط·آ¸أ¢â‚¬آ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آµ ط·آ·ط¢آ±ط·آ·ط¢آµط·آ¸ط¸آ¹ط·آ·ط¢آ¯ ط·آ·ط¹آ¾ط·آ·ط¢آ´ط·آ·ط·â€؛ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط·â€؛ط·آ·ط¢آ·ط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ ',
-  'ط·آ·ط¹آ¾ط·آ·ط·â€؛ط·آ·ط¢آ·ط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ³ط·آ·ط¹آ¾ط·آ·ط¢آ®ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ ',
-  'ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ³ط·آ¸ط¸آ¹ط·آ·ط¢آ¹ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ§ط·آ·ط¢آ¹ط·آ·ط¢آ¯ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’',
-  'ط·آ·ط¹آ¾ط·آ·ط¢آ³ط·آ¸ط«â€ ط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ·ط¢آ±ط·آ·ط¢آµط·آ¸ط¸آ¹ط·آ·ط¢آ¯ ط·آ·ط¢آ¨ط·آ·ط¢آ¹ط·آ·ط¢آ¯ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ±ط·آ·ط¢آ§ط·آ·ط¢آ¬ط·آ·ط¢آ¹ط·آ·ط¢آ© ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ·ط¢آ©',
+  'نقص رصيد تشغيلي لتغطية طلبات الشحن',
+  'تغطية طلبات سحب المستخدمين',
+  'توسيع قاعدة العملاء',
+  'تسوية رصيد بعد مراجعة مالية',
 ];
 
 interface AgentWalletPayload {
@@ -239,7 +239,7 @@ export function AgentDashboardPage() {
     setLoading(true);
     setDashboardError(null);
     try {
-      if (!profile?.id) throw new Error('ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ°ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬ع‘ط·آ¸أ¢â‚¬ع‘ ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ­ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ. ط·آ·ط¢آ³ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬ع©ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¯ط·آ·ط¢آ®ط·آ¸ط«â€ ط·آ¸أ¢â‚¬â€چ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¬ط·آ·ط¢آ¯ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¹ط·آ·ط¢آ§.');
+      if (!profile?.id) throw new Error('تعذر التحقق من حساب الوكيل. سجّل الدخول مجددًا.');
 
       const [walletResult, agencyResult] = await Promise.all([
         supabase.rpc('get_my_agent_wallet'),
@@ -254,12 +254,12 @@ export function AgentDashboardPage() {
       if (!walletPayload.is_agent && !agencyPayload.is_manager) {
         setWallet(null);
         setAgencyDash(null);
-        throw new Error('ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ¸ط¸آ¹ط·آ¸ط«â€ ط·آ·ط¢آ¬ط·آ·ط¢آ¯ ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¾ ط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ£ط·آ¸ط«â€  ط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ© ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ´ط·آ·ط¢آ·ط·آ·ط¢آ© ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ±ط·آ·ط¹آ¾ط·آ·ط¢آ¨ط·آ·ط¢آ· ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬طŒط·آ·ط¢آ°ط·آ·ط¢آ§ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨.');
+        throw new Error('لا يوجد ملف وكيل أو وكالة نشطة مرتبط بهذا الحساب.');
       }
       if (walletPayload.is_agent && walletPayload.agent?.status !== 'active') {
         setWallet(null);
         setAgencyDash(null);
-        throw new Error('ط·آ·ط¢آ­ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸أ¢â‚¬ع‘ط·آ¸ط«â€ ط·آ¸ط¸آ¾. ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ§ط·آ·ط¢آµط·آ¸أ¢â‚¬â€چ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ·ط¢آ©.');
+        throw new Error('حساب الوكيل موقوف. تواصل مع الإدارة.');
       }
 
       setWallet(walletPayload);
@@ -325,7 +325,7 @@ export function AgentDashboardPage() {
         }
       }));
       if (failedProofCount > 0) {
-        toast.error(`ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ°ط·آ·ط¢آ± ط·آ¸ط¸آ¾ط·آ·ط¹آ¾ط·آ·ط¢آ­ ط·آ·ط¢آ¥ط·آ·ط¢آ«ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ${failedProofCount.toLocaleString('ar')} ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ . ط·آ·ط¢آ­ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬ع©ط·آ·ط¢آ« ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آµط·آ¸ط¸آ¾ط·آ·ط¢آ­ط·آ·ط¢آ© ط·آ·ط¢آ£ط·آ¸ط«â€  ط·آ·ط¢آ£ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ·ط¢آ©.`);
+        toast.error(`تعذر فتح إثبات ${failedProofCount.toLocaleString('ar')} من طلبات الشحن. حدّث الصفحة أو أبلغ الإدارة.`);
       }
 
       const customerRows = (customersResult.data ?? []) as AgentCustomer[];
@@ -342,7 +342,7 @@ export function AgentDashboardPage() {
       setReport((reportResult.data ?? null) as AgentReport | null);
       setLastUpdatedAt(new Date());
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ°ط·آ·ط¢آ± ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ·ط¢آ­ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ.';
+      const message = error instanceof Error ? error.message : 'تعذر تحميل لوحة الوكيل.';
       setDashboardError(message);
       toast.error(message);
     } finally {
@@ -363,7 +363,7 @@ export function AgentDashboardPage() {
       setCustomers((current) => [...current, ...page]);
       setHasMoreCustomers(page.length === customerPageSize);
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ°ط·آ·ط¢آ± ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’.');
+      toast.error(error instanceof Error ? error.message : 'تعذر تحميل بقية العملاء.');
     } finally {
       setLoadingMoreCustomers(false);
     }
@@ -400,11 +400,11 @@ export function AgentDashboardPage() {
         }
       }));
       if (failedProofCount > 0) {
-        toast.error(`ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ°ط·آ·ط¢آ± ط·آ¸ط¸آ¾ط·آ·ط¹آ¾ط·آ·ط¢آ­ ط·آ·ط¢آ¥ط·آ·ط¢آ«ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ${failedProofCount.toLocaleString('ar')} ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ .`);
+        toast.error(`تعذر فتح إثبات ${failedProofCount.toLocaleString('ar')} من طلبات الشحن.`);
       }
       setDeposits((current) => [...current, ...pageWithProofs]);
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ°ط·آ·ط¢آ± ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ£ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¦.');
+      toast.error(error instanceof Error ? error.message : 'تعذر تحميل طلبات الشحن الأقدم.');
     } finally {
       setLoadingMoreDeposits(false);
     }
@@ -425,7 +425,7 @@ export function AgentDashboardPage() {
       if (error) throw error;
       setWithdrawals((current) => [...current, ...((data ?? []) as WithdrawalRequest[])]);
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ°ط·آ·ط¢آ± ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ£ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¦.');
+      toast.error(error instanceof Error ? error.message : 'تعذر تحميل طلبات السحب الأقدم.');
     } finally {
       setLoadingMoreWithdrawals(false);
     }
@@ -444,7 +444,7 @@ export function AgentDashboardPage() {
       setLedger((current) => [...current, ...(payload?.rows ?? [])]);
       setLedgerTotal(payload?.total ?? ledgerTotal);
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ°ط·آ·ط¢آ± ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ·ط¹آ¾ط·آ·ط¢آ±.');
+      toast.error(error instanceof Error ? error.message : 'تعذر تحميل بقية الدفتر.');
     } finally {
       setLoadingMoreLedger(false);
     }
@@ -462,12 +462,12 @@ export function AgentDashboardPage() {
   const submitFunding = async () => {
     const amount = Number(fundingAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error('ط·آ·ط¢آ£ط·آ·ط¢آ¯ط·آ·ط¢آ®ط·آ¸أ¢â‚¬â€چ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آµط·آ·ط¢آ­ط·آ¸ط¸آ¹ط·آ·ط¢آ­ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¹.');
+      toast.error('أدخل مبلغ تمويل صحيحاً.');
       return;
     }
     const reason = fundingReason.trim();
     if (reason.length < 5) {
-      toast.error('ط·آ·ط¢آ§ط·آ¸ط¦â€™ط·آ·ط¹آ¾ط·آ·ط¢آ¨ ط·آ·ط¢آ³ط·آ·ط¢آ¨ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¹ ط·آ¸ط«â€ ط·آ·ط¢آ§ط·آ·ط¢آ¶ط·آ·ط¢آ­ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¹ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ.');
+      toast.error('اكتب سبباً واضحاً لطلب التمويل.');
       return;
     }
     const idempotencyKey = `fund-${profile?.id}-${amount}-${reason}-${Date.now()}`;
@@ -479,15 +479,15 @@ export function AgentDashboardPage() {
         p_idempotency_key: idempotencyKey,
       });
       if (error) throw error;
-      toast.success(`ط·آ·ط¢آ£ط·آ¸ط¹ث†ط·آ·ط¢آ±ط·آ·ط¢آ³ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ $${amount.toFixed(2)}. ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ·ط¢آ© ط·آ·ط¢آ³ط·آ·ط¹آ¾ط·آ·ط¢آ±ط·آ·ط¢آ§ط·آ·ط¢آ¬ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬طŒ.`);
+      toast.success(`أُرسل طلب التمويل بمبلغ $${amount.toFixed(2)}. الإدارة ستراجعه.`);
       setFundingAmount('');
       if (data && typeof data === 'object' && 'request_id' in data) {
-        // ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ·ط¢آ« ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ§ط·آ·ط¢آ¦ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ© ط·آ·ط¢آ¨ط·آ·ط¢آ¹ط·آ·ط¢آ¯ ط·آ·ط¢آ¥ط·آ·ط¢آ¶ط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¬ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ·ط¢آ¯
+        // تحديث القائمة بعد إضافة الطلب الجديد
         const { data: list, error: listError } = await supabase.rpc('list_my_funding_requests');
         if (!listError) setFunding((list ?? []) as FundingRequest[]);
       }
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ°ط·آ·ط¢آ± ط·آ·ط¢آ¥ط·آ·ط¢آ±ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ.');
+      toast.error(error instanceof Error ? error.message : 'تعذر إرسال طلب التمويل.');
     } finally {
       setProcessingId(null);
     }
@@ -498,11 +498,11 @@ export function AgentDashboardPage() {
     try {
       const { error } = await supabase.rpc('cancel_my_funding_request', { p_request_id: requestId });
       if (error) throw error;
-      toast.success('ط·آ·ط¢آ£ط·آ¸ط¹ث†ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ط·آ¸ط¸آ¹ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ.');
+      toast.success('أُلغي طلب التمويل.');
       const { data: list, error: listError } = await supabase.rpc('list_my_funding_requests');
       if (!listError) setFunding((list ?? []) as FundingRequest[]);
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ°ط·آ·ط¢آ± ط·آ·ط¢آ¥ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ط·آ·ط¢آ§ط·آ·ط·إ’ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ.');
+      toast.error(error instanceof Error ? error.message : 'تعذر إلغاء طلب التمويل.');
     } finally {
       setProcessingId(null);
     }
@@ -513,12 +513,12 @@ export function AgentDashboardPage() {
       setRejectPicker({
         kind: 'deposit',
         id: deposit.id,
-        subtitle: `ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ  $${Number(deposit.amount_usd).toFixed(2)} ط·آ¢ط¢آ· ${deposit.external_ref}`,
+        subtitle: `طلب شحن $${Number(deposit.amount_usd).toFixed(2)} · ${deposit.external_ref}`,
       });
       return;
     }
     const reason = action === 'reject' ? providedReason : undefined;
-    if (action === 'approve' && !window.confirm('ط·آ¸أ¢â‚¬طŒط·آ¸أ¢â‚¬â€چ ط·آ·ط¹آ¾ط·آ·ط¢آ£ط·آ¸ط¦â€™ط·آ·ط¢آ¯ط·آ·ط¹آ¾ ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ§ط·آ·ط¢آ³ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ط·آ·ط¹ط›')) return;
+    if (action === 'approve' && !window.confirm('هل تأكدت من استلام المبلغ؟')) return;
 
     setProcessingId(deposit.id);
     try {
@@ -527,10 +527,10 @@ export function AgentDashboardPage() {
         action,
         ...(reason ? { reason: reason.trim() } : {}),
       });
-      toast.success(action === 'approve' ? 'ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ§ط·آ·ط¢آ¹ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ·ط¢آ¯ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ .' : 'ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ±ط·آ¸ط¸آ¾ط·آ·ط¢آ¶ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ .');
+      toast.success(action === 'approve' ? 'تم اعتماد طلب الشحن.' : 'تم رفض طلب الشحن.');
       await loadDashboard();
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ°ط·آ·ط¢آ± ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¬ط·آ·ط¢آ© ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ .');
+      toast.error(error instanceof Error ? error.message : 'تعذر معالجة طلب الشحن.');
     } finally {
       setProcessingId(null);
     }
@@ -541,7 +541,7 @@ export function AgentDashboardPage() {
       setRejectPicker({
         kind: 'withdrawal',
         id: withdrawal.id,
-        subtitle: `ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨ ط·آ·ط¢آµط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ¸ط¸آ¹ $${Number(withdrawal.net_usd).toFixed(2)} ط·آ¢ط¢آ· ${methodLabel(withdrawal.method)}`,
+        subtitle: `طلب سحب صافي $${Number(withdrawal.net_usd).toFixed(2)} · ${methodLabel(withdrawal.method)}`,
       });
       return;
     }
@@ -554,10 +554,10 @@ export function AgentDashboardPage() {
         const proof = proofFiles[withdrawal.id];
         const externalRef = externalRefs[withdrawal.id]?.trim();
         if (!proof || !externalRef) {
-          throw new Error('ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¾ط·آ·ط¢آ¹ ط·آ·ط¢آµط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ© ط·آ·ط¢آ¥ط·آ·ط¢آ«ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ·ط¢آ¹ ط·آ¸ط«â€ ط·آ·ط¢آ£ط·آ·ط¢آ¯ط·آ·ط¢آ®ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ±ط·آ¸أ¢â‚¬ع‘ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چ ط·آ·ط¹آ¾ط·آ·ط¢آ£ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨.');
+          throw new Error('ارفع صورة إثبات الدفع وأدخل رقم العملية قبل تأكيد السحب.');
         }
         if (!['image/jpeg', 'image/png'].includes(proof.type) || proof.size > maxProofSize) {
-          throw new Error('ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ«ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ¸ط¸آ¹ط·آ·ط¢آ¬ط·آ·ط¢آ¨ ط·آ·ط¢آ£ط·آ¸أ¢â‚¬آ  ط·آ¸ط¸آ¹ط·آ¸ط¦â€™ط·آ¸ط«â€ ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آµط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ© JPEG ط·آ·ط¢آ£ط·آ¸ط«â€  PNG ط·آ·ط¢آ¨ط·آ·ط¢آ­ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ¸ط¸آ¹ط·آ·ط¹آ¾ط·آ·ط¢آ¬ط·آ·ط¢آ§ط·آ¸ط«â€ ط·آ·ط¢آ² 5MB.');
+          throw new Error('الإثبات يجب أن يكون صورة JPEG أو PNG بحجم لا يتجاوز 5MB.');
         }
 
         uploadedPath = `wd_${profile?.id}_${Date.now()}.${proof.type === 'image/png' ? 'png' : 'jpg'}`;
@@ -580,7 +580,7 @@ export function AgentDashboardPage() {
         });
       }
 
-      toast.success(action === 'approve' ? 'ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¹آ¾ط·آ·ط¢آ£ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ·ط¢آ¯ ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ·ط¢آ¹ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨.' : 'ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ±ط·آ¸ط¸آ¾ط·آ·ط¢آ¶ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨.');
+      toast.success(action === 'approve' ? 'تم تأكيد دفع طلب السحب.' : 'تم رفض طلب السحب.');
       setProofFiles((current) => {
         const next = { ...current };
         delete next[withdrawal.id];
@@ -597,10 +597,10 @@ export function AgentDashboardPage() {
         const { error: cleanupError } = await supabase.storage.from(proofBucket).remove([uploadedPath]);
         if (cleanupError) {
           console.error('Failed to remove an unused withdrawal proof:', cleanupError);
-          toast.error('ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ°ط·آ·ط¢آ±ط·آ·ط¹آ¾ ط·آ·ط¢آ¥ط·آ·ط¢آ²ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ© ط·آ·ط¢آµط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ«ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط·â€؛ط·آ¸ط¸آ¹ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ±ط·آ·ط¹آ¾ط·آ·ط¢آ¨ط·آ·ط¢آ·ط·آ·ط¢آ© ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·أ¢â‚¬ط› ط·آ¸ط¸آ¹ط·آ·ط¢آ±ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ° ط·آ·ط¢آ¥ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·â€؛ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ·ط¢آ©.');
+          toast.error('تعذرت إزالة صورة الإثبات غير المرتبطة بالطلب؛ يرجى إبلاغ الإدارة.');
         }
       }
-      toast.error(error instanceof Error ? error.message : 'ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ°ط·آ·ط¢آ± ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¬ط·آ·ط¢آ© ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨.');
+      toast.error(error instanceof Error ? error.message : 'تعذر معالجة طلب السحب.');
     } finally {
       setProcessingId(null);
     }
@@ -612,36 +612,36 @@ const customerById = useMemo(
   );
   const customerName = (userId: string) => {
     const customer = customerById.get(userId);
-    return customer?.display_name || customer?.username || `ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ³ط·آ·ط¹آ¾ط·آ·ط¢آ®ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¦ ${userId.slice(0, 8)}`;
+    return customer?.display_name || customer?.username || `مستخدم ${userId.slice(0, 8)}`;
   };
   const isProcessing = processingId !== null;
 
   const tabs = useMemo(() => {
-    const list: Array<{ key: TabKey; label: string }> = [{ key: 'overview', label: 'ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ¸ط·آ·ط¢آ±ط·آ·ط¢آ© ط·آ·ط¢آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ©' }];
-    if (agent?.can_approve_deposits) list.push({ key: 'deposits', label: 'ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ ' });
-    if (agent?.can_approve_withdrawals) list.push({ key: 'withdrawals', label: 'ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨' });
+    const list: Array<{ key: TabKey; label: string }> = [{ key: 'overview', label: 'نظرة عامة' }];
+    if (agent?.can_approve_deposits) list.push({ key: 'deposits', label: 'طلبات الشحن' });
+    if (agent?.can_approve_withdrawals) list.push({ key: 'withdrawals', label: 'طلبات السحب' });
     if (agent) {
-      list.push({ key: 'wallet', label: 'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¢آ© ط·آ¸ط«â€ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ·ط¹آ¾ط·آ·ط¢آ±' });
-      list.push({ key: 'customers', label: 'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’' });
+      list.push({ key: 'wallet', label: 'المحفظة والدفتر' });
+      list.push({ key: 'customers', label: 'العملاء' });
     }
-    list.push({ key: 'funding', label: 'ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ' });
-    if (agent) list.push({ key: 'reports', label: 'ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ±' });
-    if (isManager) list.push({ key: 'agency', label: 'ط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸ط¸آ¹' });
+    list.push({ key: 'funding', label: 'طلبات التمويل' });
+    if (agent) list.push({ key: 'reports', label: 'التقارير' });
+    if (isManager) list.push({ key: 'agency', label: 'وكالتي' });
     return list;
   }, [agent, isManager]);
   const activeTab: TabKey = tabs.some((entry) => entry.key === tab) ? tab : 'overview';
 
-  const dailyLimitLabel = (value: number) => (Number(value) > 0 ? `$${Number(value).toFixed(2)}` : 'ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ·ط¢آ­ط·آ·ط¢آ¯');
+  const dailyLimitLabel = (value: number) => (Number(value) > 0 ? `$${Number(value).toFixed(2)}` : 'بلا حد');
 
   if (loading && !wallet && !agencyDash) {
-    return <div className="flex items-center justify-center p-12 text-gray-400"><Loader2 className="ml-2 animate-spin" />ط·آ·ط¢آ¬ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ·ط¢آ­ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ...</div>;
+    return <div className="flex items-center justify-center p-12 text-gray-400"><Loader2 className="ml-2 animate-spin" />جاري تحميل لوحة الوكيل...</div>;
   }
 
   if (!agent && !isManager) {
     return (
       <div className="flex items-center justify-between gap-4 rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-red-300" dir="rtl">
-        <p>{dashboardError ?? 'ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬آ  ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ.'}</p>
-        <button onClick={() => void loadDashboard()} className="rounded-lg border border-red-400/30 px-3 py-2 text-sm hover:bg-red-500/10">ط·آ·ط¢آ¥ط·آ·ط¢آ¹ط·آ·ط¢آ§ط·آ·ط¢آ¯ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ·ط¢آ§ط·آ¸ط«â€ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©</button>
+        <p>{dashboardError ?? 'لا يمكن تحميل بيانات الوكيل.'}</p>
+        <button onClick={() => void loadDashboard()} className="rounded-lg border border-red-400/30 px-3 py-2 text-sm hover:bg-red-500/10">إعادة المحاولة</button>
       </div>
     );
   }
@@ -652,16 +652,16 @@ const customerById = useMemo(
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-white">
-              {agent ? 'ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ·ط¢آ­ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ' : 'ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ·ط¢آ­ط·آ·ط¢آ© ط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸ط¸آ¹'}
+              {agent ? 'لوحة الوكيل' : 'لوحة وكالتي'}
             </h1>
             <p className="mt-1 text-gray-400">
-              ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ±ط·آ·ط¢آ­ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬آ¹ط·آ·ط¢آ§ {profile?.display_name ?? profile?.username}
-              {wallet?.agency ? ` ط£آ¢أ¢â€ڑآ¬أ¢â‚¬â€Œ ط·آ·ط¢آ¹ط·آ·ط¢آ¶ط·آ¸ط«â€  ط·آ¸ط¸آ¾ط·آ¸ط¸آ¹ ${wallet?.agency.name}` : agency ? ` ط£آ¢أ¢â€ڑآ¬أ¢â‚¬â€Œ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ·ط¢آ± ${agency.name}` : ''}
-              ط·آ·ط¥â€™ ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¹ط·آ·ط¢آ±ط·آ¸ط«â€ ط·آ·ط¢آ¶ط·آ·ط¢آ© ط·آ·ط¹آ¾ط·آ·ط¢آ®ط·آ·ط¢آµط·آ¸أ¢â‚¬ع©ط·آ¸ط¦â€™ ط·آ¸ط¸آ¾ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ·.
+              مرحبًا {profile?.display_name ?? profile?.username}
+              {wallet?.agency ? ` — عضو في ${wallet?.agency.name}` : agency ? ` — مدير ${agency.name}` : ''}
+              ، كل البيانات المعروضة تخصّك فقط.
             </p>
             {lastUpdatedAt && (
               <p className="mt-1 text-xs text-gray-500" aria-live="polite">
-                ط·آ·ط¢آ¢ط·آ·ط¢آ®ط·آ·ط¢آ± ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ·ط¢آ«: {lastUpdatedAt.toLocaleString('ar')}
+                آخر تحديث: {lastUpdatedAt.toLocaleString('ar')}
               </p>
             )}
           </div>
@@ -670,19 +670,19 @@ const customerById = useMemo(
             onClick={() => void loadDashboard()}
             disabled={loading || isProcessing}
             className="inline-flex items-center gap-2 rounded-lg border border-wattar-900 px-3 py-2 text-sm text-gray-200 transition hover:bg-dark-elevated disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label="ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ·ط¢آ« ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ·ط¢آ­ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ"
+            aria-label="تحديث لوحة الوكيل"
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-            {loading ? 'ط·آ·ط¢آ¬ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ·ط¢آ«...' : 'ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ·ط¢آ« ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ·ط¹آ¾'}
+            {loading ? 'جاري التحديث...' : 'تحديث البيانات'}
           </button>
         </div>
       </header>
 
       {dashboardError && (
         <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-          <span>ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ°ط·آ·ط¢آ± ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ·ط¢آ« ط·آ·ط¢آ¨ط·آ·ط¢آ¹ط·آ·ط¢آ¶ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ·أ¢â‚¬ط› ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ ط·آ·ط¢آ²ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ© ط·آ·ط¢آ¸ط·آ·ط¢آ§ط·آ¸أ¢â‚¬طŒط·آ·ط¢آ±ط·آ·ط¢آ©. {dashboardError}</span>
+          <span>تعذر تحديث بعض البيانات؛ ما زالت البيانات السابقة ظاهرة. {dashboardError}</span>
           <button type="button" onClick={() => void loadDashboard()} disabled={loading || isProcessing} className="rounded-md border border-amber-400/30 px-3 py-1.5 hover:bg-amber-500/10 disabled:opacity-50">
-            ط·آ·ط¢آ¥ط·آ·ط¢آ¹ط·آ·ط¢آ§ط·آ·ط¢آ¯ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ·ط¢آ§ط·آ¸ط«â€ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©
+            إعادة المحاولة
           </button>
         </div>
       )}
@@ -691,9 +691,9 @@ const customerById = useMemo(
         <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           <Snowflake size={18} />
           <span>
-            ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¹آ¾ط·آ¸ط¦â€™ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬ع©ط·آ·ط¢آ¯ط·آ·ط¢آ© ط·آ·ط¢آ¥ط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¹ط·آ·ط¥â€™ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ°ط·آ¸أ¢â‚¬â€چط·آ¸ط¦â€™ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬آ  ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ ط·آ¸ط¸آ¾ط·آ¸ط¸آ¹ط·آ·ط¢آ° ط·آ·ط¢آ£ط·آ¸ط¸آ¹ ط·آ·ط¢آ­ط·آ·ط¢آ±ط·آ¸ط¦â€™ط·آ·ط¢آ© ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¢ط·آ¸أ¢â‚¬آ .
+            محفظتك مجمّدة إدارياً، لذلك لا يمكن تنفيذ أي حركة مالية الآن.
             {agent?.wallet_frozen_reason ?? agency?.wallet_frozen_reason
-              ? ` ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ¨ط·آ·ط¢آ¨: ${agent?.wallet_frozen_reason ?? agency?.wallet_frozen_reason}`
+              ? ` السبب: ${agent?.wallet_frozen_reason ?? agency?.wallet_frozen_reason}`
               : ''}
           </span>
         </div>
@@ -723,59 +723,59 @@ const customerById = useMemo(
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {agent && (
               <>
-                <StatCard icon={<Users size={18} />} label="ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ¤ط·آ¸ط¦â€™" value={Number(agent.total_users).toLocaleString('ar')} />
-                <StatCard icon={<Wallet size={18} />} label="ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¹آ¾ط·آ¸ط¦â€™ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ´ط·آ·ط·â€؛ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ·ط¢آ©" value={formatUsd(agent.wallet_usd)} hint="ط·آ·ط¢آ³ط·آ¸ط¸آ¹ط·آ¸ط«â€ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¹آ¾ط·آ·ط¢آ§ط·آ·ط¢آ­ط·آ·ط¢آ©" />
-                <StatCard icon={<Landmark size={18} />} label="ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ®ط·آ·ط¢آ²ط·آ¸ط«â€ ط·آ¸أ¢â‚¬آ  Coin" value={Number(agent.coin_inventory).toLocaleString('ar')} hint="ط·آ¸ط¸آ¹ط·آ¸ط¹ث†ط·آ·ط¢آ®ط·آ·ط¢آµط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ·ط¢آ¹ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ " />
-                <StatCard icon={<CircleDollarSign size={18} />} label="ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸ط¦â€™" value={`${Number(agent.commission_rate).toLocaleString('ar')}%`} />
+                <StatCard icon={<Users size={18} />} label="عملاؤك" value={Number(agent.total_users).toLocaleString('ar')} />
+                <StatCard icon={<Wallet size={18} />} label="محفظتك التشغيلية" value={formatUsd(agent.wallet_usd)} hint="سيولة السحب المتاحة" />
+                <StatCard icon={<Landmark size={18} />} label="مخزون Coin" value={Number(agent.coin_inventory).toLocaleString('ar')} hint="يُخصم عند اعتماد الشحن" />
+                <StatCard icon={<CircleDollarSign size={18} />} label="عمولتك" value={`${Number(agent.commission_rate).toLocaleString('ar')}%`} />
               </>
             )}
             {isManager && agencyDash?.totals && (
               <>
-                <StatCard icon={<Building2 size={18} />} label="ط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©" value={`${Number(agencyDash.totals.active_agents).toLocaleString('ar')} / ${Number(agencyDash.totals.agents).toLocaleString('ar')}`} hint="ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ ط·آ·ط¢آ´ط·آ·ط¢آ·ط·آ¸ط«â€ ط·آ¸أ¢â‚¬آ  / ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹" />
-                <StatCard icon={<Wallet size={18} />} label="ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©" value={formatUsd(agencyDash.totals.wallets_usd)} hint="ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ·ط¢آ¹ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’" />
-                <StatCard icon={<Users size={18} />} label="ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©" value={Number(agencyDash.totals.customers).toLocaleString('ar')} />
-                <StatCard icon={<CircleDollarSign size={18} />} label="ط·آ·ط¢آ¥ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ " value={formatUsd(agencyDash.totals.deposit_usd)} />
+                <StatCard icon={<Building2 size={18} />} label="وكلاء الوكالة" value={`${Number(agencyDash.totals.active_agents).toLocaleString('ar')} / ${Number(agencyDash.totals.agents).toLocaleString('ar')}`} hint="النشطون / الإجمالي" />
+                <StatCard icon={<Wallet size={18} />} label="محفظة الوكالة" value={formatUsd(agencyDash.totals.wallets_usd)} hint="مجموع محافظ الوكلاء" />
+                <StatCard icon={<Users size={18} />} label="عملاء الوكالة" value={Number(agencyDash.totals.customers).toLocaleString('ar')} />
+                <StatCard icon={<CircleDollarSign size={18} />} label="إجمالي الشحن" value={formatUsd(agencyDash.totals.deposit_usd)} />
               </>
             )}
           </div>
 
           {wallet?.today && (
-            <Panel title="ط·آ·ط¢آ­ط·آ·ط¢آ±ط·آ¸ط¦â€™ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ¸ط«â€ ط·آ¸أ¢â‚¬آ¦" icon={<FileText size={17} />}>
+            <Panel title="حركة اليوم" icon={<FileText size={17} />}>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <MiniStat label="ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ  ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¦â€™ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©" value={Number(wallet?.today.deposits_count).toLocaleString('ar')} />
-                <MiniStat label="ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ " value={formatUsd(wallet?.today.deposit_usd)} />
-                <MiniStat label="ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¹ط·آ·ط¢آ©" value={Number(wallet?.today.withdrawals_count).toLocaleString('ar')} />
-                <MiniStat label="ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨" value={formatUsd(wallet?.today.withdrawal_usd)} />
+                <MiniStat label="طلبات شحن مكتملة" value={Number(wallet?.today.deposits_count).toLocaleString('ar')} />
+                <MiniStat label="قيمة الشحن" value={formatUsd(wallet?.today.deposit_usd)} />
+                <MiniStat label="طلبات سحب مدفوعة" value={Number(wallet?.today.withdrawals_count).toLocaleString('ar')} />
+                <MiniStat label="قيمة السحب" value={formatUsd(wallet?.today.withdrawal_usd)} />
               </div>
             </Panel>
           )}
 
           {agent && (
-            <Panel title="ط·آ·ط¢آ­ط·آ·ط¢آ¯ط·آ¸ط«â€ ط·آ·ط¢آ¯ط·آ¸ط¦â€™ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ´ط·آ·ط·â€؛ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ·ط¢آ©" icon={<Landmark size={17} />}>
+            <Panel title="حدودك التشغيلية" icon={<Landmark size={17} />}>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <MiniStat label="ط·آ·ط¢آ­ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ¸ط«â€ ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹" value={dailyLimitLabel(agent.daily_deposit_limit_usd)} />
-                <MiniStat label="ط·آ·ط¢آ­ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ¸ط«â€ ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹" value={dailyLimitLabel(agent.daily_withdrawal_limit_usd)} />
-                <MiniStat label="ط·آ·ط¢آ£ط·آ¸أ¢â‚¬ع‘ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ·ط¢آ©" value={Number(agent.min_operation_usd) > 0 ? formatUsd(agent.min_operation_usd) : 'ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ·ط¢آ­ط·آ·ط¢آ¯'} />
-                <MiniStat label="ط·آ·ط¢آ£ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ° ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ·ط¢آ©" value={Number(agent.max_operation_usd) > 0 ? formatUsd(agent.max_operation_usd) : 'ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ·ط¢آ­ط·آ·ط¢آ¯'} />
+                <MiniStat label="حد الشحن اليومي" value={dailyLimitLabel(agent.daily_deposit_limit_usd)} />
+                <MiniStat label="حد السحب اليومي" value={dailyLimitLabel(agent.daily_withdrawal_limit_usd)} />
+                <MiniStat label="أقل عملية" value={Number(agent.min_operation_usd) > 0 ? formatUsd(agent.min_operation_usd) : 'بلا حد'} />
+                <MiniStat label="أعلى عملية" value={Number(agent.max_operation_usd) > 0 ? formatUsd(agent.max_operation_usd) : 'بلا حد'} />
               </div>
             </Panel>
           )}
 
           {agent && (
-            <Panel title="ط·آ·ط¢آ¢ط·آ·ط¢آ®ط·آ·ط¢آ± ط·آ·ط¢آ­ط·آ·ط¢آ±ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¢آ©" icon={<Wallet size={17} />} actions={
-              <button type="button" onClick={() => setTab('wallet')} className="text-xs text-wattar-300 hover:text-wattar-200">ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ±ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ·ط¹آ¾</button>
+            <Panel title="آخر حركات المحفظة" icon={<Wallet size={17} />} actions={
+              <button type="button" onClick={() => setTab('wallet')} className="text-xs text-wattar-300 hover:text-wattar-200">كل الحركات</button>
             }>
               {ledger.length === 0
-                ? <p className="text-sm text-gray-500">ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¬ط·آ·ط¢آ¯ ط·آ·ط¢آ­ط·آ·ط¢آ±ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ·ط¢آ¨ط·آ·ط¢آ¹ط·آ·ط¢آ¯.</p>
+                ? <p className="text-sm text-gray-500">لا توجد حركات مالية بعد.</p>
                 : <LedgerList rows={ledger.slice(0, 6)} />}
             </Panel>
           )}
 
           {pendingFundingCount(funding) > 0 && (
-            <Panel title="ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ط·آ·ط¹آ¾ط·آ·ط¢آ¸ط·آ·ط¢آ§ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ·ط¢آ©" icon={<CircleDollarSign size={17} />}>
+            <Panel title="طلبات تمويل بانتظار الإدارة" icon={<CircleDollarSign size={17} />}>
               <p className="text-sm text-gray-300">
-                ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ¸ط¦â€™ {pendingFundingCount(funding).toLocaleString('ar')} ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬ع©ط·آ¸أ¢â‚¬ع‘ ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ©{' '}
-                {formatUsd(pendingFundingAmount(funding))}. ط·آ·ط¢آ³ط·آ·ط¹آ¾ط·آ¸ط¹ث†ط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ  ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¹آ¾ط·آ¸ط¦â€™ ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ§ط·آ·ط¢آ¦ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¹ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ¹ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ·ط¢آ¯.
+                لديك {pendingFundingCount(funding).toLocaleString('ar')} طلب تمويل معلّق بقيمة{' '}
+                {formatUsd(pendingFundingAmount(funding))}. ستُشحن محفظتك تلقائياً عند الاعتماد.
               </p>
             </Panel>
           )}
@@ -783,40 +783,40 @@ const customerById = useMemo(
       )}
 
       {activeTab === 'deposits' && agent?.can_approve_deposits && (
-        <Panel title="ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬ع©ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ©" icon={<CircleDollarSign size={17} />} actions={
-          <span className="text-xs text-gray-500">ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¹ط·آ·ط¢آ±ط·آ¸ط«â€ ط·آ·ط¢آ¶ {deposits.length.toLocaleString('ar')} ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  {depositCount.toLocaleString('ar')}</span>
+        <Panel title="طلبات الشحن المعلّقة" icon={<CircleDollarSign size={17} />} actions={
+          <span className="text-xs text-gray-500">المعروض {deposits.length.toLocaleString('ar')} من {depositCount.toLocaleString('ar')}</span>
         }>
-          {frozen && <p className="mb-3 rounded-lg border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs text-red-200">ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¢آ© ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬ع©ط·آ·ط¢آ¯ط·آ·ط¢آ© ط£آ¢أ¢â€ڑآ¬أ¢â‚¬â€Œ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ§ط·آ·ط¢آ¹ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ·ط¢آ¯ ط·آ·ط¢آ£ط·آ¸ط«â€  ط·آ·ط¢آ±ط·آ¸ط¸آ¾ط·آ·ط¢آ¶ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ­ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ° ط·آ·ط¹آ¾ط·آ¸ط¹ث†ط·آ·ط¢آ±ط·آ¸ط¸آ¾ط·آ·ط¢آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ·ط¢آ¯.</p>}
-          {deposits.length === 0 ? <p className="text-sm text-gray-500">ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¬ط·آ·ط¢آ¯ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ  ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬ع©ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ©.</p> : (
+          {frozen && <p className="mb-3 rounded-lg border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs text-red-200">المحفظة مجمّدة — لا يمكن اعتماد أو رفض الطلبات حتى تُرفع الإدارة التجميد.</p>}
+          {deposits.length === 0 ? <p className="text-sm text-gray-500">لا توجد طلبات شحن معلّقة.</p> : (
             <div className="space-y-4">
               {deposits.map((deposit) => (
                 <article key={deposit.id} className="rounded-xl border border-wattar-900/70 bg-dark-elevated p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-white">{customerName(deposit.user_id)}</p>
-                      <p className="mt-1 text-sm text-gray-400">{methodLabel(deposit.method)} ط·آ¢ط¢آ· ${Number(deposit.amount_usd).toFixed(2)} ط·آ¢ط¢آ· {Number(deposit.amount_gold).toLocaleString('ar')} Coin</p>
-                      <p className="mt-1 text-xs text-gray-500">ط·آ·ط¢آ±ط·آ¸أ¢â‚¬ع‘ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ·ط¢آ©: {deposit.external_ref || 'ط£آ¢أ¢â€ڑآ¬أ¢â‚¬â€Œ'}{deposit.sender_phone ? ` ط·آ¢ط¢آ· ط·آ¸أ¢â‚¬طŒط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط¸آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ±ط·آ·ط¢آ³ط·آ¸أ¢â‚¬â€چ: ${deposit.sender_phone}` : ''}</p>
+                      <p className="mt-1 text-sm text-gray-400">{methodLabel(deposit.method)} · ${Number(deposit.amount_usd).toFixed(2)} · {Number(deposit.amount_gold).toLocaleString('ar')} Coin</p>
+                      <p className="mt-1 text-xs text-gray-500">رقم العملية: {deposit.external_ref || '—'}{deposit.sender_phone ? ` · هاتف المرسل: ${deposit.sender_phone}` : ''}</p>
                     </div>
                     <p className="text-xs text-gray-500">{new Date(deposit.created_at).toLocaleString('ar')}</p>
                   </div>
                   {deposit.proof_signed_url && (
                     <a href={deposit.proof_signed_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm text-blue-300 hover:text-blue-200">
-                      <ExternalLink size={15} />ط·آ·ط¢آ¹ط·آ·ط¢آ±ط·آ·ط¢آ¶ ط·آ·ط¢آ¥ط·آ·ط¢آ«ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ 
+                      <ExternalLink size={15} />عرض إثبات الشحن
                     </a>
                   )}
                   <div className="mt-4 flex gap-2">
                     <button onClick={() => void reviewDeposit(deposit, 'approve')} disabled={isProcessing || frozen} className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm text-white disabled:opacity-50">
-                      {processingId === deposit.id ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}ط·آ·ط¢آ§ط·آ·ط¢آ¹ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ·ط¢آ¯
+                      {processingId === deposit.id ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}اعتماد
                     </button>
                     <button onClick={() => void reviewDeposit(deposit, 'reject')} disabled={isProcessing || frozen} className="inline-flex items-center gap-2 rounded-lg bg-red-600/20 px-3 py-2 text-sm text-red-300 disabled:opacity-50">
-                      <X size={16} />ط·آ·ط¢آ±ط·آ¸ط¸آ¾ط·آ·ط¢آ¶
+                      <X size={16} />رفض
                     </button>
                   </div>
                 </article>
               ))}
               {deposits.length < depositCount && (
                 <button type="button" onClick={() => void loadMoreDeposits()} disabled={loadingMoreDeposits || isProcessing} className="w-full rounded-lg border border-wattar-900 px-4 py-3 text-sm text-gray-300 transition hover:bg-dark-elevated disabled:opacity-50">
-                  {loadingMoreDeposits ? 'ط·آ·ط¢آ¬ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ£ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¦...' : 'ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ£ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¦'}
+                  {loadingMoreDeposits ? 'جاري تحميل الطلبات الأقدم...' : 'تحميل طلبات شحن أقدم'}
                 </button>
               )}
             </div>
@@ -825,29 +825,29 @@ const customerById = useMemo(
       )}
 
       {activeTab === 'withdrawals' && agent?.can_approve_withdrawals && (
-        <Panel title="ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨ Diamond" icon={<Wallet size={17} />} actions={
-          <span className="text-xs text-gray-500">ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¹ط·آ·ط¢آ±ط·آ¸ط«â€ ط·آ·ط¢آ¶ {withdrawals.length.toLocaleString('ar')} ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  {withdrawalCount.toLocaleString('ar')}</span>
+        <Panel title="طلبات سحب Diamond" icon={<Wallet size={17} />} actions={
+          <span className="text-xs text-gray-500">المعروض {withdrawals.length.toLocaleString('ar')} من {withdrawalCount.toLocaleString('ar')}</span>
         }>
-          {frozen && <p className="mb-3 rounded-lg border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs text-red-200">ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¢آ© ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬ع©ط·آ·ط¢آ¯ط·آ·ط¢آ© ط£آ¢أ¢â€ڑآ¬أ¢â‚¬â€Œ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ·ط¢آ¹ ط·آ·ط¢آ£ط·آ¸ط«â€  ط·آ·ط¢آ±ط·آ¸ط¸آ¾ط·آ·ط¢آ¶ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ­ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ° ط·آ·ط¹آ¾ط·آ¸ط¹ث†ط·آ·ط¢آ±ط·آ¸ط¸آ¾ط·آ·ط¢آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ·ط¢آ¯.</p>}
-          {withdrawals.length === 0 ? <p className="text-sm text-gray-500">ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¬ط·آ·ط¢آ¯ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬ع©ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ©.</p> : (
+          {frozen && <p className="mb-3 rounded-lg border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs text-red-200">المحفظة مجمّدة — لا يمكن دفع أو رفض الطلبات حتى تُرفع الإدارة التجميد.</p>}
+          {withdrawals.length === 0 ? <p className="text-sm text-gray-500">لا توجد طلبات سحب معلّقة.</p> : (
             <div className="space-y-4">
               {withdrawals.map((withdrawal) => (
                 <article key={withdrawal.id} className="rounded-xl border border-wattar-900/70 bg-dark-elevated p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-white">{customerName(withdrawal.user_id)}</p>
-                      <p className="mt-1 text-sm text-gray-400">{methodLabel(withdrawal.method)} ط·آ¢ط¢آ· {Number(withdrawal.amount_diamond).toLocaleString('ar')} Diamond ط·آ¢ط¢آ· ط·آ·ط¢آµط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ¸ط¸آ¹ ${Number(withdrawal.net_usd).toFixed(2)}</p>
+                      <p className="mt-1 text-sm text-gray-400">{methodLabel(withdrawal.method)} · {Number(withdrawal.amount_diamond).toLocaleString('ar')} Diamond · صافي ${Number(withdrawal.net_usd).toFixed(2)}</p>
                       <p className="mt-1 text-xs text-gray-500">{formatPayoutDetails(withdrawal.payout_details)}</p>
                     </div>
                     <p className="text-xs text-gray-500">{new Date(withdrawal.created_at).toLocaleString('ar')}</p>
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <label className="block text-xs text-gray-400">
-                      ط·آ·ط¢آ±ط·آ¸أ¢â‚¬ع‘ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ·ط¢آ¹
+                      رقم عملية الدفع
                       <input value={externalRefs[withdrawal.id] ?? ''} onChange={(event) => setExternalRefs((current) => ({ ...current, [withdrawal.id]: event.target.value }))} disabled={isProcessing || frozen} className="mt-1 w-full rounded-lg border border-wattar-900 bg-dark-surface px-3 py-2 text-sm text-white disabled:opacity-50" />
                     </label>
                     <label className="block text-xs text-gray-400">
-                      ط·آ·ط¢آµط·آ¸ط«â€ ط·آ·ط¢آ±ط·آ·ط¢آ© ط·آ·ط¢آ¥ط·آ·ط¢آ«ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ·ط¢آ¹ (JPEG/PNGط·آ·ط¥â€™ ط·آ·ط¢آ­ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ° 5MB)
+                      صورة إثبات الدفع (JPEG/PNG، حتى 5MB)
                       <span className="mt-1 flex items-center gap-2 rounded-lg border border-wattar-900 bg-dark-surface px-3 py-2 text-sm text-gray-300">
                         <Upload size={15} />
                         <input type="file" accept="image/jpeg,image/png" disabled={isProcessing || frozen} onChange={(event) => {
@@ -860,17 +860,17 @@ const customerById = useMemo(
                   </div>
                   <div className="mt-4 flex gap-2">
                     <button onClick={() => void reviewWithdrawal(withdrawal, 'approve')} disabled={isProcessing || frozen} className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm text-white disabled:opacity-50">
-                      {processingId === withdrawal.id ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}ط·آ·ط¹آ¾ط·آ·ط¢آ£ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ·ط¢آ¹
+                      {processingId === withdrawal.id ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}تأكيد الدفع
                     </button>
                     <button onClick={() => void reviewWithdrawal(withdrawal, 'reject')} disabled={isProcessing || frozen} className="inline-flex items-center gap-2 rounded-lg bg-red-600/20 px-3 py-2 text-sm text-red-300 disabled:opacity-50">
-                      <X size={16} />ط·آ·ط¢آ±ط·آ¸ط¸آ¾ط·آ·ط¢آ¶
+                      <X size={16} />رفض
                     </button>
                   </div>
                 </article>
               ))}
               {withdrawals.length < withdrawalCount && (
                 <button type="button" onClick={() => void loadMoreWithdrawals()} disabled={loadingMoreWithdrawals || isProcessing} className="w-full rounded-lg border border-wattar-900 px-4 py-3 text-sm text-gray-300 transition hover:bg-dark-elevated disabled:opacity-50">
-                  {loadingMoreWithdrawals ? 'ط·آ·ط¢آ¬ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ£ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¦...' : 'ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨ ط·آ·ط¢آ£ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¦'}
+                  {loadingMoreWithdrawals ? 'جاري تحميل الطلبات الأقدم...' : 'تحميل طلبات سحب أقدم'}
                 </button>
               )}
             </div>
@@ -879,23 +879,23 @@ const customerById = useMemo(
       )}
 
       {activeTab === 'customers' && agent && (
-        <Panel title="ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ¤ط·آ¸ط¦â€™" icon={<Users size={17} />} actions={
-          <span className="text-xs text-gray-500">ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¹ط·آ·ط¢آ±ط·آ¸ط«â€ ط·آ·ط¢آ¶ {customers.length.toLocaleString('ar')} ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ£ط·آ·ط¢آµط·آ¸أ¢â‚¬â€چ {Number(agent.total_users).toLocaleString('ar')}</span>
+        <Panel title="عملاؤك" icon={<Users size={17} />} actions={
+          <span className="text-xs text-gray-500">المعروض {customers.length.toLocaleString('ar')} من أصل {Number(agent.total_users).toLocaleString('ar')}</span>
         }>
-          {customers.length === 0 ? <p className="text-sm text-gray-500">ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ¸ط¸آ¹ط·آ¸ط«â€ ط·آ·ط¢آ¬ط·آ·ط¢آ¯ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ³ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ¯ط·آ¸ط«â€ ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ¥ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ¸ط¦â€™ ط·آ·ط¢آ­ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¹ط·آ·ط¢آ§.</p> : (
+          {customers.length === 0 ? <p className="text-sm text-gray-500">لا يوجد عملاء مسندون إليك حاليًا.</p> : (
             <>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {customers.map((customer) => (
                   <article key={customer.user_id} className="rounded-xl border border-wattar-900/70 bg-dark-elevated p-3">
                     <p className="font-medium text-white">{customer.display_name || customer.username}</p>
                     <p className="mt-1 text-xs text-gray-500">@{customer.username}</p>
-                    <p className="mt-2 text-xs text-gray-400">ط·آ·ط¹آ¾ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ® ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ¶ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¦: {new Date(customer.created_at).toLocaleDateString('ar')}</p>
+                    <p className="mt-2 text-xs text-gray-400">تاريخ الانضمام: {new Date(customer.created_at).toLocaleDateString('ar')}</p>
                   </article>
                 ))}
               </div>
               {hasMoreCustomers && (
                 <button onClick={() => void loadMoreCustomers()} disabled={loadingMoreCustomers} className="mt-4 rounded-lg border border-wattar-900 px-4 py-2 text-sm text-gray-300 disabled:opacity-50">
-                  {loadingMoreCustomers ? 'ط·آ·ط¢آ¬ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’...' : 'ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ²ط·آ¸ط¸آ¹ط·آ·ط¢آ¯ ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’'}
+                  {loadingMoreCustomers ? 'جاري تحميل بقية العملاء...' : 'تحميل المزيد من العملاء'}
                 </button>
               )}
             </>
@@ -906,23 +906,23 @@ const customerById = useMemo(
       {activeTab === 'wallet' && agent && (
         <section className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard icon={<Wallet size={18} />} label="ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ±ط·آ·ط¢آµط·آ¸ط¸آ¹ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹" value={formatUsd(agent.wallet_usd)} />
-            <StatCard icon={<Landmark size={18} />} label="ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ®ط·آ·ط¢آ²ط·آ¸ط«â€ ط·آ¸أ¢â‚¬آ  Coin" value={Number(agent.coin_inventory).toLocaleString('ar')} />
-            <StatCard icon={<CircleDollarSign size={18} />} label="ط·آ·ط¢آ³ط·آ·ط¢آ¹ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آµط·آ·ط¢آ±ط·آ¸ط¸آ¾" value={`1$ = ${Number(agent.exchange_rate_usd_to_gold).toLocaleString('ar')} Coin`} />
-            <StatCard icon={<Building2 size={18} />} label="ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©" value={wallet?.agency?.name ?? 'ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ³ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬ع‘ط·آ¸أ¢â‚¬â€چ'} hint={wallet?.agency ? `ط·آ·ط¢آ±ط·آ·ط¢آµط·آ¸ط¸آ¹ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬طŒط·آ·ط¢آ§ ${formatUsd(wallet?.agency.wallet_usd)}` : 'ط·آ·ط·â€؛ط·آ¸ط¸آ¹ط·آ·ط¢آ± ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ±ط·آ·ط¹آ¾ط·آ·ط¢آ¨ط·آ·ط¢آ· ط·آ·ط¢آ¨ط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©'} />
+            <StatCard icon={<Wallet size={18} />} label="الرصيد الحالي" value={formatUsd(agent.wallet_usd)} />
+            <StatCard icon={<Landmark size={18} />} label="مخزون Coin" value={Number(agent.coin_inventory).toLocaleString('ar')} />
+            <StatCard icon={<CircleDollarSign size={18} />} label="سعر الصرف" value={`1$ = ${Number(agent.exchange_rate_usd_to_gold).toLocaleString('ar')} Coin`} />
+            <StatCard icon={<Building2 size={18} />} label="الوكالة" value={wallet?.agency?.name ?? 'مستقل'} hint={wallet?.agency ? `رصيدها ${formatUsd(wallet?.agency.wallet_usd)}` : 'غير مرتبط بوكالة'} />
           </div>
 
-          <Panel title="ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ·ط¹آ¾ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¢آ©" icon={<FileText size={17} />} actions={
-            <span className="text-xs text-gray-500">ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¹ط·آ·ط¢آ±ط·آ¸ط«â€ ط·آ·ط¢آ¶ {ledger.length.toLocaleString('ar')} ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  {ledgerTotal.toLocaleString('ar')}</span>
+          <Panel title="دفتر المحفظة" icon={<FileText size={17} />} actions={
+            <span className="text-xs text-gray-500">المعروض {ledger.length.toLocaleString('ar')} من {ledgerTotal.toLocaleString('ar')}</span>
           }>
             {ledger.length === 0 ? (
-              <EmptyState title="ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¬ط·آ·ط¢آ¯ ط·آ·ط¢آ­ط·آ·ط¢آ±ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ¨ط·آ·ط¢آ¹ط·آ·ط¢آ¯" description="ط·آ·ط¢آ³ط·آ·ط¹آ¾ط·آ·ط¢آ¸ط·آ¸أ¢â‚¬طŒط·آ·ط¢آ± ط·آ¸أ¢â‚¬طŒط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ£ط·آ¸ط«â€  ط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨ ط·آ·ط¢آ£ط·آ¸ط«â€  ط·آ·ط¹آ¾ط·آ·ط¢آ³ط·آ¸ط«â€ ط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ° ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¹آ¾ط·آ¸ط¦â€™ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ±ط·آ·ط¢آµط·آ¸ط¸آ¹ط·آ·ط¢آ¯ ط·آ·ط¢آ¨ط·آ·ط¢آ¹ط·آ·ط¢آ¯ ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ­ط·آ·ط¢آ±ط·آ¸ط¦â€™ط·آ·ط¢آ©." />
+              <EmptyState title="لا توجد حركات بعد" description="ستظهر هنا كل عملية شحن أو سحب أو تسوية على محفظتك مع الرصيد بعد كل حركة." />
             ) : (
               <>
                 <LedgerList rows={ledger} detailed />
                 {ledger.length < ledgerTotal && (
                   <button type="button" onClick={() => void loadMoreLedger()} disabled={loadingMoreLedger} className="mt-4 w-full rounded-lg border border-wattar-900 px-4 py-3 text-sm text-gray-300 transition hover:bg-dark-elevated disabled:opacity-50">
-                    {loadingMoreLedger ? 'ط·آ·ط¢آ¬ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ...' : 'ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ­ط·آ·ط¢آ±ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ£ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¦'}
+                    {loadingMoreLedger ? 'جاري التحميل...' : 'تحميل حركات أقدم'}
                   </button>
                 )}
               </>
@@ -930,18 +930,18 @@ const customerById = useMemo(
           </Panel>
 
           <div className="rounded-xl border border-wattar-900 bg-dark-surface p-4 text-xs leading-6 text-gray-400">
-            ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ­ط·آ·ط¢آ±ط·آ¸ط¦â€™ط·آ·ط¢آ© ط·آ¸أ¢â‚¬طŒط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ³ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬ع©ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ© ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ·ط¢آ¯ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ¸ط¸آ¹ط·آ¸ط¹ث†ط·آ·ط¢آ­ط·آ·ط¢آ°ط·آ¸ط¸آ¾: ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ ط·آ¸ط«â€ ط·آ·ط¢آ¹ط·آ·ط¥â€™ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ط·آ·ط¥â€™ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ±ط·آ·ط¢آµط·آ¸ط¸آ¹ط·آ·ط¢آ¯ ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چ ط·آ¸ط«â€ ط·آ·ط¢آ¨ط·آ·ط¢آ¹ط·آ·ط¢آ¯ط·آ·ط¥â€™ ط·آ¸ط«â€ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ¨ط·آ·ط¢آ¨. ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬آ  ط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ±ط·آ·ط¢آµط·آ¸ط¸آ¹ط·آ·ط¢آ¯ط·آ¸ط¦â€™ ط·آ¸ط¸آ¹ط·آ·ط¢آ¯ط·آ¸ط«â€ ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¹ ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ­ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ·ط¢آ¨ط·آ¸ط¦â€™ط·آ·أ¢â‚¬ط›
-            ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ¹ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ¸ط¸آ¾ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ· ط·آ·ط¹آ¾ط·آ¸ط¹ث†ط·آ·ط¢آ³ط·آ·ط¢آ¬ط·آ¸ط¹ع©ط·آ¸أ¢â‚¬ع©ط·آ¸أ¢â‚¬â€چ ط·آ¸ط¸آ¾ط·آ¸ط¸آ¹ ط·آ·ط¢آ³ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬ع‘.
+            كل حركة هنا مسجّلة بقيد لا يُحذف: النوع، المبلغ، الرصيد قبل وبعد، والسبب. لا يمكن تعديل رصيدك يدوياً من حسابك؛
+            التعديلات الإدارية فقط تُسجَّل في سجل التدقيق.
           </div>
         </section>
       )}
 
       {activeTab === 'funding' && (
         <section className="space-y-4">
-          <Panel title="ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ¬ط·آ·ط¢آ¯ط·آ¸ط¸آ¹ط·آ·ط¢آ¯" icon={<CircleDollarSign size={17} />}>
+          <Panel title="طلب تمويل جديد" icon={<CircleDollarSign size={17} />}>
             <div className="grid gap-3 sm:grid-cols-2">
               <NumberField
-                label="ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ·ط¢آ¨"
+                label="المبلغ المطلوب"
                 value={fundingAmount}
                 onChange={setFundingAmount}
                 unit="$"
@@ -949,7 +949,7 @@ const customerById = useMemo(
                 disabled={isProcessing || frozen}
               />
               <div>
-                <p className="mb-1.5 block text-sm font-medium text-gray-200">ط·آ·ط¢آ³ط·آ·ط¢آ¨ط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨</p>
+                <p className="mb-1.5 block text-sm font-medium text-gray-200">سبب الطلب</p>
                 <div className="space-y-2">
                   {fundingReasons.map((reason) => (
                     <button
@@ -976,14 +976,14 @@ const customerById = useMemo(
               className="mt-4 inline-flex items-center gap-2 rounded-xl bg-wattar-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-wattar-500 disabled:opacity-50"
             >
               {processingId === 'funding' ? <Loader2 size={16} className="animate-spin" /> : <CircleDollarSign size={16} />}
-              ط·آ·ط¢آ¥ط·آ·ط¢آ±ط·آ·ط¢آ³ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ·ط¢آ©
+              إرسال الطلب للإدارة
             </button>
-            <p className="mt-2 text-[11px] text-gray-500">ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ¹ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ·ط¢آ¯ ط·آ¸ط¸آ¹ط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ  ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¹آ¾ط·آ¸ط¦â€™ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¢آ´ط·آ·ط¢آ±ط·آ·ط¢آ© ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ·ط¢آ¯ ط·آ¸ط¸آ¾ط·آ¸ط¸آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ·ط¹آ¾ط·آ·ط¢آ±. ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ±ط·آ¸ط¸آ¾ط·آ·ط¢آ¶ ط·آ¸ط¸آ¹ط·آ·ط¢آ­ط·آ·ط¹آ¾ط·آ·ط¢آ§ط·آ·ط¢آ¬ ط·آ·ط¢آ³ط·آ·ط¢آ¨ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¹ ط·آ¸ط¸آ¹ط·آ·ط¢آ¸ط·آ¸أ¢â‚¬طŒط·آ·ط¢آ± ط·آ¸أ¢â‚¬â€چط·آ¸ط¦â€™ ط·آ¸أ¢â‚¬طŒط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§.</p>
+            <p className="mt-2 text-[11px] text-gray-500">الاعتماد يشحن محفظتك مباشرة بقيد في الدفتر. الرفض يحتاج سبباً يظهر لك هنا.</p>
           </Panel>
 
-          <Panel title={`ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط¸آ¹ (${funding.length.toLocaleString('ar')})`} icon={<FileText size={17} />}>
+          <Panel title={`طلباتي (${funding.length.toLocaleString('ar')})`} icon={<FileText size={17} />}>
             {funding.length === 0 ? (
-              <EmptyState title="ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¬ط·آ·ط¢آ¯ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ" description="ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ¸ط¸آ¹ط·آ¸ط¦â€™ط·آ¸ط¸آ¾ط·آ¸ط¸آ¹ ط·آ·ط¢آ±ط·آ·ط¢آµط·آ¸ط¸آ¹ط·آ·ط¢آ¯ط·آ¸ط¦â€™ ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ·ط·â€؛ط·آ·ط¢آ·ط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’ط·آ·ط¥â€™ ط·آ·ط¢آ£ط·آ·ط¢آ±ط·آ·ط¢آ³ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¹ ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ£ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ°." />
+              <EmptyState title="لا توجد طلبات تمويل" description="عندما لا يكفي رصيدك لتغطية طلبات العملاء، أرسل طلباً من الأعلى." />
             ) : (
               <div className="divide-y divide-white/[0.06]">
                 {funding.map((request) => (
@@ -999,11 +999,11 @@ const customerById = useMemo(
                         disabled={isProcessing}
                         className="rounded-lg border border-white/10 px-2.5 py-1 text-[11px] text-gray-300 hover:bg-white/[0.06] disabled:opacity-50"
                       >
-                        ط·آ·ط¢آ¥ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ط·آ·ط¢آ§ط·آ·ط·إ’ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨
+                        إلغاء الطلب
                       </button>
                     )}
                     {request.decision_note && (
-                      <p className="w-full text-[11px] text-gray-500">ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ­ط·آ·ط¢آ¸ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ·ط¢آ©: {request.decision_note}</p>
+                      <p className="w-full text-[11px] text-gray-500">ملاحظة الإدارة: {request.decision_note}</p>
                     )}
                   </div>
                 ))}
@@ -1015,12 +1015,12 @@ const customerById = useMemo(
 
       {activeTab === 'reports' && agent && (
         <section className="space-y-4">
-          <Panel title="ط·آ¸ط¸آ¾ط·آ·ط¹آ¾ط·آ·ط¢آ±ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ±" icon={<FileText size={17} />}>
+          <Panel title="فترة التقرير" icon={<FileText size={17} />}>
             <Segmented
               options={[
-                { label: 'ط·آ·ط¢آ¢ط·آ·ط¢آ®ط·آ·ط¢آ± 7 ط·آ·ط¢آ£ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¦', value: 7 },
-                { label: 'ط·آ·ط¢آ¢ط·آ·ط¢آ®ط·آ·ط¢آ± 30 ط·آ¸ط¸آ¹ط·آ¸ط«â€ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¹', value: 30 },
-                { label: 'ط·آ·ط¢آ¢ط·آ·ط¢آ®ط·آ·ط¢آ± 90 ط·آ¸ط¸آ¹ط·آ¸ط«â€ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¹', value: 90 },
+                { label: 'آخر 7 أيام', value: 7 },
+                { label: 'آخر 30 يوماً', value: 30 },
+                { label: 'آخر 90 يوماً', value: 90 },
               ]}
               value={reportDays}
               onChange={changeReportDays}
@@ -1031,23 +1031,23 @@ const customerById = useMemo(
           {report ? (
             <>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                <StatCard icon={<CircleDollarSign size={18} />} label="ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ " value={Number(report.totals.deposits_count).toLocaleString('ar')} />
-                <StatCard icon={<CircleDollarSign size={18} />} label="ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ " value={formatUsd(report.totals.deposit_usd)} />
-                <StatCard icon={<Wallet size={18} />} label="ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨" value={Number(report.totals.withdrawals_count).toLocaleString('ar')} />
-                <StatCard icon={<Wallet size={18} />} label="ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨" value={formatUsd(report.totals.withdrawal_usd)} />
-                <StatCard icon={<Users size={18} />} label="ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ¤ط·آ¸ط¦â€™" value={Number(report.totals.customers).toLocaleString('ar')} />
+                <StatCard icon={<CircleDollarSign size={18} />} label="طلبات الشحن" value={Number(report.totals.deposits_count).toLocaleString('ar')} />
+                <StatCard icon={<CircleDollarSign size={18} />} label="قيمة الشحن" value={formatUsd(report.totals.deposit_usd)} />
+                <StatCard icon={<Wallet size={18} />} label="طلبات السحب" value={Number(report.totals.withdrawals_count).toLocaleString('ar')} />
+                <StatCard icon={<Wallet size={18} />} label="قيمة السحب" value={formatUsd(report.totals.withdrawal_usd)} />
+                <StatCard icon={<Users size={18} />} label="عملاؤك" value={Number(report.totals.customers).toLocaleString('ar')} />
               </div>
 
-              <Panel title={`ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ±ط·آ¸ط¦â€™ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ¸ط«â€ ط·آ¸أ¢â‚¬آ¦ط·آ¸ط¸آ¹ط·آ·ط¢آ© ط£آ¢أ¢â€ڑآ¬أ¢â‚¬â€Œ ط·آ·ط¢آ¢ط·آ·ط¢آ®ط·آ·ط¢آ± ${report.days} ط·آ¸ط¸آ¹ط·آ¸ط«â€ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¹`} icon={<FileText size={17} />}>
+              <Panel title={`الحركة اليومية — آخر ${report.days} يوماً`} icon={<FileText size={17} />}>
                 <div className="max-h-[420px] overflow-y-auto">
                   <table className="w-full text-right text-xs">
                     <thead className="sticky top-0 bg-dark-surface text-gray-400">
                       <tr>
-                        <th className="px-2 py-2 font-medium">ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ¸ط«â€ ط·آ¸أ¢â‚¬آ¦</th>
-                        <th className="px-2 py-2 font-medium">ط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ·ط¹آ¾</th>
-                        <th className="px-2 py-2 font-medium">ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ </th>
-                        <th className="px-2 py-2 font-medium">ط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ¸ط«â€ ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ·ط¹آ¾</th>
-                        <th className="px-2 py-2 font-medium">ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨</th>
+                        <th className="px-2 py-2 font-medium">اليوم</th>
+                        <th className="px-2 py-2 font-medium">شحنات</th>
+                        <th className="px-2 py-2 font-medium">قيمة الشحن</th>
+                        <th className="px-2 py-2 font-medium">سحوبات</th>
+                        <th className="px-2 py-2 font-medium">قيمة السحب</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/[0.05]">
@@ -1063,12 +1063,12 @@ const customerById = useMemo(
                     </tbody>
                   </table>
                 </div>
-                <p className="mt-2 text-[11px] text-gray-500">ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸ط¦â€™: {Number(agent.commission_rate).toLocaleString('ar')}% ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ  ط·آ¸أ¢â‚¬ع‘ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ  ط·آ·ط¹آ¾ط·آ¸ط¹ث†ط·آ·ط¢آ­ط·آ·ط¹آ¾ط·آ·ط¢آ³ط·آ·ط¢آ¨ ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ§ط·آ·ط¢آ¦ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¹ ط·آ¸ط¸آ¾ط·آ¸ط¸آ¹ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ³ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط¦â€™.</p>
+                <p className="mt-2 text-[11px] text-gray-500">عمولتك: {Number(agent.commission_rate).toLocaleString('ar')}% من قيمة الشحن تُحتسب تلقائياً في مستحقاتك.</p>
               </Panel>
             </>
           ) : (
-            <Panel title="ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ±" icon={<FileText size={17} />}>
-              <p className="text-sm text-gray-500">{loading ? 'ط·آ·ط¢آ¬ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸ط¸آ¹ ط·آ·ط¢آ¥ط·آ·ط¢آ¹ط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ±...' : 'ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¬ط·آ·ط¢آ¯ ط·آ·ط¢آ¨ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ¸ط¸آ¹ط·آ·ط¢آ© ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸أ¢â‚¬ع‘ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ±.'}</p>
+            <Panel title="التقرير" icon={<FileText size={17} />}>
+              <p className="text-sm text-gray-500">{loading ? 'جاري إعداد التقرير...' : 'لا توجد بيانات كافية للتقرير.'}</p>
             </Panel>
           )}
         </section>
@@ -1077,43 +1077,43 @@ const customerById = useMemo(
       {activeTab === 'agency' && isManager && agency && agencyDash && (
         <section className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard icon={<Building2 size={18} />} label="ط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸ط¸آ¹" value={agency.name} hint={agencyLabel(agency.status)} />
-            <StatCard icon={<Wallet size={18} />} label="ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©" value={formatUsd(agency.wallet_usd)} />
-            <StatCard icon={<CircleDollarSign size={18} />} label="ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©" value={`${Number(agency.commission_rate).toLocaleString('ar')}%`} hint={`ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’ ${Number(agency.agent_commission_rate).toLocaleString('ar')}%`} />
-            <StatCard icon={<Users size={18} />} label="ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’" value={`${Number(agencyDash.totals?.active_agents ?? 0).toLocaleString('ar')} / ${Number(agencyDash.totals?.agents ?? 0).toLocaleString('ar')}`} hint={Number(agency.max_agents) > 0 ? `ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ¯ ${agency.max_agents}` : 'ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ·ط¢آ­ط·آ·ط¢آ¯'} />
+            <StatCard icon={<Building2 size={18} />} label="وكالتي" value={agency.name} hint={agencyLabel(agency.status)} />
+            <StatCard icon={<Wallet size={18} />} label="محفظة الوكالة" value={formatUsd(agency.wallet_usd)} />
+            <StatCard icon={<CircleDollarSign size={18} />} label="عمولة الوكالة" value={`${Number(agency.commission_rate).toLocaleString('ar')}%`} hint={`الوكلاء ${Number(agency.agent_commission_rate).toLocaleString('ar')}%`} />
+            <StatCard icon={<Users size={18} />} label="الوكلاء" value={`${Number(agencyDash.totals?.active_agents ?? 0).toLocaleString('ar')} / ${Number(agencyDash.totals?.agents ?? 0).toLocaleString('ar')}`} hint={Number(agency.max_agents) > 0 ? `الحد ${agency.max_agents}` : 'بلا حد'} />
           </div>
 
           {agency.wallet_frozen_at && (
             <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-              ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ© ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬ع©ط·آ·ط¢آ¯ط·آ·ط¢آ©. ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ¨ط·آ·ط¢آ¨: {agency.wallet_frozen_reason ?? 'ط·آ·ط·â€؛ط·آ¸ط¸آ¹ط·آ·ط¢آ± ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ³ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬ع©ط·آ¸أ¢â‚¬â€چ'}.
+              محفظة الوكالة مجمّدة. السبب: {agency.wallet_frozen_reason ?? 'غير مسجّل'}.
             </div>
           )}
 
-          <Panel title="ط·آ·ط¢آ­ط·آ·ط¢آµط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©" icon={<FileText size={17} />}>
+          <Panel title="حصيلة الوكالة" icon={<FileText size={17} />}>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <MiniStat label="ط·آ·ط¢آ¥ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ " value={formatUsd(agencyDash.totals?.deposit_usd ?? 0)} />
-              <MiniStat label="ط·آ·ط¢آ¥ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨" value={formatUsd(agencyDash.totals?.withdrawal_usd ?? 0)} />
-              <MiniStat label="ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ·ط¢آ¹ ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ·ط¢آ§ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’" value={formatUsd(agencyDash.totals?.wallets_usd ?? 0)} />
-              <MiniStat label="ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©" value={Number(agencyDash.totals?.customers ?? 0).toLocaleString('ar')} />
+              <MiniStat label="إجمالي الشحن" value={formatUsd(agencyDash.totals?.deposit_usd ?? 0)} />
+              <MiniStat label="إجمالي السحب" value={formatUsd(agencyDash.totals?.withdrawal_usd ?? 0)} />
+              <MiniStat label="مجموع محافظ الوكلاء" value={formatUsd(agencyDash.totals?.wallets_usd ?? 0)} />
+              <MiniStat label="عملاء الوكالة" value={Number(agencyDash.totals?.customers ?? 0).toLocaleString('ar')} />
             </div>
           </Panel>
 
-          <Panel title={`ط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ© (${(agencyDash.agents ?? []).length.toLocaleString('ar')})`} icon={<Users size={17} />}>
+          <Panel title={`وكلاء الوكالة (${(agencyDash.agents ?? []).length.toLocaleString('ar')})`} icon={<Users size={17} />}>
             {(agencyDash.agents ?? []).length === 0 ? (
-              <EmptyState title="ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ¸ط¸آ¹ط·آ¸ط«â€ ط·آ·ط¢آ¬ط·آ·ط¢آ¯ ط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’" description="ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ·ط¢آ§ ط·آ·ط¹آ¾ط·آ¸ط¹ث†ط·آ·ط¢آ³ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط·إ’ ط·آ·ط¢آ¥ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ° ط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¹آ¾ط·آ¸ط¦â€™ ط·آ¸ط«â€ ط·آ·ط¹آ¾ط·آ·ط¢آ­ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬ع©ط·آ·ط¢آ¯ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ© ط·آ¸ط¦â€™ط·آ¸أ¢â‚¬â€چ ط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ." />
+              <EmptyState title="لا يوجد وكلاء" description="الإدارة العليا تُسند الوكلاء إلى وكالتك وتحدّد عمولة كل وكيل." />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[760px] text-right text-xs">
                   <thead className="text-gray-400">
                     <tr>
-                      <th className="px-2 py-2 font-medium">ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ</th>
-                      <th className="px-2 py-2 font-medium">ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ­ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©</th>
-                      <th className="px-2 py-2 font-medium">ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¢آ©</th>
-                      <th className="px-2 py-2 font-medium">ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ®ط·آ·ط¢آ²ط·آ¸ط«â€ ط·آ¸أ¢â‚¬آ  Coin</th>
-                      <th className="px-2 py-2 font-medium">ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©</th>
-                      <th className="px-2 py-2 font-medium">ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ¤ط·آ¸أ¢â‚¬طŒ</th>
-                      <th className="px-2 py-2 font-medium">ط·آ·ط¢آ¥ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ ط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ ط·آ¸أ¢â‚¬طŒ</th>
-                      <th className="px-2 py-2 font-medium">ط·آ·ط¢آ¥ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ ط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬طŒ</th>
+                      <th className="px-2 py-2 font-medium">الوكيل</th>
+                      <th className="px-2 py-2 font-medium">الحالة</th>
+                      <th className="px-2 py-2 font-medium">المحفظة</th>
+                      <th className="px-2 py-2 font-medium">مخزون Coin</th>
+                      <th className="px-2 py-2 font-medium">العمولة</th>
+                      <th className="px-2 py-2 font-medium">عملاؤه</th>
+                      <th className="px-2 py-2 font-medium">إجمالي شحنه</th>
+                      <th className="px-2 py-2 font-medium">إجمالي سحبه</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.05]">
@@ -1123,7 +1123,7 @@ const customerById = useMemo(
                           {row.display_name || row.username}
                           {row.wallet_frozen_at ? <Snowflake size={11} className="ml-1 inline text-red-300" /> : null}
                         </td>
-                        <td className="px-2 py-2">{row.status === 'active' ? 'ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ´ط·آ·ط¢آ·' : row.status}</td>
+                        <td className="px-2 py-2">{row.status === 'active' ? 'نشط' : row.status}</td>
                         <td className="px-2 py-2">{formatUsd(row.wallet_usd)}</td>
                         <td className="px-2 py-2">{Number(row.coin_inventory).toLocaleString('ar')}</td>
                         <td className="px-2 py-2">{Number(row.commission_rate).toLocaleString('ar')}%</td>
@@ -1138,9 +1138,9 @@ const customerById = useMemo(
             )}
           </Panel>
 
-          <Panel title="ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ·ط¹آ¾ط·آ·ط¢آ± ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ©" icon={<FileText size={17} />}>
+          <Panel title="دفتر محفظة الوكالة" icon={<FileText size={17} />}>
             {(agencyDash.recent_ledger ?? []).length === 0 ? (
-              <p className="text-sm text-gray-500">ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¬ط·آ·ط¢آ¯ ط·آ·ط¢آ­ط·آ·ط¢آ±ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ·ط¹آ¾ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ° ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ­ط·آ¸ط¸آ¾ط·آ·ط¢آ¸ط·آ·ط¢آ© ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ© ط·آ·ط¢آ¨ط·آ·ط¢آ¹ط·آ·ط¢آ¯.</p>
+              <p className="text-sm text-gray-500">لا توجد حركات على محفظة الوكالة بعد.</p>
             ) : (
               <LedgerList rows={agencyDash.recent_ledger ?? []} detailed />
             )}
@@ -1150,13 +1150,13 @@ const customerById = useMemo(
 
       {rejectPicker && (
         <ReasonPickerModal
-          title={rejectPicker.kind === 'deposit' ? 'ط·آ·ط¢آ±ط·آ¸ط¸آ¾ط·آ·ط¢آ¶ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ´ط·آ·ط¢آ­ط·آ¸أ¢â‚¬آ ' : 'ط·آ·ط¢آ±ط·آ¸ط¸آ¾ط·آ·ط¢آ¶ ط·آ·ط¢آ·ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ­ط·آ·ط¢آ¨'}
+          title={rejectPicker.kind === 'deposit' ? 'رفض طلب الشحن' : 'رفض طلب السحب'}
           subtitle={rejectPicker.subtitle}
           description={rejectPicker.kind === 'deposit'
-            ? 'ط·آ·ط¢آ§ط·آ·ط¢آ®ط·آ·ط¹آ¾ط·آ·ط¢آ± ط·آ·ط¢آ³ط·آ·ط¢آ¨ط·آ·ط¢آ¨ط·آ¸أ¢â‚¬آ¹ط·آ·ط¢آ§ ط·آ·ط¢آ¬ط·آ·ط¢آ§ط·آ¸أ¢â‚¬طŒط·آ·ط¢آ²ط·آ¸أ¢â‚¬آ¹ط·آ·ط¢آ§ ط·آ¸أ¢â‚¬â€چط·آ¸ط¸آ¹ط·آ·ط¢آ¸ط·آ¸أ¢â‚¬طŒط·آ·ط¢آ± ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ³ط·آ·ط¹آ¾ط·آ·ط¢آ®ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¦ ط·آ¸ط¸آ¾ط·آ¸ط¸آ¹ ط·آ·ط¢آ¥ط·آ·ط¢آ´ط·آ·ط¢آ¹ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ¸أ¢â‚¬طŒ ط·آ¸ط«â€ ط·آ¸ط¸آ¹ط·آ¸ط¹ث†ط·آ·ط¢آ³ط·آ·ط¢آ¬ط·آ¸ط¹ع©ط·آ¸أ¢â‚¬ع©ط·آ¸أ¢â‚¬â€چ ط·آ¸ط¸آ¾ط·آ¸ط¸آ¹ ط·آ·ط¢آ³ط·آ·ط¢آ¬ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ·ط¢آ©.'
-            : 'ط·آ·ط¢آ³ط·آ¸ط¸آ¹ط·آ¸ط¹ث†ط·آ·ط¢آ¹ط·آ·ط¢آ§ط·آ·ط¢آ¯ ط·آ·ط¢آ±ط·آ·ط¢آµط·آ¸ط¸آ¹ط·آ·ط¢آ¯ Diamond ط·آ·ط¢آ¥ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ° ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ³ط·آ·ط¹آ¾ط·آ·ط¢آ®ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬آ¦ ط·آ·ط¢آ¹ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ±ط·آ¸ط¸آ¾ط·آ·ط¢آ¶. ط·آ·ط¢آ§ط·آ·ط¢آ®ط·آ·ط¹آ¾ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ³ط·آ·ط¢آ¨ط·آ·ط¢آ¨ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬آ ط·آ·ط¢آ§ط·آ·ط¢آ³ط·آ·ط¢آ¨.'}
+            ? 'اختر سببًا جاهزًا ليظهر للمستخدم في إشعاره ويُسجَّل في سجل الإدارة.'
+            : 'سيُعاد رصيد Diamond إلى المستخدم عند الرفض. اختر السبب المناسب.'}
           options={rejectPicker.kind === 'deposit' ? depositRejectReasons : withdrawalRejectReasons}
-          confirmLabel="ط·آ·ط¹آ¾ط·آ·ط¢آ£ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ·ط¢آ¯ ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ±ط·آ¸ط¸آ¾ط·آ·ط¢آ¶"
+          confirmLabel="تأكيد الرفض"
           tone="danger"
           processing={processingId === rejectPicker.id}
           onClose={() => {
@@ -1237,7 +1237,7 @@ function LedgerList({ rows, detailed = false }: { rows: LedgerRow[]; detailed?: 
               {negative ? '-' : '+'}${Math.abs(Number(row.amount_usd)).toFixed(2)}
             </Badge>
             <span className="text-xs text-gray-200">{LEDGER_EVENT_LABELS[row.event_type] ?? row.event_type}</span>
-            <span className="text-[11px] text-gray-500">ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ±ط·آ·ط¢آµط·آ¸ط¸آ¹ط·آ·ط¢آ¯ ط·آ·ط¢آ¨ط·آ·ط¢آ¹ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬طŒط·آ·ط¢آ§ ${Number(row.balance_after).toFixed(2)}</span>
+            <span className="text-[11px] text-gray-500">الرصيد بعدها ${Number(row.balance_after).toFixed(2)}</span>
             {detailed && row.notes ? <span className="min-w-0 flex-1 truncate text-[11px] text-gray-500">{row.notes}</span> : null}
             <span className="ml-auto text-[11px] text-gray-500">{new Date(row.created_at).toLocaleString('ar', { dateStyle: 'short', timeStyle: 'short' })}</span>
           </div>
@@ -1248,7 +1248,7 @@ function LedgerList({ rows, detailed = false }: { rows: LedgerRow[]; detailed?: 
 }
 
 function fundingLabel(status: string): string {
-  return ({ pending: 'ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ط·آ·ط¹آ¾ط·آ·ط¢آ¸ط·آ·ط¢آ§ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ¥ط·آ·ط¢آ¯ط·آ·ط¢آ§ط·آ·ط¢آ±ط·آ·ط¢آ©', approved: 'ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¹ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯', rejected: 'ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ±ط·آ¸ط¸آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¶', cancelled: 'ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ط·آ¸أ¢â‚¬آ°' } as Record<string, string>)[status] ?? status;
+  return ({ pending: 'بانتظار الإدارة', approved: 'معتمد', rejected: 'مرفوض', cancelled: 'ملغى' } as Record<string, string>)[status] ?? status;
 }
 
 function fundingTone(status: string): 'neutral' | 'success' | 'warning' | 'danger' | 'info' {
@@ -1256,7 +1256,7 @@ function fundingTone(status: string): 'neutral' | 'success' | 'warning' | 'dange
 }
 
 function agencyLabel(status: string): string {
-  return ({ pending: 'ط·آ·ط¢آ¨ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ ط·آ·ط¹آ¾ط·آ·ط¢آ¸ط·آ·ط¢آ§ط·آ·ط¢آ± ط·آ·ط¢آ§ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ط·آ·ط¢آ¹ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ·ط¢آ¯', active: 'ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¹ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ¯ط·آ·ط¢آ©', suspended: 'ط·آ¸أ¢â‚¬آ¦ط·آ¸ط«â€ ط·آ¸أ¢â‚¬ع‘ط·آ¸ط«â€ ط·آ¸ط¸آ¾ط·آ·ط¢آ©', revoked: 'ط·آ¸أ¢â‚¬آ¦ط·آ¸أ¢â‚¬â€چط·آ·ط·â€؛ط·آ¸أ¢â‚¬آ° ط·آ·ط¢آ§ط·آ·ط¢آ¹ط·آ·ط¹آ¾ط·آ¸أ¢â‚¬آ¦ط·آ·ط¢آ§ط·آ·ط¢آ¯ط·آ¸أ¢â‚¬طŒط·آ·ط¢آ§' } as Record<string, string>)[status] ?? status;
+  return ({ pending: 'بانتظار الاعتماد', active: 'معتمدة', suspended: 'موقوفة', revoked: 'ملغى اعتمادها' } as Record<string, string>)[status] ?? status;
 }
 
 function pendingFundingCount(requests: FundingRequest[]): number {
@@ -1290,10 +1290,10 @@ function getStoragePath(value: string | null | undefined): string | null {
 }
 
 function methodLabel(method: string): string {
-  return ({ usdt: 'USDT', sham_cash: 'ط·آ·ط¢آ´ط·آ·ط¢آ§ط·آ¸أ¢â‚¬آ¦ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ·ط¢آ´', syriatel_cash: 'ط·آ·ط¢آ³ط·آ¸ط¸آ¹ط·آ·ط¢آ±ط·آ¸ط¸آ¹ط·آ·ط¢آ§ط·آ·ط¹آ¾ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ¸ط¦â€™ط·آ·ط¢آ§ط·آ·ط¢آ´', agent: 'ط·آ¸ط«â€ ط·آ¸ط¦â€™ط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ' } as Record<string, string>)[method] ?? method;
+  return ({ usdt: 'USDT', sham_cash: 'شام كاش', syriatel_cash: 'سيرياتيل كاش', agent: 'وكيل' } as Record<string, string>)[method] ?? method;
 }
 
 function formatPayoutDetails(details: Record<string, string> | null): string {
-  if (!details) return 'ط·آ¸أ¢â‚¬â€چط·آ·ط¢آ§ ط·آ·ط¹آ¾ط·آ¸ط«â€ ط·آ·ط¢آ¬ط·آ·ط¢آ¯ ط·آ·ط¹آ¾ط·آ¸ط¸آ¾ط·آ·ط¢آ§ط·آ·ط¢آµط·آ¸ط¸آ¹ط·آ¸أ¢â‚¬â€چ ط·آ·ط¢آ¯ط·آ¸ط¸آ¾ط·آ·ط¢آ¹';
-  return Object.entries(details).map(([key, value]) => `${key}: ${value}`).join(' ط·آ¢ط¢آ· ');
+  if (!details) return 'لا توجد تفاصيل دفع';
+  return Object.entries(details).map(([key, value]) => `${key}: ${value}`).join(' · ');
 }

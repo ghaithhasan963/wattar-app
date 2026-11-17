@@ -4,7 +4,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { supabase, callFunction } from '@/lib/supabase';
-import { Check, X, Eye, Loader2, Search, MessageCircleQuestion, AlertTriangle } from 'lucide-react';
+import { Check, X, Eye, Loader2, Search, MessageCircleQuestion, AlertTriangle, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader, SelectField } from '@/components/ui';
 
@@ -51,7 +51,7 @@ export function WithdrawalsPage() {
   const [selected, setSelected] = useState<Withdrawal | null>(null);
   const [reasonModal, setReasonModal] = useState<{ withdrawal: Withdrawal; mode: 'reject' | 'request_info' | 'fail' } | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
-  const [proofUrl, setProofUrl] = useState('');
+  const [proofFile, setProofFile] = useState<File | null>(null);
   const [externalRef, setExternalRef] = useState('');
 
   useEffect(() => {
@@ -96,16 +96,30 @@ export function WithdrawalsPage() {
   };
 
   const handleAction = async (id: string, action: 'approve' | 'reject' | 'review' | 'request_info' | 'processing' | 'fail', reason?: string) => {
-    if (action === 'approve' && (!proofUrl || !externalRef)) {
-      toast.error('يجب رفع صورة الإثبات وإدخال رقم العملية');
-      return;
+    let uploadedPath: string | null = null;
+    if (action === 'approve') {
+      if (!proofFile || !externalRef.trim()) {
+        toast.error('ارفع صورة إثبات الدفع وأدخل رقم العملية');
+        return;
+      }
+      if (!['image/jpeg', 'image/png'].includes(proofFile.type) || proofFile.size > 5 * 1024 * 1024) {
+        toast.error('الإثبات يجب أن يكون صورة JPEG أو PNG بحجم لا يتجاوز 5MB.');
+        return;
+      }
     }
     setProcessing(id);
     try {
+      if (action === 'approve' && proofFile) {
+        uploadedPath = `wd_admin_${id}_${Date.now()}.${proofFile.type === 'image/png' ? 'png' : 'jpg'}`;
+        const { error: uploadError } = await supabase.storage
+          .from('deposit-proofs')
+          .upload(uploadedPath, proofFile, { contentType: proofFile.type, upsert: false });
+        if (uploadError) throw uploadError;
+      }
       await callFunction('withdrawal-approve', {
         withdrawal_id: id,
         action,
-        ...(action === 'approve' ? { proof_url: proofUrl, external_ref: externalRef } : {}),
+        ...(action === 'approve' && uploadedPath ? { proof_url: uploadedPath, external_ref: externalRef.trim() } : {}),
         ...(reason ? { reason } : {}),
       });
       toast.success(
@@ -117,12 +131,16 @@ export function WithdrawalsPage() {
           : 'نُقل الطلب إلى المراجعة',
       );
       if (action === 'approve') {
-        setProofUrl('');
+        setProofFile(null);
         setExternalRef('');
       }
       setSelected(null);
       await load();
     } catch (err: any) {
+      if (uploadedPath) {
+        const { error: cleanupError } = await supabase.storage.from('deposit-proofs').remove([uploadedPath]);
+        if (cleanupError) console.error('Failed to remove unused proof:', cleanupError);
+      }
       toast.error(err.message);
     } finally {
       setProcessing(null);
@@ -306,7 +324,7 @@ export function WithdrawalsPage() {
               </div>
 
               <div className="border-t border-wattar-900 pt-4 space-y-3">
-                <p className="text-sm text-gray-300">بعد دفع المبلغ للمستخدم خارجيًا، أدخل مرجع العملية ورابط الإثبات:</p>
+                <p className="text-sm text-gray-300">بعد دفع المبلغ للمستخدم خارجيًا، ارفع صورة إثبات الدفع وأدخل رقم العملية:</p>
                 <input
                   type="text"
                   value={externalRef}
@@ -314,13 +332,19 @@ export function WithdrawalsPage() {
                   placeholder="رقم العملية الخارجية"
                   className="w-full rounded-lg bg-dark-elevated border border-wattar-900 px-3 py-2 text-white text-sm"
                 />
-                <input
-                  type="text"
-                  value={proofUrl}
-                  onChange={e => setProofUrl(e.target.value)}
-                  placeholder="رابط صورة الإثبات (URL)"
-                  className="w-full rounded-lg bg-dark-elevated border border-wattar-900 px-3 py-2 text-white text-sm"
-                />
+                <label className="flex items-center gap-2 rounded-lg border border-wattar-900 bg-dark-elevated px-3 py-2.5 text-sm text-gray-300">
+                  <Upload size={16} />
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) setProofFile(file);
+                    }}
+                    className="min-w-0 flex-1 text-xs"
+                  />
+                </label>
+                {proofFile && <p className="text-xs text-green-400">الملف المرفق: {proofFile.name} ({Math.ceil(proofFile.size / 1024)} KB)</p>}
               </div>
 
               <div className="flex gap-3">

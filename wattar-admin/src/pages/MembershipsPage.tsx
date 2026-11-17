@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { Crown, Loader2, Plus, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { Toggle } from '@/components/ui';
 
 interface MembershipPlan {
   id: string;
@@ -169,15 +170,14 @@ export function MembershipsPage() {
                   <h2 className="font-semibold text-white">{plan.name_ar} <span className="text-gray-500">· {plan.name}</span></h2>
                   <p className="mt-1 text-xs text-gray-400">تعديلات الخطة تُسجل في سجل الإدارة</p>
                 </div>
-                <label className="flex items-center gap-2 text-sm text-gray-300">
-                  <input
-                    type="checkbox"
+                <div className="w-full max-w-xs">
+                  <Toggle
+                    label={plan.is_active ? 'متاحة للشراء' : 'موقوفة'}
+                    description="إيقاف الخطة يخفيها عن الشراء الجديد دون التأثير على المشتركين الحاليين."
                     checked={plan.is_active}
-                    onChange={(event) => updatePlan(plan.id, 'is_active', event.target.checked)}
-                    className="h-4 w-4 accent-wattar-600"
+                    onChange={(checked) => updatePlan(plan.id, 'is_active', checked)}
                   />
-                  {plan.is_active ? 'متاحة للشراء' : 'موقوفة'}
-                </label>
+                </div>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <Input label="الاسم (إنجليزي)" value={plan.name} onChange={(v) => updatePlan(plan.id, 'name', v)} />

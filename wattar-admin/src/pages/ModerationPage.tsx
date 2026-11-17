@@ -11,8 +11,17 @@ import {
 import { toast } from 'sonner';
 import { supabase, callFunction } from '@/lib/supabase';
 import { ReasonPickerModal } from '@/components/ReasonPicker';
+import { UserPicker, PickedUser } from '@/components/UserPicker';
+import { Toggle } from '@/components/ui';
 
 type WordTab = 'words' | 'settings' | 'penalties' | 'appeals' | 'exceptions';
+
+const exceptionReasons = [
+  'حسابات رسمية أو إعلانية',
+  'أسماء علم تحتاج مراجعة يدوية',
+  'محتوى طبي أو تعليمي مشروع',
+  'قرار إداري بعد المراجعة',
+];
 
 const revokePenaltyReasons = [
   'خطأ في تطبيق العقوبة',
@@ -128,8 +137,8 @@ export function ModerationPage() {
   const [newWord, setNewWord] = useState('');
   const [newWordList, setNewWordList] = useState<'forbidden' | 'allowed'>('forbidden');
   const [newWordSeverity, setNewWordSeverity] = useState<ModerationWord['severity']>('medium');
-  const [exceptionUser, setExceptionUser] = useState('');
-  const [exceptionReason, setExceptionReason] = useState('');
+  const [exceptionUser, setExceptionUser] = useState<PickedUser | null>(null);
+  const [exceptionReason, setExceptionReason] = useState(exceptionReasons[0]);
   const [penaltyPicker, setPenaltyPicker] = useState<PenaltyRow | null>(null);
   const [appealPicker, setAppealPicker] = useState<{ appeal: AppealRow; decision: 'approved' | 'rejected' } | null>(null);
 
@@ -379,15 +388,14 @@ export function ModerationPage() {
 
       {tab === 'settings' && settings && (
         <section className="rounded-2xl border border-white/[0.07] bg-dark-surface p-5">
-          <label className="mb-5 flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-dark-elevated p-4">
-            <span className="text-sm font-medium text-gray-200">تفعيل فلترة الكلمات</span>
-            <input
-              type="checkbox"
+          <div className="mb-5">
+            <Toggle
+              label="تفعيل فلترة الكلمات"
+              description="عند الإيقاف لا تُحجب أي كلمة في الأسماء والرسائل، وتبقى القوائم محفوظة."
               checked={settings.filter_enabled}
-              onChange={(event) => updateSettingsField('filter_enabled', event.target.checked)}
-              className="h-5 w-5 accent-wattar-500"
+              onChange={(checked) => updateSettingsField('filter_enabled', checked)}
             />
-          </label>
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             {numericSettings.map((field) => (
               <label key={field.key} className="block">
@@ -521,30 +529,47 @@ export function ModerationPage() {
             <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-white">
               <ShieldCheck size={15} /> إضافة استثناء (إعفاء من الفلترة)
             </h2>
-            <div className="flex flex-wrap gap-2">
-              <input
-                value={exceptionUser}
-                onChange={(event) => setExceptionUser(event.target.value)}
-                placeholder="معرّف المستخدم (UUID)"
-                className={`${inputClass} max-w-sm`}
-              />
-              <input
-                value={exceptionReason}
-                onChange={(event) => setExceptionReason(event.target.value)}
-                placeholder="السبب..."
-                className={`${inputClass} max-w-sm`}
-              />
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="min-w-[260px] flex-1">
+                <UserPicker
+                  label="المستخدم المعفى"
+                  description="ابحث بالاسم أو الهاتف واختر بضغطة — لا حاجة لمعرّف UUID."
+                  value={exceptionUser}
+                  onChange={setExceptionUser}
+                />
+              </div>
+              <div className="min-w-[240px] flex-1">
+                <p className="mb-1.5 text-sm font-medium text-gray-200">سبب الإعفاء</p>
+                <div className="flex flex-wrap gap-2">
+                  {exceptionReasons.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setExceptionReason(option)}
+                      className={`rounded-xl border px-3 py-2 text-xs transition ${
+                        exceptionReason === option
+                          ? 'border-wattar-400/50 bg-wattar-600/20 font-semibold text-white'
+                          : 'border-white/[0.07] bg-white/[0.02] text-gray-300 hover:border-white/15'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <button
                 type="button"
-                disabled={busy || !exceptionUser.trim() || !exceptionReason.trim()}
+                disabled={busy || !exceptionUser || !exceptionReason.trim()}
                 onClick={() => {
+                  if (!exceptionUser) return;
+                  const target = exceptionUser;
                   void run(
                     'add_exception',
-                    { subject_user_id: exceptionUser.trim(), reason: exceptionReason.trim() },
+                    { subject_user_id: target.id, reason: exceptionReason.trim() },
                     'أُضيف الاستثناء',
                   );
-                  setExceptionUser('');
-                  setExceptionReason('');
+                  setExceptionUser(null);
                 }}
                 className="rounded-xl bg-wattar-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-wattar-600 disabled:opacity-50"
               >

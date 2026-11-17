@@ -1,12 +1,27 @@
 /**
- * Wattar Admin — صفحة الوكلاء
- * قائمة + إنشاء وكيل + شحن رصيد
+ * Wattar Admin — صفحة الوكلاء (M5)
+ * قائمة + إنشاء وكيل + صلاحيات وعمولة + حدود تشغيلية + محفظة ودفتر + تجميد.
+ * كل الكتابة عبر دوال مدقَّقة، وكل خيار بضغطة زر (لا كتابة true/false).
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase, callFunction } from '@/lib/supabase';
-import { Plus, DollarSign, Loader2, X, Shield, ShieldOff, Settings2 } from 'lucide-react';
+import {
+  BookOpen,
+  DollarSign,
+  FileText,
+  Loader2,
+  Plus,
+  Settings2,
+  Shield,
+  ShieldOff,
+  Snowflake,
+  Wallet,
+  X,
+} from 'lucide-react';
 import { toast } from 'sonner';
+import { Badge, EmptyState, NumberField, Segmented, Toggle } from '@/components/ui';
 import { ReasonPickerModal } from '@/components/ReasonPicker';
+import { LedgerModal } from '@/components/LedgerModal';
 
 const suspendReasons = [
   'مخالفة شروط العمل كوسيط',
@@ -22,13 +37,49 @@ const banReasons = [
   'تكرار المخالفات بعد الإيقاف',
 ];
 
+const settingsReasons = [
+  'تحديث العمولة اتفاقياً',
+  'تعديل الحدود التشغيلية',
+  'تحديث صلاحيات الوكيل',
+  'تسوية مالية دورية',
+];
+
+const walletAdjustReasons = [
+  'تسوية فرق مالي مؤكد',
+  'تغطية طلبات سحب معلّقة',
+  'تصحيح قيد خاطئ',
+  'تحويل من وكالة الوكيل',
+];
+
+const freezeReasons = [
+  'مراجعة مالية عاجلة',
+  'شبهة تلاعب بالسجلات',
+  'مطابقة جرد المخزون',
+];
+
+const unfreezeReasons = [
+  'انتهت المراجعة المالية',
+  'تأكدت سلامة السجلات',
+];
+
+const prepaySources = ['تحويل بنكي', 'شام كاش', 'سيرياتيل كاش', 'USDT', 'نقداً في المكتب'];
+
 interface Agent {
   id: string;
   user_id: string;
+  agency_id: string | null;
   wallet_usd: number;
   coin_inventory: number;
   commission_rate: number;
   exchange_rate_usd_to_gold: number;
+  daily_deposit_limit_usd: number;
+  daily_withdrawal_limit_usd: number;
+  min_operation_usd: number;
+  max_operation_usd: number;
+  max_users: number;
+  credit_limit_usd: number;
+  wallet_frozen_at: string | null;
+  wallet_frozen_reason: string | null;
   can_create_users: boolean;
   can_approve_deposits: boolean;
   can_approve_withdrawals: boolean;
@@ -41,6 +92,7 @@ interface Agent {
   status: string;
   created_at: string;
   user: { username: string; display_name: string | null; phone: string | null; email: string | null } | null;
+  agency: { name: string } | null;
 }
 
 type AgentPermissionKey =
@@ -53,12 +105,12 @@ type AgentPermissionKey =
 
 type AgentPermissionFlags = Pick<Agent, AgentPermissionKey>;
 
-const permissionOptions: Array<{ key: AgentPermissionKey; label: string }> = [
+const permissionOptions: Array<{ key: AgentPermissionKey; label: string; hint?: string }> = [
   { key: 'can_create_users', label: 'إنشاء حسابات العملاء' },
   { key: 'can_approve_deposits', label: 'مراجعة واعتماد طلبات الشحن' },
   { key: 'can_approve_withdrawals', label: 'مراجعة طلبات السحب' },
-  { key: 'can_set_user_rtp', label: 'تعديل إعداد RTP للعملاء' },
-  { key: 'can_force_outcome', label: 'فرض نتيجة اللعبة' },
+  { key: 'can_set_user_rtp', label: 'تعديل إعداد RTP للعملاء', hint: 'حساس' },
+  { key: 'can_force_outcome', label: 'فرض نتيجة اللعبة', hint: 'حساس' },
   { key: 'can_suspend_users', label: 'إيقاف حسابات العملاء' },
 ];
 
@@ -68,37 +120,43 @@ export function AgentsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creditAgent, setCreditAgent] = useState<Agent | null>(null);
   const [settingsAgent, setSettingsAgent] = useState<Agent | null>(null);
+  const [ledgerAgent, setLedgerAgent] = useState<Agent | null>(null);
+  const [adjustAgent, setAdjustAgent] = useState<Agent | null>(null);
+  const [freezeAgent, setFreezeAgent] = useState<Agent | null>(null);
   const [processingAgentId, setProcessingAgentId] = useState<string | null>(null);
   const [statusPicker, setStatusPicker] = useState<{ agent: Agent; status: 'suspended' | 'banned' } | null>(null);
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('agents')
         .select(`
-          id, user_id, wallet_usd, coin_inventory, commission_rate, exchange_rate_usd_to_gold,
+          id, user_id, agency_id, wallet_usd, coin_inventory, commission_rate, exchange_rate_usd_to_gold,
+          daily_deposit_limit_usd, daily_withdrawal_limit_usd, min_operation_usd, max_operation_usd,
+          max_users, credit_limit_usd, wallet_frozen_at, wallet_frozen_reason,
           can_create_users, can_approve_deposits, can_approve_withdrawals, can_set_user_rtp, can_force_outcome, can_suspend_users,
-          total_users, total_deposit_usd,
-          total_commission_usd, status, created_at,
-          user:users!agents_user_id_fkey(username, display_name, phone, email)
+          total_users, total_deposit_usd, total_commission_usd, status, created_at,
+          user:users!agents_user_id_fkey(username, display_name, phone, email),
+          agency:agencies(name)
         `)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setAgents(((data ?? []) as any[]).map(a => ({
-        ...a,
-        user: Array.isArray(a.user) ? a.user[0] ?? null : a.user,
+      setAgents(((data ?? []) as Array<Agent & { user: Agent['user'] | Agent['user'][]; agency: Agent['agency'] | Agent['agency'][] }>).map((row) => ({
+        ...row,
+        user: Array.isArray(row.user) ? row.user[0] ?? null : row.user,
+        agency: Array.isArray(row.agency) ? row.agency[0] ?? null : row.agency,
       })));
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : 'تعذر تحميل الوكلاء.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const setAgentStatus = async (agent: Agent, status: 'active' | 'suspended' | 'banned', providedReason?: string) => {
     if (status !== 'active' && !providedReason) {
@@ -132,117 +190,142 @@ export function AgentsPage() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white">الوكلاء</h1>
-          <p className="text-gray-400 mt-1">إنشاء وإدارة وكلاء الشحن</p>
+          <p className="mt-1 text-sm text-gray-400">إنشاء وإدارة الوكلاء: صلاحيات، حدود، محافظ ودفاتر — كل قرار مدقَّق بسبب.</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 rounded-lg bg-wattar-600 hover:bg-wattar-700 px-4 py-2 text-white text-sm font-medium"
+          className="flex items-center gap-2 rounded-lg bg-wattar-600 px-4 py-2 text-sm font-medium text-white hover:bg-wattar-700"
         >
           <Plus size={18} />
           إنشاء وكيل جديد
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {loading ? (
-          <p className="text-gray-400">جاري التحميل...</p>
-        ) : agents.length === 0 ? (
-          <p className="text-gray-500">لا يوجد وكلاء بعد</p>
-        ) : agents.map(ag => (
-          <div key={ag.id} className="bg-dark-surface rounded-xl border border-wattar-900 p-5">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <p className="font-medium text-white">{ag.user?.display_name ?? ag.user?.username}</p>
-                <p className="text-xs text-gray-500">البريد: {ag.user?.email ?? '—'}</p>
-                <p className="text-xs text-gray-500">الهاتف: {ag.user?.phone ?? '—'}</p>
+      {loading ? (
+        <p className="text-gray-400">جاري التحميل...</p>
+      ) : agents.length === 0 ? (
+        <EmptyState title="لا يوجد وكلاء بعد" description="ابدأ بإنشاء وكيل، أو أنشئ وكالة من صفحة «الوكالات» ثم اضمّه إليها." />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {agents.map((ag) => (
+            <div key={ag.id} className="rounded-xl border border-wattar-900 bg-dark-surface p-5">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-white">{ag.user?.display_name ?? ag.user?.username}</p>
+                  <p className="text-xs text-gray-500">البريد: {ag.user?.email ?? '—'} · الهاتف: {ag.user?.phone ?? '—'}</p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    الوكالة: {ag.agency?.name ?? 'مستقل — لم يُضم لوكالة'}
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <span className={`rounded px-2 py-1 text-xs ${
+                    ag.status === 'active'
+                      ? 'bg-green-500/10 text-green-400'
+                      : ag.status === 'banned'
+                        ? 'bg-red-500/10 text-red-400'
+                        : 'bg-amber-500/10 text-amber-300'
+                  }`}>
+                    {ag.status === 'active' ? 'نشط' : ag.status === 'banned' ? 'محظور' : 'موقوف'}
+                  </span>
+                  {ag.wallet_frozen_at ? <Badge tone="danger"><Snowflake size={11} /> محفظة مجمّدة</Badge> : null}
+                </div>
               </div>
-              <span className={`px-2 py-1 rounded text-xs ${
-                ag.status === 'active'
-                  ? 'bg-green-500/10 text-green-400'
-                  : ag.status === 'banned'
-                    ? 'bg-red-500/10 text-red-400'
-                    : 'bg-amber-500/10 text-amber-300'
-              }`}>
-                {ag.status === 'active' ? 'نشط' : ag.status === 'banned' ? 'محظور' : 'موقوف'}
-              </span>
-            </div>
 
-            <div className="grid grid-cols-2 gap-2 text-sm mb-4">
-              <div>
-                <p className="text-xs text-gray-500">سيولة نقدية لطلبات السحب</p>
-                <p className="font-semibold text-gold-500">${ag.wallet_usd}</p>
+              <div className="mb-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+                <Stat label="محفظة السحب" value={`$${Number(ag.wallet_usd).toFixed(2)}`} tone="gold" />
+                <Stat label="مخزون Coin" value={Number(ag.coin_inventory).toLocaleString('ar')} />
+                <Stat label="العمولة" value={`${Number(ag.commission_rate)}%`} />
+                <Stat label="حد الشحن اليومي" value={Number(ag.daily_deposit_limit_usd) > 0 ? `$${Number(ag.daily_deposit_limit_usd)}` : 'بلا حد'} />
+                <Stat label="حد السحب اليومي" value={Number(ag.daily_withdrawal_limit_usd) > 0 ? `$${Number(ag.daily_withdrawal_limit_usd)}` : 'بلا حد'} />
+                <Stat label="العملية (أدنى/أقصى)" value={`${Number(ag.min_operation_usd) > 0 ? `$${Number(ag.min_operation_usd)}` : '—'} / ${Number(ag.max_operation_usd) > 0 ? `$${Number(ag.max_operation_usd)}` : '—'}`} />
+                <Stat label="العملاء" value={`${Number(ag.total_users).toLocaleString('ar')}${Number(ag.max_users) > 0 ? ` / ${Number(ag.max_users)}` : ''}`} />
+                <Stat label="إجمالي العمولات" value={`$${Number(ag.total_commission_usd).toFixed(2)}`} tone="green" />
+                <Stat label="حد الائتمان" value={`$${Number(ag.credit_limit_usd).toFixed(2)}`} />
               </div>
-              <div>
-                <p className="text-xs text-gray-500">مخزون Coin لدى الوكيل</p>
-                <p className="font-semibold text-white">{Number(ag.coin_inventory).toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">العمولة</p>
-                <p className="font-semibold text-white">{ag.commission_rate}%</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">المستخدمون</p>
-                <p className="font-semibold text-white">{ag.total_users}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">إجمالي العمولات</p>
-                <p className="font-semibold text-green-400">${ag.total_commission_usd}</p>
-              </div>
-            </div>
 
-            <div className="grid gap-2 sm:grid-cols-2">
-              <button
-                onClick={() => setSettingsAgent(ag)}
-                disabled={processingAgentId === ag.id}
-                className="rounded-lg border border-wattar-700/50 bg-dark-elevated py-2 text-sm text-gray-200 flex items-center justify-center gap-2 disabled:opacity-50 sm:col-span-2"
-              >
-                <Settings2 size={16} />
-                الصلاحيات والعمولة
-              </button>
-              <button
-                onClick={() => setCreditAgent(ag)}
-                disabled={ag.status !== 'active'}
-                className="rounded-lg bg-wattar-600/20 hover:bg-wattar-600/30 border border-wattar-600 py-2 text-sm text-wattar-300 flex items-center justify-center gap-2"
-              >
-                <DollarSign size={16} />
-                إضافة مخزون مدفوع مسبقًا
-              </button>
-              {ag.status !== 'banned' && (
+              {ag.wallet_frozen_at ? (
+                <p className="mb-3 rounded-lg border border-red-500/20 bg-red-500/[0.07] px-3 py-2 text-[11px] text-red-200">
+                  المحفظة مجمّدة: {ag.wallet_frozen_reason ?? 'بدون سبب مسجّل'} — لا تُنفَّذ أي حركة مالية للوكيل.
+                </p>
+              ) : null}
+
+              <div className="grid gap-2 sm:grid-cols-2">
                 <button
-                  onClick={() => void setAgentStatus(ag, ag.status === 'active' ? 'suspended' : 'active')}
+                  onClick={() => setSettingsAgent(ag)}
                   disabled={processingAgentId === ag.id}
-                  className="rounded-lg border border-amber-500/30 bg-amber-500/10 py-2 text-sm text-amber-300 flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 rounded-lg border border-wattar-700/50 bg-dark-elevated py-2 text-sm text-gray-200 disabled:opacity-50 sm:col-span-2"
                 >
-                  {processingAgentId === ag.id ? <Loader2 size={16} className="animate-spin" /> : <ShieldOff size={16} />}
-                  {ag.status === 'active' ? 'إيقاف/أرشفة' : 'إعادة التفعيل'}
+                  <Settings2 size={16} />
+                  الصلاحيات والعمولة والحدود
                 </button>
-              )}
-              {ag.status !== 'banned' && (
                 <button
-                  onClick={() => void setAgentStatus(ag, 'banned')}
-                  disabled={processingAgentId === ag.id}
-                  className="rounded-lg border border-red-500/30 bg-red-500/10 py-2 text-sm text-red-300 flex items-center justify-center gap-2 disabled:opacity-50 sm:col-span-2"
+                  onClick={() => setCreditAgent(ag)}
+                  disabled={ag.status !== 'active'}
+                  className="flex items-center justify-center gap-2 rounded-lg border border-wattar-600 bg-wattar-600/20 py-2 text-sm text-wattar-300 hover:bg-wattar-600/30 disabled:opacity-50"
                 >
-                  <Shield size={16} />
-                  حظر الوكيل
+                  <DollarSign size={16} />
+                  إضافة مخزون مدفوع مسبقاً
                 </button>
-              )}
-              {ag.status === 'banned' && (
                 <button
-                  onClick={() => void setAgentStatus(ag, 'active')}
+                  onClick={() => setAdjustAgent(ag)}
                   disabled={processingAgentId === ag.id}
-                  className="rounded-lg border border-green-500/30 bg-green-500/10 py-2 text-sm text-green-300 flex items-center justify-center gap-2 disabled:opacity-50 sm:col-span-2"
+                  className="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] py-2 text-sm text-gray-200 hover:bg-white/[0.06] disabled:opacity-50"
                 >
-                  إعادة تفعيل الوكيل
+                  <Wallet size={16} />
+                  تسوية محفظة السحب
                 </button>
-              )}
+                <button
+                  onClick={() => setLedgerAgent(ag)}
+                  className="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] py-2 text-sm text-gray-200 hover:bg-white/[0.06]"
+                >
+                  <BookOpen size={16} />
+                  دفتر المحفظة
+                </button>
+                <button
+                  onClick={() => setFreezeAgent(ag)}
+                  disabled={processingAgentId === ag.id}
+                  className="flex items-center justify-center gap-2 rounded-lg border border-sky-500/30 bg-sky-500/10 py-2 text-sm text-sky-300 hover:bg-sky-500/20 disabled:opacity-50"
+                >
+                  <Snowflake size={16} />
+                  {ag.wallet_frozen_at ? 'فك تجميد المحفظة' : 'تجميد المحفظة'}
+                </button>
+                {ag.status !== 'banned' && (
+                  <button
+                    onClick={() => void setAgentStatus(ag, ag.status === 'active' ? 'suspended' : 'active')}
+                    disabled={processingAgentId === ag.id}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 py-2 text-sm text-amber-300 disabled:opacity-50"
+                  >
+                    {processingAgentId === ag.id ? <Loader2 size={16} className="animate-spin" /> : <ShieldOff size={16} />}
+                    {ag.status === 'active' ? 'إيقاف/أرشفة' : 'إعادة التفعيل'}
+                  </button>
+                )}
+                {ag.status !== 'banned' && (
+                  <button
+                    onClick={() => void setAgentStatus(ag, 'banned')}
+                    disabled={processingAgentId === ag.id}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 py-2 text-sm text-red-300 disabled:opacity-50"
+                  >
+                    <Shield size={16} />
+                    حظر الوكيل
+                  </button>
+                )}
+                {ag.status === 'banned' && (
+                  <button
+                    onClick={() => void setAgentStatus(ag, 'active')}
+                    disabled={processingAgentId === ag.id}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 py-2 text-sm text-green-300 disabled:opacity-50"
+                  >
+                    إعادة تفعيل الوكيل
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {showCreateModal && (
         <CreateAgentModal
@@ -274,6 +357,61 @@ export function AgentsPage() {
           }}
         />
       )}
+      {adjustAgent && (
+        <AdjustWalletModal
+          agent={adjustAgent}
+          onClose={() => setAdjustAgent(null)}
+          onSaved={() => {
+            setAdjustAgent(null);
+            load();
+          }}
+        />
+      )}
+      {ledgerAgent && (
+        <LedgerModal
+          kind="agent"
+          targetId={ledgerAgent.id}
+          title="دفتر محفظة الوكيل"
+          subtitle={`${ledgerAgent.user?.display_name ?? ledgerAgent.user?.username} — الرصيد الحالي $${Number(ledgerAgent.wallet_usd).toFixed(2)}`}
+          onClose={() => setLedgerAgent(null)}
+        />
+      )}
+      {freezeAgent && (
+        <ReasonPickerModal
+          title={freezeAgent.wallet_frozen_at ? 'فك تجميد محفظة الوكيل' : 'تجميد محفظة الوكيل'}
+          subtitle={freezeAgent.user?.display_name ?? freezeAgent.user?.username ?? ''}
+          description={freezeAgent.wallet_frozen_at
+            ? 'سيستطيع الوكيل تنفيذ الشحن والسحب فوراً بعد فك التجميد.'
+            : 'التجميد يوقف كل حركة على محفظة الوكيل فوراً (شحن، سحب، تمويل).'}
+          options={freezeAgent.wallet_frozen_at ? unfreezeReasons : freezeReasons}
+          confirmLabel={freezeAgent.wallet_frozen_at ? 'تأكيد فك التجميد' : 'تأكيد التجميد'}
+          tone={freezeAgent.wallet_frozen_at ? 'info' : 'warning'}
+          processing={processingAgentId === freezeAgent.id}
+          onClose={() => { if (!processingAgentId) setFreezeAgent(null); }}
+          onSubmit={(reason) => {
+            const target = freezeAgent;
+            setFreezeAgent(null);
+            void (async () => {
+              setProcessingAgentId(target.id);
+              try {
+                await callFunction('admin-agencies', {
+                  action: 'freeze_wallet',
+                  kind: 'agent',
+                  id: target.id,
+                  frozen: !target.wallet_frozen_at,
+                  reason,
+                });
+                toast.success(target.wallet_frozen_at ? 'تم فك تجميد المحفظة.' : 'تم تجميد المحفظة.');
+                await load();
+              } catch (error: unknown) {
+                toast.error(error instanceof Error ? error.message : 'تعذر تحديث حالة المحفظة.');
+              } finally {
+                setProcessingAgentId(null);
+              }
+            })();
+          }}
+        />
+      )}
       {statusPicker && (
         <ReasonPickerModal
           title={statusPicker.status === 'banned' ? 'حظر الوكيل نهائيًا' : 'إيقاف الوكيل مؤقتًا'}
@@ -300,10 +438,25 @@ export function AgentsPage() {
   );
 }
 
+function Stat({ label, value, tone = 'default' }: { label: string; value: string; tone?: 'default' | 'gold' | 'green' }) {
+  return (
+    <div className="rounded-lg bg-white/[0.03] px-2.5 py-2">
+      <p className="text-[11px] text-gray-500">{label}</p>
+      <p className={`mt-0.5 text-sm font-semibold ${tone === 'gold' ? 'text-gold-500' : tone === 'green' ? 'text-green-400' : 'text-white'}`}>{value}</p>
+    </div>
+  );
+}
+
 function AgentSettingsModal({ agent, onClose, onSaved }: { agent: Agent; onClose: () => void; onSaved: () => void }) {
-  const [commissionRate, setCommissionRate] = useState(String(agent.commission_rate));
-  const [exchangeRate, setExchangeRate] = useState(String(agent.exchange_rate_usd_to_gold));
-  const [reason, setReason] = useState('');
+  const [tab, setTab] = useState<'money' | 'limits' | 'permissions'>('money');
+  const [commissionRate, setCommissionRate] = useState(String(Number(agent.commission_rate)));
+  const [exchangeRate, setExchangeRate] = useState(String(Number(agent.exchange_rate_usd_to_gold)));
+  const [depositLimit, setDepositLimit] = useState(String(Number(agent.daily_deposit_limit_usd)));
+  const [withdrawLimit, setWithdrawLimit] = useState(String(Number(agent.daily_withdrawal_limit_usd)));
+  const [minOp, setMinOp] = useState(String(Number(agent.min_operation_usd)));
+  const [maxOp, setMaxOp] = useState(String(Number(agent.max_operation_usd)));
+  const [maxUsers, setMaxUsers] = useState(String(Number(agent.max_users)));
+  const [creditLimit, setCreditLimit] = useState(String(Number(agent.credit_limit_usd)));
   const [permissions, setPermissions] = useState<AgentPermissionFlags>({
     can_create_users: agent.can_create_users,
     can_approve_deposits: agent.can_approve_deposits,
@@ -312,10 +465,21 @@ function AgentSettingsModal({ agent, onClose, onSaved }: { agent: Agent; onClose
     can_force_outcome: agent.can_force_outcome,
     can_suspend_users: agent.can_suspend_users,
   });
+  const [reasonPicker, setReasonPicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const dirty =
+    Number(commissionRate) !== Number(agent.commission_rate)
+    || Number(exchangeRate) !== Number(agent.exchange_rate_usd_to_gold)
+    || Number(depositLimit) !== Number(agent.daily_deposit_limit_usd)
+    || Number(withdrawLimit) !== Number(agent.daily_withdrawal_limit_usd)
+    || Number(minOp) !== Number(agent.min_operation_usd)
+    || Number(maxOp) !== Number(agent.max_operation_usd)
+    || Number(maxUsers) !== Number(agent.max_users)
+    || Number(creditLimit) !== Number(agent.credit_limit_usd)
+    || permissionOptions.some(({ key }) => permissions[key] !== agent[key]);
+
+  const apply = async (reason: string) => {
     const commission = Number(commissionRate);
     const rate = Number(exchangeRate);
     if (!Number.isFinite(commission) || commission < 0 || commission > 100) {
@@ -326,8 +490,8 @@ function AgentSettingsModal({ agent, onClose, onSaved }: { agent: Agent; onClose
       toast.error('سعر التحويل يجب أن يكون بين 1 و1,000,000 Coin لكل دولار.');
       return;
     }
-    if (reason.trim().length < 3 || reason.trim().length > 500) {
-      toast.error('اكتب سببًا واضحًا من 3 إلى 500 حرف لتوثيق التعديل.');
+    if (Number(minOp) > 0 && Number(maxOp) > 0 && Number(minOp) > Number(maxOp)) {
+      toast.error('الحد الأدنى للعملية لا يمكن أن يتجاوز الحد الأقصى.');
       return;
     }
 
@@ -343,9 +507,23 @@ function AgentSettingsModal({ agent, onClose, onSaved }: { agent: Agent; onClose
         p_can_set_user_rtp: permissions.can_set_user_rtp,
         p_can_force_outcome: permissions.can_force_outcome,
         p_can_suspend_users: permissions.can_suspend_users,
-        p_reason: reason.trim(),
+        p_reason: reason,
       });
       if (error) throw error;
+
+      await callFunction('admin-agencies', {
+        action: 'update_agent_limits',
+        agent_id: agent.id,
+        commission_rate: commission,
+        daily_deposit_limit_usd: Number(depositLimit) || 0,
+        daily_withdrawal_limit_usd: Number(withdrawLimit) || 0,
+        min_operation_usd: Number(minOp) || 0,
+        max_operation_usd: Number(maxOp) || 0,
+        max_users: Math.max(0, Math.round(Number(maxUsers) || 0)),
+        credit_limit_usd: Number(creditLimit) || 0,
+        reason,
+      });
+
       toast.success('حُفظت إعدادات الوكيل وسُجل التغيير في سجل الإدارة.');
       onSaved();
     } catch (error: unknown) {
@@ -356,55 +534,208 @@ function AgentSettingsModal({ agent, onClose, onSaved }: { agent: Agent; onClose
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-dark-surface rounded-xl border border-wattar-900 max-w-xl w-full max-h-[90vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
-        <div className="p-6 border-b border-wattar-900 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-wattar-900 bg-dark-surface"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between border-b border-wattar-900 p-5">
           <div>
-            <h2 className="text-lg font-semibold text-white">صلاحيات وإعدادات الوكيل</h2>
-            <p className="mt-1 text-xs text-gray-400">{agent.user?.display_name ?? agent.user?.username}</p>
+            <h2 className="text-lg font-semibold text-white">إعدادات الوكيل</h2>
+            <p className="mt-1 text-xs text-gray-400">{agent.user?.display_name ?? agent.user?.username}{agent.agency?.name ? ` — ${agent.agency.name}` : ''}</p>
           </div>
           <button type="button" onClick={onClose} aria-label="إغلاق"><X size={20} className="text-gray-400" /></button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input label="عمولة الوكيل (%)" type="number" value={commissionRate} onChange={setCommissionRate} required />
-            <Input label="سعر الشحن (1$ = Coin)" type="number" value={exchangeRate} onChange={setExchangeRate} required />
-          </div>
-          <fieldset className="space-y-3">
-            <legend className="mb-2 text-sm font-semibold text-white">الصلاحيات</legend>
-            {permissionOptions.map(({ key, label }) => (
-              <label key={key} className="flex items-center gap-3 rounded-lg border border-wattar-900 bg-dark-elevated px-3 py-2 text-sm text-gray-200">
-                <input
-                  type="checkbox"
+
+        <div className="border-b border-wattar-900 p-4">
+          <Segmented
+            options={[
+              { label: 'المالية', value: 'money' },
+              { label: 'الحدود التشغيلية', value: 'limits' },
+              { label: 'الصلاحيات', value: 'permissions' },
+            ]}
+            value={tab}
+            onChange={setTab}
+            columns={3}
+          />
+        </div>
+
+        <div className="space-y-4 p-5">
+          {tab === 'money' && (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <NumberField label="عمولة الوكيل" value={commissionRate} onChange={setCommissionRate} unit="%" min={0} max={100} />
+                <NumberField label="سعر الشحن" description="موحّد على المنصة: 3000" value={exchangeRate} onChange={setExchangeRate} unit="Coin/$" min={1} />
+              </div>
+              <p className="rounded-lg border border-amber-500/25 bg-amber-500/[0.07] p-3 text-xs leading-5 text-amber-200">
+                غيّر سعر الشحن فقط بقرار مالي واضح — تغييره لا يعيد احتساب القيود السابقة.
+              </p>
+            </>
+          )}
+
+          {tab === 'limits' && (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <NumberField label="حد الشحن اليومي" description="0 = بلا حد" value={depositLimit} onChange={setDepositLimit} unit="$" min={0} />
+                <NumberField label="حد السحب اليومي" description="0 = بلا حد" value={withdrawLimit} onChange={setWithdrawLimit} unit="$" min={0} />
+                <NumberField label="أدنى قيمة عملية" description="0 = بلا حد" value={minOp} onChange={setMinOp} unit="$" min={0} />
+                <NumberField label="أقصى قيمة عملية" description="0 = بلا حد" value={maxOp} onChange={setMaxOp} unit="$" min={0} />
+                <NumberField label="أقصى عدد عملاء" description="0 = بلا حد" value={maxUsers} onChange={setMaxUsers} min={0} />
+                <NumberField label="حد الائتمان" value={creditLimit} onChange={setCreditLimit} unit="$" min={0} />
+              </div>
+              <p className="rounded-lg border border-white/[0.07] bg-white/[0.02] p-3 text-xs leading-5 text-gray-400">
+                تُفرض هذه الحدود على كل عملية شحن وسحب ينفذها الوكيل، وتُمنع العملية فور تجاوزها.
+              </p>
+            </>
+          )}
+
+          {tab === 'permissions' && (
+            <div className="space-y-2">
+              {permissionOptions.map(({ key, label, hint }) => (
+                <Toggle
+                  key={key}
+                  label={hint ? `${label} (${hint})` : label}
                   checked={permissions[key]}
-                  onChange={(event) => setPermissions((current) => ({ ...current, [key]: event.target.checked }))}
-                  className="h-4 w-4 accent-purple-500"
+                  onChange={(checked) => setPermissions((current) => ({ ...current, [key]: checked }))}
                 />
-                {label}
-              </label>
-            ))}
-          </fieldset>
-          <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-5 text-amber-200">
-            صلاحيتا RTP وفرض نتائج الألعاب مرتفعتا الحساسية؛ فعّلهما فقط عند الحاجة. كل تعديل هنا يُسجل مع السبب.
-          </p>
-          <div>
-            <label className="block text-sm text-gray-300 mb-1" htmlFor="agent-settings-reason">سبب التعديل</label>
-            <textarea
-              id="agent-settings-reason"
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              className="w-full rounded-lg bg-dark-elevated border border-wattar-900 px-3 py-2 text-white text-sm"
-              rows={2}
-              minLength={3}
-              maxLength={500}
-              required
-            />
-          </div>
-          <button type="submit" disabled={loading} className="w-full rounded-lg bg-wattar-600 hover:bg-wattar-700 disabled:opacity-50 py-2.5 font-medium text-white flex items-center justify-center gap-2">
-            {loading && <Loader2 size={16} className="animate-spin" />}
-            حفظ وتسجيل التعديل
+              ))}
+              <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-5 text-amber-200">
+                صلاحيتا RTP وفرض نتائج الألعاب مرتفعتا الحساسية؛ فعّلهما فقط عند الحاجة. كل تعديل يُسجَّل مع السبب.
+              </p>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setReasonPicker(true)}
+            disabled={loading || !dirty}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-wattar-600 py-2.5 font-medium text-white transition hover:bg-wattar-700 disabled:opacity-50"
+          >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+            حفظ التعديلات وتوثيق السبب
           </button>
-        </form>
+        </div>
+
+        {reasonPicker && (
+          <ReasonPickerModal
+            title="سبب تعديل إعدادات الوكيل"
+            subtitle={agent.user?.display_name ?? agent.user?.username ?? ''}
+            description="يُسجَّل السبب في سجل الإدارة مع كل قيمة قبل/بعد."
+            options={settingsReasons}
+            confirmLabel="حفظ بالسبب المختار"
+            tone="info"
+            processing={loading}
+            onClose={() => { if (!loading) setReasonPicker(false); }}
+            onSubmit={(reason) => {
+              setReasonPicker(false);
+              void apply(reason);
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AdjustWalletModal({ agent, onClose, onSaved }: { agent: Agent; onClose: () => void; onSaved: () => void }) {
+  const [direction, setDirection] = useState<'credit' | 'debit'>('credit');
+  const [amount, setAmount] = useState('');
+  const [reason, setReason] = useState(walletAdjustReasons[0]);
+  const [loading, setLoading] = useState(false);
+
+  const value = Number(amount) || 0;
+  const projected = direction === 'credit' ? Number(agent.wallet_usd) + value : Number(agent.wallet_usd) - value;
+
+  const submit = async () => {
+    if (value <= 0) {
+      toast.error('أدخل مبلغاً أكبر من صفر.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await callFunction('admin-agencies', {
+        action: 'adjust_agent_wallet',
+        agent_id: agent.id,
+        amount_usd: direction === 'credit' ? value : -value,
+        reason,
+        idempotency_key: crypto.randomUUID(),
+      });
+      toast.success('نُفّذت التسوية بقيد في دفتر المحفظة.');
+      onSaved();
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'تعذر تنفيذ التسوية.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="w-full max-w-lg rounded-2xl border border-wattar-900 bg-dark-surface"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between border-b border-wattar-900 p-5">
+          <div>
+            <h2 className="text-lg font-semibold text-white">تسوية محفظة السحب</h2>
+            <p className="mt-1 text-xs text-gray-400">{agent.user?.display_name ?? agent.user?.username} — الرصيد الحالي ${Number(agent.wallet_usd).toFixed(2)}</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="إغلاق"><X size={20} className="text-gray-400" /></button>
+        </div>
+        <div className="space-y-4 p-5">
+          {agent.wallet_frozen_at ? (
+            <p className="rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+              المحفظة مجمّدة — يجب فك التجميد أولاً قبل أي تسوية.
+            </p>
+          ) : null}
+          <Segmented
+            options={[
+              { label: 'إضافة رصيد +', value: 'credit' },
+              { label: 'خصم رصيد −', value: 'debit' },
+            ]}
+            value={direction}
+            onChange={setDirection}
+            columns={2}
+          />
+          <NumberField label="المبلغ" value={amount} onChange={setAmount} unit="$" min={1} />
+          <div>
+            <p className="mb-2 text-sm font-medium text-gray-200">سبب التسوية</p>
+            <div className="space-y-2">
+              {walletAdjustReasons.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => setReason(option)}
+                  className={`block w-full rounded-xl border px-3 py-2 text-right text-xs transition ${
+                    reason === option
+                      ? 'border-wattar-400/50 bg-wattar-600/20 font-semibold text-white'
+                      : 'border-white/[0.07] bg-white/[0.02] text-gray-300 hover:border-white/15'
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2 text-xs text-gray-300">
+            الرصيد بعد التسوية: <span className={`font-bold ${projected < 0 ? 'text-red-300' : 'text-white'}`}>${projected.toFixed(2)}</span>
+            {projected < 0 ? ' — لا يمكن أن يصبح الرصيد سالباً.' : ''}
+          </p>
+          <button
+            type="button"
+            onClick={() => void submit()}
+            disabled={loading || value <= 0 || projected < 0 || Boolean(agent.wallet_frozen_at)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-wattar-600 py-2.5 font-semibold text-white transition hover:bg-wattar-500 disabled:opacity-50"
+          >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <Wallet size={16} />}
+            تنفيذ التسوية بقيد
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -419,7 +750,7 @@ function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreat
     email: '',
     commission_rate: '10',
     credit_limit_usd: '1000',
-    exchange_rate_usd_to_gold: '1000',
+    exchange_rate_usd_to_gold: '3000',
     permissions: {
       can_create_users: true,
       can_approve_deposits: true,
@@ -457,40 +788,37 @@ function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreat
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-dark-surface rounded-xl border border-wattar-900 max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="p-6 border-b border-wattar-900 flex items-center justify-between">
+      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-wattar-900 bg-dark-surface" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-wattar-900 p-5">
           <h2 className="text-lg font-semibold text-white">إنشاء وكيل جديد</h2>
-          <button onClick={onClose}><X size={20} className="text-gray-400" /></button>
+          <button type="button" onClick={onClose} aria-label="إغلاق"><X size={20} className="text-gray-400" /></button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 p-5">
           <p className="rounded-lg border border-wattar-700/40 bg-wattar-900/30 p-3 text-xs leading-5 text-gray-300">
             يستطيع الوكيل تسجيل الدخول بالبريد أو رقم الهاتف الدولي باستخدام كلمة المرور نفسها، دون الحاجة إلى SMS.
           </p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <Input label="اسم المستخدم" value={form.username} onChange={v => setForm({ ...form, username: v })} required />
             <Input label="كلمة المرور" type="password" value={form.password} onChange={v => setForm({ ...form, password: v })} required />
             <Input label="الاسم الظاهر" value={form.display_name} onChange={v => setForm({ ...form, display_name: v })} />
             <Input label="البريد الإلكتروني لتسجيل الدخول" type="email" value={form.email} onChange={v => setForm({ ...form, email: v })} required />
             <Input label="رقم الهاتف الدولي لتسجيل الدخول" type="tel" value={form.phone} onChange={v => setForm({ ...form, phone: v })} required placeholder="+963..." />
-            <Input label="نسبة العمولة (%)" type="number" value={form.commission_rate} onChange={v => setForm({ ...form, commission_rate: v })} required />
-            <Input label="حد الائتمان ($)" type="number" value={form.credit_limit_usd} onChange={v => setForm({ ...form, credit_limit_usd: v })} required />
-            <Input label="سعر الشحن (1$ = ? Coin)" type="number" value={form.exchange_rate_usd_to_gold} onChange={v => setForm({ ...form, exchange_rate_usd_to_gold: v })} required />
+            <Input label="نسبة العمولة" type="number" value={form.commission_rate} onChange={v => setForm({ ...form, commission_rate: v })} required />
+            <Input label="حد الائتمان" type="number" value={form.credit_limit_usd} onChange={v => setForm({ ...form, credit_limit_usd: v })} required />
+            <Input label="سعر الشحن (Coin لكل $)" type="number" value={form.exchange_rate_usd_to_gold} onChange={v => setForm({ ...form, exchange_rate_usd_to_gold: v })} required />
           </div>
           <fieldset className="space-y-2">
             <legend className="mb-2 text-sm font-semibold text-white">صلاحيات البداية</legend>
-            {permissionOptions.map(({ key, label }) => (
-              <label key={key} className="flex items-center gap-3 rounded-lg border border-wattar-900 bg-dark-elevated px-3 py-2 text-sm text-gray-200">
-                <input
-                  type="checkbox"
-                  checked={form.permissions[key]}
-                  onChange={(event) => setForm((current) => ({
-                    ...current,
-                    permissions: { ...current.permissions, [key]: event.target.checked },
-                  }))}
-                  className="h-4 w-4 accent-purple-500"
-                />
-                {label}
-              </label>
+            {permissionOptions.map(({ key, label, hint }) => (
+              <Toggle
+                key={key}
+                label={hint ? `${label} (${hint})` : label}
+                checked={form.permissions[key]}
+                onChange={(checked) => setForm((current) => ({
+                  ...current,
+                  permissions: { ...current.permissions, [key]: checked },
+                }))}
+              />
             ))}
           </fieldset>
           <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-5 text-amber-200">
@@ -499,7 +827,7 @@ function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreat
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-wattar-600 hover:bg-wattar-700 disabled:opacity-50 py-2.5 font-medium text-white flex items-center justify-center gap-2"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-wattar-600 py-2.5 font-medium text-white hover:bg-wattar-700 disabled:opacity-50"
           >
             {loading && <Loader2 size={16} className="animate-spin" />}
             إنشاء الوكيل
@@ -512,7 +840,7 @@ function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreat
 
 function CreditAgentModal({ agent, onClose, onCredited }: { agent: Agent; onClose: () => void; onCredited: () => void }) {
   const [amount, setAmount] = useState('');
-  const [notes, setNotes] = useState('');
+  const [source, setSource] = useState(prepaySources[0]);
   const [loading, setLoading] = useState(false);
   const [attempt, setAttempt] = useState<{ fingerprint: string; key: string } | null>(null);
 
@@ -520,7 +848,7 @@ function CreditAgentModal({ agent, onClose, onCredited }: { agent: Agent; onClos
     e.preventDefault();
     setLoading(true);
     try {
-      const fingerprint = `${agent.id}:${Number(amount)}:${notes.trim()}`;
+      const fingerprint = `${agent.id}:${Number(amount)}:${source}`;
       const requestKey = attempt?.fingerprint === fingerprint
         ? attempt.key
         : `agent-prefund-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -528,7 +856,7 @@ function CreditAgentModal({ agent, onClose, onCredited }: { agent: Agent; onClos
       await callFunction('admin-credit-agent', {
         agent_id: agent.id,
         amount_usd: Number(amount),
-        notes: notes || undefined,
+        notes: `استلام مسبق عبر ${source}`,
       }, { idempotencyKey: requestKey });
       toast.success('تمت إضافة Coin إلى مخزون الوكيل');
       setAttempt(null);
@@ -542,43 +870,47 @@ function CreditAgentModal({ agent, onClose, onCredited }: { agent: Agent; onClos
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-dark-surface rounded-xl border border-wattar-900 max-w-md w-full" onClick={e => e.stopPropagation()}>
-        <div className="p-6 border-b border-wattar-900 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">إضافة مخزون مدفوع مسبقًا</h2>
-          <button onClick={onClose}><X size={20} className="text-gray-400" /></button>
+      <div className="w-full max-w-md rounded-2xl border border-wattar-900 bg-dark-surface" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-wattar-900 p-5">
+          <h2 className="text-lg font-semibold text-white">إضافة مخزون مدفوع مسبقاً</h2>
+          <button type="button" onClick={onClose} aria-label="إغلاق"><X size={20} className="text-gray-400" /></button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="bg-dark-elevated rounded-lg p-3 text-sm">
+        <form onSubmit={handleSubmit} className="space-y-4 p-5">
+          <div className="rounded-xl bg-dark-elevated p-3 text-sm">
             <p className="text-white">{agent.user?.display_name ?? agent.user?.username}</p>
-            <p className="text-gray-500 text-xs">المخزون الحالي: {Number(agent.coin_inventory).toLocaleString()} Coin</p>
-            <p className="text-gray-500 text-xs">السيولة النقدية الحالية: ${agent.wallet_usd}</p>
-            <p className="text-gray-500 text-xs">
-              ستضاف {Math.floor(Number(amount || 0) * Number(agent.exchange_rate_usd_to_gold)).toLocaleString()} Coin بعد تأكيد استلام الدفعة.
+            <p className="text-xs text-gray-500">المخزون الحالي: {Number(agent.coin_inventory).toLocaleString('ar')} Coin</p>
+            <p className="text-xs text-gray-500">السيولة النقدية الحالية: ${Number(agent.wallet_usd).toFixed(2)}</p>
+            <p className="text-xs text-gray-500">
+              ستُضاف {Math.floor(Number(amount || 0) * Number(agent.exchange_rate_usd_to_gold)).toLocaleString('ar')} Coin بعد تأكيد استلام الدفعة.
             </p>
           </div>
-          <Input
-            label="المبلغ المستلم مسبقًا ($)"
-            type="number"
-            value={amount}
-            onChange={setAmount}
-            required
-            placeholder="100"
-          />
+          <NumberField label="المبلغ المستلم مسبقاً" value={amount} onChange={setAmount} unit="$" min={1} />
           <div>
-            <label className="block text-sm text-gray-300 mb-1">ملاحظات</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full rounded-lg bg-dark-elevated border border-wattar-900 px-3 py-2 text-white text-sm"
-              rows={2}
-            />
+            <p className="mb-2 text-sm font-medium text-gray-200">طريقة استلام الدفعة</p>
+            <div className="grid grid-cols-2 gap-2">
+              {prepaySources.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setSource(option)}
+                  className={`rounded-xl border px-3 py-2 text-xs transition ${
+                    source === option
+                      ? 'border-wattar-400/50 bg-wattar-600/20 font-semibold text-white'
+                      : 'border-white/[0.07] bg-white/[0.02] text-gray-300 hover:border-white/15'
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
           </div>
           <button
             type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-wattar-600 hover:bg-wattar-700 disabled:opacity-50 py-2.5 font-medium text-white"
+            disabled={loading || !Number(amount)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-wattar-600 py-2.5 font-medium text-white hover:bg-wattar-700 disabled:opacity-50"
           >
-            {loading ? 'جاري...' : 'تأكيد استلام وإضافة المخزون'}
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <DollarSign size={16} />}
+            تأكيد استلام وإضافة المخزون
           </button>
         </form>
       </div>
@@ -603,14 +935,14 @@ function Input({
 }) {
   return (
     <div>
-      <label className="block text-sm text-gray-300 mb-1">{label}</label>
+      <label className="mb-1 block text-sm text-gray-300">{label}</label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}
         placeholder={placeholder}
-        className="w-full rounded-lg bg-dark-elevated border border-wattar-900 px-3 py-2 text-white text-sm"
+        className="w-full rounded-xl border border-wattar-900 bg-dark-elevated px-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:border-wattar-400/60 focus:outline-none"
       />
     </div>
   );

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Toggle } from '@/components/ui';
 
 interface GameConfig {
   id: string;
@@ -107,15 +108,14 @@ export function GamesPage() {
             <div key={cfg.id} className="bg-dark-surface rounded-xl border border-wattar-900 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-white">{gameLabels[cfg.game_type] ?? cfg.game_type}</h2>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
+                <div className="w-full max-w-xs">
+                  <Toggle
+                    label="حالة اللعبة"
+                    description={cfg.is_enabled ? 'مفعّلة وتظهر للمستخدمين' : 'معطّلة ومخفية عن المستخدمين'}
                     checked={cfg.is_enabled}
-                    onChange={(e) => update(cfg.id, 'is_enabled', e.target.checked)}
-                    className="w-4 h-4 accent-wattar-600"
+                    onChange={(checked) => update(cfg.id, 'is_enabled', checked)}
                   />
-                  <span className="text-gray-300">{cfg.is_enabled ? 'مفعّلة' : 'معطّلة'}</span>
-                </label>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
