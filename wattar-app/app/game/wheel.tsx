@@ -42,10 +42,10 @@ export default function WheelGame() {
   const [result, setResult] = useState<{ won: boolean; payout: number; segment: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const currentRotation = useRef(0);
-  const validBet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
+  const validBet = parseValidGameBet(betAmount, profile?.balance_gold ?? 0);
 
   const spin = async () => {
-    const bet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
+    const bet = parseValidGameBet(betAmount, profile?.balance_gold ?? 0);
     if (bet === null || spinning || loading) return;
     setLoading(true);
     setResult(null);
@@ -91,7 +91,7 @@ export default function WheelGame() {
           segment: winningSegment,
         });
         void loadProfile().catch((error: unknown) => {
-          console.warn('[Wattar] Failed to refresh game points after wheel:', error);
+          console.warn('[Wattar] Failed to refresh Coin balance after wheel:', error);
         });
       });
     } catch (err: unknown) {
@@ -122,7 +122,7 @@ export default function WheelGame() {
       <GameHeader
         title="عجلة الحظ"
         subtitle="اختر خانتك، ثم شاهد دوران العجلة والنتيجة مباشرة."
-        balance={profile?.game_points ?? 0}
+        balance={profile?.balance_gold ?? 0}
       />
 
       <View style={styles.wheelContainer}>
@@ -167,7 +167,7 @@ export default function WheelGame() {
         <View style={[styles.resultBanner, result.won ? styles.winBanner : styles.loseBanner]}>
           <Text style={styles.resultText}>
             {result.won
-              ? `🎉 ربحت ${result.payout} Point!`
+              ? `🎉 ربحت ${result.payout} Coin!`
               : `خسرت — وقفت على ${SEGMENTS[result.segment].label}`}
           </Text>
         </View>
@@ -194,7 +194,7 @@ export default function WheelGame() {
 
         <GameBetControl
           value={betAmount}
-          balance={profile?.game_points ?? 0}
+          balance={profile?.balance_gold ?? 0}
           disabled={spinning || loading}
           onChange={setBetAmount}
         />

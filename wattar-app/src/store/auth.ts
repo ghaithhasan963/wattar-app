@@ -21,7 +21,6 @@ interface UserProfile {
   status: string;
   balance_gold: number;
   balance_diamond: number;
-  game_points: number;
   experience_points: number;
   level: number;
   adult_confirmed_at: string | null;

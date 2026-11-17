@@ -25,8 +25,8 @@ export function GameBetControl({ value, balance, disabled = false, onChange }: G
   return (
     <View style={styles.container}>
       <View style={styles.heading}>
-        <Text style={styles.label}>نقاط الجولة</Text>
-        <Text style={styles.balance}>المتاح {available.toLocaleString('ar')} Point</Text>
+        <Text style={styles.label}>مبلغ الجولة</Text>
+        <Text style={styles.balance}>المتاح {available.toLocaleString('ar')} Coin</Text>
       </View>
       <View style={styles.inputRow}>
         <TextInput
@@ -37,11 +37,11 @@ export function GameBetControl({ value, balance, disabled = false, onChange }: G
           placeholder="اكتب المبلغ"
           placeholderTextColor={colors.textSecondary}
           editable={!disabled}
-          accessibilityLabel="عدد نقاط اللعب للجولة"
+          accessibilityLabel="عدد عملات اللعب للجولة"
           accessibilityHint="أدخل مبلغًا صحيحًا لا يتجاوز رصيدك المتاح"
         />
         <View style={styles.unit}>
-          <Text style={styles.unitText}>POINT</Text>
+          <Text style={styles.unitText}>COIN</Text>
         </View>
       </View>
       <View style={styles.quickBets}>
@@ -67,9 +67,9 @@ export function GameBetControl({ value, balance, disabled = false, onChange }: G
       <Text style={[styles.hint, invalid && styles.hintInvalid]}>
         {invalid
           ? Number.isSafeInteger(amount) && amount > available
-            ? 'المبلغ أكبر من رصيد نقاطك المتاح.'
-            : 'أدخل عددًا صحيحًا من النقاط يبدأ من 1.'
-          : 'الرهان يُخصم من Point ويُعاد احتساب الرصيد بعد الجولة.'}
+            ? 'المبلغ أكبر من رصيد Coin المتاح.'
+            : 'أدخل عددًا صحيحًا من Coin يبدأ من 1.'
+          : 'الرهان يُخصم من Coin ويُعاد احتساب الرصيد بعد الجولة.'}
       </Text>
     </View>
   );

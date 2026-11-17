@@ -469,3 +469,14 @@
 - [x] الدوال القديمة (`play_game_with_points`، `claim_daily_game_points*`، `claim_daily_mission`) موثّقة كمجمّدة بتعليق DEPRECATED
 - [x] عمود `users.game_points` مجمَّد للتدقيق فقط (تعليق FROZEN)
 - [x] **اختبارات حقيقية داخل معاملة ثم تراجع:** مكافأة يومية 100 Coin + مهمة 100 Coin + رهان 50 Coin + مطابقة محفظة نظيفة — كلها ناجحة.
+
+### 2026-11-17 — M3.7 مكتمل: اقتصاد Bigo Live من قاعدة البيانات إلى التطبيق
+
+- [x] **#57** `patch_game_bets_in_coin.sql`: تسوية الألعاب الخمس عبر `record_wallet_transaction` بعملة gold (نفس توقيع `play_game_with_points` فلم تتغير دوال الحافة) + زناد تجميد `game_points_ledger`. اختبارات داخل rollback: خسارة/ربح/تكرار/رصيد غير كافٍ.
+- [x] **#58** `patch_opening_balances.sql`: قيود افتتاحية وثّقت فروق الأرصدة القديمة (خلل `RETURNING` في #56 + أرصدة قبل الدفتر) → `reconcile_wallet_ledger` ok: 37 قيداً، صفر فروق.
+- [x] **#59/#59f/#59g** `patch_missions_coin*.sql`: المهام والمكافأة اليومية تعطيان Coin (سقف 100) عبر الدفتر الموحد؛ إصلاح خلل قديم في `award_user_xp` كان يفشل استلام أي مهمة؛ `list_daily_missions` تُرجع `reward_gold`. اختبارات مستخدم حقيقي داخل rollback: مكافأة + تكرار مرفوض + مهمة + تكرار already_claimed + مهمة غير مكتملة مرفوضة.
+- [x] **#60** `patch_rate_consistency_3000.sql`: توحيد كل النِسب على 1 USD = 3000 Coin (`gold_to_usdt_rate` = 0.00033333، `diamonds_per_usd` = 3000، حد السحب 30000 Diamond = 10$) — **ضروري** لأن بقاء السعر القديم كان يجعل المحاسبة تحسب على المرسل 3× ما يدفعه. اختبار هدية كامل بعد التغيير: 100 Coin ($0.0333) → 50 Diamond ($0.0167) + هامش $0.0167، مطابقتان ok، ثم rollback.
+- [x] **#59h** `patch_daily_bonus_amount.sql`: `daily_bonus_gold` 500 → 50، توحيد `usdt_to_gold_rate` = 3000.
+- [x] **نشر 7 دوال حافة**: `wallet`, `daily-bonus`, `game-wheel`, `game-dice`, `game-aviator`, `game-plinko`, `game-slots` — تقرأ وتتحقق من `balance_gold` (كانت ستُرفض كل الرهانات لأن `game_points` = 0 للجميع).
+- [x] **التطبيق**: شاشات الألعاب الخمس + الألعاب + المهام + المحفظة + المتجر + الغرفة تعرض Coin (من `balance_gold`)؛ حُذف `game_points` من نوع `UserProfile`؛ `tsc --noEmit` نظيف للتطبيق واللوحة؛ اختبارات التطبيق 90/90.
+- [x] **اللوحة**: صفحة المهام تُحرر `reward_gold` (0–100)؛ صفحة الإعدادات تعرض `daily_bonus_gold` (1–100) وتخفي مفتاحي النقاط القديمين؛ صفحة المستخدمين بلا رصيد Point.

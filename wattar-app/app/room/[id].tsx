@@ -1315,7 +1315,7 @@ function GiftsModal({
                 </Text>
               </View>
             )}
-            <Text style={styles.balanceText}>الهدايا تُدفع بعملة Coin فقط. Point مخصصة للألعاب ولا يمكن استخدامها للهدايا.</Text>
+            <Text style={styles.balanceText}>الهدايا تُدفع بعملة Coin فقط، وCoin تُشحن بالدولار (1$ = 3000 Coin).</Text>
           </>
         ) : (
           <>

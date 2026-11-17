@@ -33,7 +33,7 @@ Deno.serve(async (req: Request) => {
       claimed: result.claimed === true,
       amount: result.granted ?? 0,
       balance: result.balance,
-      currency: 'free_game_coins',
+      currency: 'gold',
       message: result.claimed === true
         ? 'تمت إضافة Coins مجانية إلى رصيد الألعاب.'
         : 'لا يمكن المطالبة بالمكافأة الآن.',

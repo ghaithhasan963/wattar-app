@@ -145,7 +145,6 @@ export default function WalletScreen() {
 
   const coinBalance = profile?.balance_gold ?? 0;
   const diamondBalance = profile?.balance_diamond ?? 0;
-  const pointBalance = profile?.game_points ?? 0;
 
   return (
     <View style={styles.screen}>
@@ -178,21 +177,13 @@ export default function WalletScreen() {
             ) : null}
 
             <View style={styles.balances}>
-              <View style={[styles.balanceCard, styles.pointCard]}>
-                <View style={styles.balanceHeader}>
-                  <CurrencyIcon currency="point" size={31} />
-                  <Text style={styles.balanceLabel}>Point</Text>
-                </View>
-                <Text style={styles.pointValue}>{pointBalance.toLocaleString()}</Text>
-                <Text style={styles.balanceHint}>للألعاب فقط · مجانية</Text>
-              </View>
               <View style={[styles.balanceCard, styles.coinsCard]}>
                 <View style={styles.balanceHeader}>
                   <CurrencyIcon currency="coin" size={31} />
                   <Text style={styles.balanceLabel}>Coin</Text>
                 </View>
                 <Text style={styles.coinValue}>{coinBalance.toLocaleString()}</Text>
-                <Text style={styles.balanceHint}>للشحن والهدايا والخدمات</Text>
+                <Text style={styles.balanceHint}>للشحن والهدايا والألعاب</Text>
               </View>
               <View style={[styles.balanceCard, styles.diamondsCard]}>
                 <View style={styles.balanceHeader}>
@@ -205,9 +196,9 @@ export default function WalletScreen() {
             </View>
 
             <View style={styles.walletNotice}>
-              <Text style={styles.walletNoticeTitle}>ثلاث عملات، لكل واحدة استخدام واضح</Text>
+              <Text style={styles.walletNoticeTitle}>عملتان، لكل واحدة استخدام واضح</Text>
               <Text style={styles.walletNoticeText}>
-                Point للألعاب فقط، وCoin للشحن والهدايا والخدمات، وDiamond لأرباح الهدايا. لا يوجد تحويل بين أرصدة الألعاب والمحفظة.
+                Coin للشحن والهدايا والألعاب ولا تُسحب نقدًا، وDiamond لأرباح المضيفات الموثقات ويمكن سحبه كدولار أو تحويله إلى Coin.
               </Text>
             </View>
 
@@ -672,13 +663,11 @@ const styles = StyleSheet.create({
   agentNotice: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, backgroundColor: '#143027', borderRadius: 14, marginBottom: 13 },
   agentNoticeText: { color: palette.success, fontSize: 12, fontWeight: '700' },
   balances: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' },
-  balanceCard: { width: '31.5%', minHeight: 132, padding: 10, borderRadius: 19, backgroundColor: palette.surface, borderWidth: 1 },
-  pointCard: { borderColor: '#6848A2' },
+  balanceCard: { width: '48%', minHeight: 132, padding: 10, borderRadius: 19, backgroundColor: palette.surface, borderWidth: 1 },
   coinsCard: { borderColor: '#725224' },
   diamondsCard: { borderColor: '#285D56' },
   balanceHeader: { alignItems: 'flex-end', gap: 6 },
   balanceLabel: { color: palette.muted, fontSize: 11, fontWeight: '700' },
-  pointValue: { color: '#C4A5FF', fontSize: 17, fontWeight: '800', marginTop: 8, textAlign: 'right' },
   coinValue: { color: palette.gold, fontSize: 17, fontWeight: '800', marginTop: 8, textAlign: 'right' },
   diamondValue: { color: '#72DCCA', fontSize: 17, fontWeight: '800', marginTop: 8, textAlign: 'right' },
   balanceHint: { color: palette.muted, fontSize: 9, lineHeight: 13, marginTop: 6, textAlign: 'right' },

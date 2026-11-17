@@ -22,11 +22,11 @@ interface DailyMission {
   event_type: string;
   target_count: number;
   current_progress: number;
-  reward_game_points: number;
+  reward_gold: number;
   reward_xp: number;
   is_claimed: boolean;
-  claimed_game_points: number;
-  claimed_xp: number;
+  coin_awarded: number;
+  xp_awarded: number;
 }
 
 export default function MissionsScreen() {
@@ -65,10 +65,10 @@ export default function MissionsScreen() {
         p_mission_id: mission.mission_id,
       });
       if (claimError) throw claimError;
-      const result = data as { game_points_awarded?: number; xp_awarded?: number } | null;
-      const points = Number(result?.game_points_awarded ?? 0);
+      const result = data as { coin_awarded?: number; xp_awarded?: number } | null;
+      const coins = Number(result?.coin_awarded ?? 0);
       const xp = Number(result?.xp_awarded ?? 0);
-      setNotice(`تم استلام المكافأة: ${points.toLocaleString()} نقطة لعب و${xp.toLocaleString()} XP.`);
+      setNotice(`تم استلام المكافأة: ${coins.toLocaleString()} Coin و${xp.toLocaleString()} XP.`);
       await Promise.all([loadMissions(), loadProfile()]);
     } catch (caught: unknown) {
       setError(caught instanceof Error ? caught.message : 'تعذر استلام مكافأة المهمة.');
@@ -93,7 +93,7 @@ export default function MissionsScreen() {
         <View style={styles.hero}>
           <View style={styles.heroIcon}><Target size={23} color={colors.gold} /></View>
           <Text style={styles.heroTitle}>تقدّم والعب مجانًا</Text>
-          <Text style={styles.heroCopy}>أكمل أهدافًا مجتمعية واستلم نقاط لعب وXP. النقاط لا تُشترى ولا تُسحب ولا تتحول إلى Diamonds، وتُضاف حتى سقف الرصيد المحدد.</Text>
+          <Text style={styles.heroCopy}>أكمل أهدافًا مجتمعية واستلم Coin وXP. كل مهمة تعطي حتى 100 Coin مجانًا، والـCoin عملة اللعب والهدايا داخل التطبيق.</Text>
         </View>
 
         {notice ? <Text accessibilityRole="alert" style={styles.notice}>{notice}</Text> : null}
@@ -138,7 +138,7 @@ export default function MissionsScreen() {
               <View style={styles.rewardRow}>
                 <Text style={styles.rewardLabel}>المكافأة</Text>
                 <Text style={styles.rewardValue}>
-                  {mission.reward_game_points.toLocaleString()} نقطة · {mission.reward_xp.toLocaleString()} XP
+                  {mission.reward_gold.toLocaleString()} Coin · {mission.reward_xp.toLocaleString()} XP
                 </Text>
               </View>
 

@@ -34,10 +34,10 @@ export default function SlotsGame() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const spinValue = useRef(new Animated.Value(0)).current;
-  const validBet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
+  const validBet = parseValidGameBet(betAmount, profile?.balance_gold ?? 0);
 
   const spin = async () => {
-    const bet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
+    const bet = parseValidGameBet(betAmount, profile?.balance_gold ?? 0);
     if (bet === null || loading) return;
 
     let spinTimer: ReturnType<typeof setInterval> | null = null;
@@ -76,7 +76,7 @@ export default function SlotsGame() {
         setResult(response);
         setLoading(false);
         void loadProfile().catch((error: unknown) => {
-          console.warn('[Wattar] Failed to refresh game points after slots:', error);
+          console.warn('[Wattar] Failed to refresh Coin balance after slots:', error);
         });
         return;
       }
@@ -92,7 +92,7 @@ export default function SlotsGame() {
         setResult(response);
         setLoading(false);
         void loadProfile().catch((error: unknown) => {
-          console.warn('[Wattar] Failed to refresh game points after slots:', error);
+          console.warn('[Wattar] Failed to refresh Coin balance after slots:', error);
         });
       });
     } catch (error: unknown) {
@@ -121,8 +121,8 @@ export default function SlotsGame() {
     >
       <GameHeader
         title="Slots"
-        subtitle="طابق الرموز الثلاثة واربح نقاطًا داخل اللعبة."
-        balance={profile?.game_points ?? 0}
+        subtitle="طابق الرموز الثلاثة واربح Coin داخل اللعبة."
+        balance={profile?.balance_gold ?? 0}
       />
 
       <View style={styles.machine}>
@@ -150,7 +150,7 @@ export default function SlotsGame() {
           </Text>
           <Text style={styles.resultText}>
             {result.is_win
-              ? `الجائزة ${result.payout.toLocaleString()} Point`
+              ? `الجائزة ${result.payout.toLocaleString()} Coin`
               : 'لم تطابق الرموز هذه المرة.'}
           </Text>
         </View>
@@ -160,7 +160,7 @@ export default function SlotsGame() {
       <View style={styles.controls}>
         <GameBetControl
           value={betAmount}
-          balance={profile?.game_points ?? 0}
+          balance={profile?.balance_gold ?? 0}
           disabled={loading}
           onChange={(value) => {
             setBetAmount(value);
@@ -178,7 +178,7 @@ export default function SlotsGame() {
             : <Text style={styles.spinText}>جرّب حظك</Text>}
         </TouchableOpacity>
         <Text style={styles.disclaimer}>
-          Point مخصصة للألعاب فقط، ولا يمكن شراؤها أو تحويلها إلى Coin أو Diamond أو سحبها.
+          الرهان يُخصم من رصيد Coin المشحون، والأرباح تعود إلى Coin.
         </Text>
       </View>
 

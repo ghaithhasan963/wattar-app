@@ -26,13 +26,11 @@ interface DepositMethod {
 }
 
 const settingLabels: Record<string, string> = {
-  free_coin_daily_grant: 'مكافأة Point اليومية',
-  free_coin_balance_cap: 'الحد الأقصى لرصيد Point',
+  daily_bonus_gold: 'مكافأة الدخول اليومية (Coin)',
 };
 
 const settingDescriptions: Record<string, string> = {
-  free_coin_daily_grant: 'عدد Point الذي يحصل عليه الحساب مرة كل 24 ساعة.',
-  free_coin_balance_cap: 'أقصى رصيد Point يمكن جمعه للألعاب.',
+  daily_bonus_gold: 'عدد Coin المجانية عند استلام مكافأة الدخول مرة كل 24 ساعة (الحد الأقصى 100).',
 };
 
 export function SettingsPage() {
@@ -57,7 +55,8 @@ export function SettingsPage() {
       const { data, error } = await supabase.from('admin_settings').select('*').order('key');
       if (error) throw error;
       setSettings((data ?? []).filter((setting) =>
-        setting.key !== 'daily_bonus_gold'
+        setting.key !== 'free_coin_daily_grant'
+        && setting.key !== 'free_coin_balance_cap'
         && setting.key !== 'diamond_to_coin_rate'
         &&
         (!setting.key.startsWith('withdraw') || [
@@ -85,6 +84,11 @@ export function SettingsPage() {
         if (val === 'true') val = true;
         else if (val === 'false') val = false;
         else if (!isNaN(Number(val))) val = Number(val);
+      }
+      if (key === 'daily_bonus_gold' && (!Number.isInteger(Number(val)) || Number(val) < 1 || Number(val) > 100)) {
+        toast.error('مكافأة الدخول اليومية يجب أن تكون رقماً صحيحاً بين 1 و100 Coin');
+        setSavingKey(null);
+        return;
       }
       const { error } = await supabase
         .from('admin_settings')

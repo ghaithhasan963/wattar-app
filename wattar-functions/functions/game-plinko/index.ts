@@ -64,8 +64,8 @@ Deno.serve(async (req: Request) => {
     const config = await getGameConfig(supabase, 'plinko');
     const userState = await getUserGameState(supabase, ctx.user_id);
 
-    if (userState.game_points < body.bet_amount) {
-      throw new HttpError(400, 'INSUFFICIENT_BALANCE', 'Not enough free game points');
+    if (userState.balance_gold < body.bet_amount) {
+      throw new HttpError(400, 'INSUFFICIENT_BALANCE', 'Not enough Coin balance');
     }
     validateBetAmount(body.bet_amount, config, userState.bet_limit_override);
 
@@ -136,7 +136,7 @@ Deno.serve(async (req: Request) => {
       is_win: placed.is_win,
       payout: placed.payout,
       path_length: Number(placed.result.rows),
-      game_points: await getNewBalance(supabase, ctx.user_id),
+      balance_gold: await getNewBalance(supabase, ctx.user_id),
     });
   } catch (err) {
     return errorResponse(err);
@@ -247,7 +247,7 @@ function simulatePath(rows: number, rightCount: number): Array<'L' | 'R'> {
 }
 
 async function getNewBalance(supabase: any, userId: string): Promise<number> {
-  const { data, error } = await supabase.from('users').select('game_points').eq('id', userId).single();
-  if (error) throw new HttpError(500, 'BALANCE_LOAD_FAILED', 'Could not load game points');
-  return Number(data.game_points);
+  const { data, error } = await supabase.from('users').select('balance_gold').eq('id', userId).single();
+  if (error) throw new HttpError(500, 'BALANCE_LOAD_FAILED', 'Could not load Coin balance');
+  return Number(data.balance_gold);
 }

@@ -23,7 +23,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('game_points, balance_gold, balance_diamond, total_deposited, total_withdrawn, total_wagered, total_won')
+      .select('balance_gold, balance_diamond, total_deposited, total_withdrawn, total_wagered, total_won')
       .eq('id', ctx.user_id)
       .single();
 
@@ -46,7 +46,6 @@ Deno.serve(async (req: Request) => {
 
     return jsonResponse({
       balance: {
-        point: user.game_points,
         coin: user.balance_gold,
         diamond: user.balance_diamond,
       },

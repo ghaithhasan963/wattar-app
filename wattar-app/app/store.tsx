@@ -143,7 +143,7 @@ export default function StoreScreen() {
             </View>
             <CurrencyIcon currency="coin" size={40} />
           </View>
-          <Text style={styles.walletNote}>Coin للشحن والهدايا والخدمات داخل Wattar، ولا تُسحب نقدًا ولا تتحول إلى Point.</Text>
+          <Text style={styles.walletNote}>Coin للشحن والهدايا والألعاب داخل Wattar، ولا تُسحب نقدًا.</Text>
         </View>
 
         {error ? (

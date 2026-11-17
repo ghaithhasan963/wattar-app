@@ -53,8 +53,8 @@ Deno.serve(async (req: Request) => {
     const config = await getGameConfig(supabase, 'slots');
     const userState = await getUserGameState(supabase, ctx.user_id);
     validateBetAmount(body.bet_amount, config, userState.bet_limit_override);
-    if (userState.game_points < body.bet_amount) {
-      throw new HttpError(400, 'INSUFFICIENT_BALANCE', 'Not enough free game points');
+    if (userState.balance_gold < body.bet_amount) {
+      throw new HttpError(400, 'INSUFFICIENT_BALANCE', 'Not enough Coin balance');
     }
 
     const rtp = determineRTP(userState, config);
@@ -94,12 +94,12 @@ Deno.serve(async (req: Request) => {
 
     const { data: updatedUser, error: balanceError } = await supabase
       .from('users')
-      .select('game_points')
+      .select('balance_gold')
       .eq('id', ctx.user_id)
       .single();
     if (balanceError) {
-      console.error('[Wattar] Failed to load game points after slots settlement:', balanceError);
-      throw new HttpError(500, 'BALANCE_LOAD_FAILED', 'Could not load free game points');
+      console.error('[Wattar] Failed to load Coin balance after slots settlement:', balanceError);
+      throw new HttpError(500, 'BALANCE_LOAD_FAILED', 'Could not load Coin balance');
     }
 
     return jsonResponse({
@@ -110,7 +110,7 @@ Deno.serve(async (req: Request) => {
       is_win: settled.is_win,
       multiplier: settled.multiplier,
       payout: settled.payout,
-      game_points: Number(updatedUser.game_points),
+      balance_gold: Number(updatedUser.balance_gold),
     });
   } catch (error) {
     return errorResponse(error);

@@ -12,7 +12,7 @@ interface GameHeaderProps {
 
 export function GameHeader({ title, subtitle, balance }: GameHeaderProps) {
   const router = useRouter();
-  const pointBalance = Number.isFinite(balance) ? Math.max(0, Math.trunc(balance)) : 0;
+  const coinBalance = Number.isFinite(balance) ? Math.max(0, Math.trunc(balance)) : 0;
 
   return (
     <View style={styles.container}>
@@ -26,14 +26,14 @@ export function GameHeader({ title, subtitle, balance }: GameHeaderProps) {
           <ArrowRight size={19} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.titleCopy}>
-          <Text style={styles.eyebrow}>WATTAR · ألعاب POINT</Text>
+          <Text style={styles.eyebrow}>WATTAR · ألعاب COIN</Text>
           <Text style={styles.title}>{title}</Text>
         </View>
-        <View style={styles.balanceCard} accessibilityLabel={`رصيد Point ${pointBalance.toLocaleString('ar')}`}>
-          <CurrencyIcon currency="point" size={34} />
+        <View style={styles.balanceCard} accessibilityLabel={`رصيد Coin ${coinBalance.toLocaleString('ar')}`}>
+          <CurrencyIcon currency="coin" size={34} />
           <View style={styles.balanceCopy}>
-            <Text style={styles.balanceLabel}>Point</Text>
-            <Text style={styles.balance}>{pointBalance.toLocaleString('ar')}</Text>
+            <Text style={styles.balanceLabel}>Coin</Text>
+            <Text style={styles.balance}>{coinBalance.toLocaleString('ar')}</Text>
           </View>
         </View>
       </View>

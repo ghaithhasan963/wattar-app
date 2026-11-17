@@ -55,10 +55,10 @@ export default function PlinkoGame() {
   const [loading, setLoading] = useState(false);
   const [boardWidth, setBoardWidth] = useState(0);
   const ballPos = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-  const validBet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
+  const validBet = parseValidGameBet(betAmount, profile?.balance_gold ?? 0);
 
   const play = async () => {
-    const bet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
+    const bet = parseValidGameBet(betAmount, profile?.balance_gold ?? 0);
     if (bet === null || loading || dropping) return;
     setLoading(true);
     setResult(null);
@@ -122,7 +122,7 @@ export default function PlinkoGame() {
         payout: response.payout,
       });
       void loadProfile().catch((error: unknown) => {
-        console.warn('[Wattar] Failed to refresh game points after Plinko:', error);
+        console.warn('[Wattar] Failed to refresh Coin balance after Plinko:', error);
       });
     } catch (err: unknown) {
       setDropping(false);
@@ -140,7 +140,7 @@ export default function PlinkoGame() {
       <GameHeader
         title="بلانغو"
         subtitle="اختر مستوى المخاطرة وأسقط الكرة لمشاهدة مسار الجولة."
-        balance={profile?.game_points ?? 0}
+        balance={profile?.balance_gold ?? 0}
       />
 
       <View style={styles.boardContainer}>
@@ -213,7 +213,7 @@ export default function PlinkoGame() {
         <View style={[styles.resultBanner, result.payout > 0 ? styles.winBanner : styles.loseBanner]}>
           <Text style={styles.resultText}>
             {result.payout > 0
-              ? `🎉 وقعت في ${result.mult}x — ربحت ${result.payout} نقطة`
+              ? `🎉 وقعت في ${result.mult}x — ربحت ${result.payout} Coin`
               : `وقع في خانة ${result.mult}x — خسرت`}
           </Text>
         </View>
@@ -238,7 +238,7 @@ export default function PlinkoGame() {
 
         <GameBetControl
           value={betAmount}
-          balance={profile?.game_points ?? 0}
+          balance={profile?.balance_gold ?? 0}
           disabled={dropping || loading}
           onChange={setBetAmount}
         />

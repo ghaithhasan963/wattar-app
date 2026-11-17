@@ -55,7 +55,7 @@ export default function GamesScreen() {
   const { profile } = useAuthStore();
   const loadProfile = useAuthStore((state) => state.loadProfile);
   const { reduceMotion } = usePreferencesStore();
-  const [claimingPoints, setClaimingPoints] = useState(false);
+  const [claimingBonus, setClaimingBonus] = useState(false);
   const entrance = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
 
   useEffect(() => {
@@ -76,24 +76,22 @@ export default function GamesScreen() {
     transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
   };
 
-  const claimDailyPoints = async () => {
-    if (claimingPoints) return;
-    setClaimingPoints(true);
+  const claimDailyBonus = async () => {
+    if (claimingBonus) return;
+    setClaimingBonus(true);
     try {
       const { data, error } = await supabase.rpc('claim_daily_game_points');
       if (error) throw error;
       if (data?.claimed) {
         await loadProfile();
-        Alert.alert('تمت الإضافة', `أضفنا ${Number(data.granted).toLocaleString()} Point إلى رصيد الألعاب.`);
-      } else if (data?.at_cap) {
-        Alert.alert('رصيد Point ممتلئ', 'يمكنك المطالبة برصيد يومي بعد استخدام بعض نقاطك.');
+        Alert.alert('تمت الإضافة', `أضفنا ${Number(data.granted).toLocaleString()} Coin إلى رصيدك.`);
       } else {
-        Alert.alert('تم استخدام المطالبة اليومية', 'يمكنك المطالبة برصيد Point مرة أخرى بعد مرور 24 ساعة.');
+        Alert.alert('تم استخدام المكافأة اليومية', 'يمكنك استلام مكافأة الدخول مرة أخرى بعد مرور 24 ساعة.');
       }
     } catch (error: unknown) {
-      Alert.alert('تعذرت المطالبة بالنقاط', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+      Alert.alert('تعذرت المكافأة اليومية', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     } finally {
-      setClaimingPoints(false);
+      setClaimingBonus(false);
     }
   };
 
@@ -103,27 +101,27 @@ export default function GamesScreen() {
         <Text style={styles.title}>الألعاب</Text>
         <View style={styles.balanceCard}>
           <View style={styles.balanceHeading}>
-            <CurrencyIcon currency="point" size={30} />
-            <Text style={styles.balanceLabel}>رصيد Point للألعاب</Text>
+            <CurrencyIcon currency="coin" size={30} />
+            <Text style={styles.balanceLabel}>رصيد Coin</Text>
           </View>
-          <Text style={styles.balanceValue}>{profile?.game_points?.toLocaleString() ?? 0}</Text>
+          <Text style={styles.balanceValue}>{profile?.balance_gold?.toLocaleString() ?? 0}</Text>
         </View>
       </View>
 
       <TouchableOpacity
         style={styles.claimButton}
-        onPress={claimDailyPoints}
-        disabled={claimingPoints}
+        onPress={claimDailyBonus}
+        disabled={claimingBonus}
         accessibilityRole="button"
       >
-        {claimingPoints
+        {claimingBonus
           ? <ActivityIndicator size="small" color={colors.background} />
           : <Gift size={18} color={colors.background} />}
         <Text style={styles.claimButtonText}>
-          {claimingPoints ? 'جاري جلب الرصيد...' : 'استلام Point اليومي'}
+          {claimingBonus ? 'جاري الاستلام...' : 'استلام Coin اليومية'}
         </Text>
       </TouchableOpacity>
-      <Text style={styles.pointsNotice}>النقاط داخل الألعاب فقط؛ لا تُشترى ولا تُحوّل ولا تُسحب نقدًا.</Text>
+      <Text style={styles.pointsNotice}>مكافأة يومية محدودة بالـCoin (حتى 100 Coin). الألعاب تُلعب برصيد Coin المشحون، ولا يمكن سحب Coin نقدًا.</Text>
 
       <Animated.View style={[styles.communityCard, entranceStyle]}>
         <View style={styles.communityIcon}><Users size={22} color={colors.primary} /></View>
@@ -144,7 +142,7 @@ export default function GamesScreen() {
       <View style={styles.sectionHeading}>
         <View>
           <Text style={styles.sectionTitle}>اختر لعبتك</Text>
-          <Text style={styles.sectionSubtitle}>جولات سريعة برصيد Point فقط</Text>
+          <Text style={styles.sectionSubtitle}>جولات سريعة برصيد Coin فقط</Text>
         </View>
         <View style={styles.gamesCount}>
           <Text style={styles.gamesCountText}>{games.length} ألعاب</Text>
@@ -171,8 +169,8 @@ export default function GamesScreen() {
               <Text style={styles.gameName}>{game.name}</Text>
               <Text style={styles.gameDesc} numberOfLines={2}>{game.description}</Text>
               <View style={styles.gameBadge}>
-                <CurrencyIcon currency="point" size={18} />
-                <Text style={styles.gameBadgeText}>Point فقط</Text>
+                <CurrencyIcon currency="coin" size={18} />
+                <Text style={styles.gameBadgeText}>Coin فقط</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -181,7 +179,7 @@ export default function GamesScreen() {
 
       <Animated.View style={[styles.statsCard, entranceStyle]}>
         <Text style={styles.statsTitle}>العب بأمان</Text>
-        <Text style={styles.pointsNotice}>الألعاب تستخدم Point فقط. لا يمكن شراء Point أو تحويلها إلى Coin أو Diamond أو سحبها.</Text>
+        <Text style={styles.pointsNotice}>الرهان يُخصم من رصيد Coin المشحون، والأرباح تعود إلى Coin نفسها. Coin لا تُسحب نقدًا؛ السحب متاح لأرباح Diamond فقط.</Text>
       </Animated.View>
     </ScrollView>
   );

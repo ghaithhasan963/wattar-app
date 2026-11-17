@@ -58,7 +58,7 @@ export async function getGameConfig(supabase: SupabaseClient, gameType: GameType
 // 2) جلب حالة المستخدم للعبة (RTP, force flags, balance, bet limits)
 // ============================================================================
 export interface UserGameState {
-  game_points: number;
+  balance_gold: number;
   rtp_override: number | null;
   is_force_win: boolean;
   is_force_lose: boolean;
@@ -70,7 +70,7 @@ export interface UserGameState {
 export async function getUserGameState(supabase: SupabaseClient, userId: string): Promise<UserGameState> {
   const { data, error } = await supabase
     .from('users')
-    .select('game_points, rtp_override, is_force_win, is_force_lose, force_outcome_count, bet_limit_override, status')
+    .select('balance_gold, rtp_override, is_force_win, is_force_lose, force_outcome_count, bet_limit_override, status')
     .eq('id', userId)
     .single();
 

@@ -33,7 +33,7 @@ export default function DiceGame() {
   const [loading, setLoading] = useState(false);
   const dieRotation = useRef(new Animated.Value(0)).current;
   const dieBounce = useRef(new Animated.Value(0)).current;
-  const validBet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
+  const validBet = parseValidGameBet(betAmount, profile?.balance_gold ?? 0);
 
   const pWin = direction === 'over'
     ? (100 - Number(target)) / 100
@@ -46,7 +46,7 @@ export default function DiceGame() {
   };
 
   const play = async () => {
-    const bet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
+    const bet = parseValidGameBet(betAmount, profile?.balance_gold ?? 0);
     const targetValue = Number(target);
     if (
       bet === null
@@ -109,7 +109,7 @@ export default function DiceGame() {
         mult: response.multiplier,
       });
       void loadProfile().catch((error: unknown) => {
-        console.warn('[Wattar] Failed to refresh game points after dice:', error);
+        console.warn('[Wattar] Failed to refresh Coin balance after dice:', error);
       });
     } catch (err: unknown) {
       Alert.alert('خطأ', err instanceof Error ? err.message : 'تعذر إكمال الجولة.');
@@ -130,7 +130,7 @@ export default function DiceGame() {
       <GameHeader
         title="نرد"
         subtitle="اختر اتجاه التوقع وحدد رهانك قبل بدء الجولة."
-        balance={profile?.game_points ?? 0}
+        balance={profile?.balance_gold ?? 0}
       />
 
       <View style={styles.diceContainer}>
@@ -157,7 +157,7 @@ export default function DiceGame() {
         <View style={[styles.resultBanner, result.won ? styles.winBanner : styles.loseBanner]}>
           <Text style={styles.resultText}>
             {result.won
-              ? `🎉 الرقم ${result.roll} — ربحت ${result.payout} نقطة (${result.mult}x)`
+              ? `🎉 الرقم ${result.roll} — ربحت ${result.payout} Coin (${result.mult}x)`
               : `الرقم ${result.roll} — خسرت`}
           </Text>
         </View>
@@ -246,7 +246,7 @@ export default function DiceGame() {
 
         <GameBetControl
           value={betAmount}
-          balance={profile?.game_points ?? 0}
+          balance={profile?.balance_gold ?? 0}
           disabled={loading || rolling}
           onChange={setBetAmount}
         />

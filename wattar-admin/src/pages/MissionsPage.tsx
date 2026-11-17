@@ -12,7 +12,7 @@ interface DailyMission {
   description: string;
   event_type: MissionEvent;
   target_count: number;
-  reward_game_points: number;
+  reward_gold: number;
   reward_xp: number;
   is_enabled: boolean;
 }
@@ -23,12 +23,12 @@ interface NewMission {
   description: string;
   event_type: MissionEvent;
   target_count: string;
-  reward_game_points: string;
+  reward_gold: string;
   reward_xp: string;
 }
 
 const eventLabels: Record<MissionEvent, string> = {
-  daily_grant: 'استلام النقاط اليومية',
+  daily_grant: 'استلام مكافأة الدخول اليومية',
   story_post: 'نشر قصة',
   gift_sent: 'إرسال هدية بـCoin',
   gift_received: 'استقبال هدية بـCoin',
@@ -41,7 +41,7 @@ const emptyMission: NewMission = {
   description: '',
   event_type: 'story_post',
   target_count: '1',
-  reward_game_points: '100',
+  reward_gold: '100',
   reward_xp: '10',
 };
 
@@ -59,7 +59,7 @@ export function MissionsPage() {
     try {
       const { data, error } = await supabase
         .from('daily_missions')
-        .select('id, mission_key, title, description, event_type, target_count, reward_game_points, reward_xp, is_enabled')
+        .select('id, mission_key, title, description, event_type, target_count, reward_gold, reward_xp, is_enabled')
         .order('created_at', { ascending: true });
       if (error) throw error;
       setMissions((data ?? []) as DailyMission[]);
@@ -74,16 +74,16 @@ export function MissionsPage() {
     void load();
   }, [load]);
 
-  const validate = (target: number, points: number, xp: number) => (
+  const validate = (target: number, coins: number, xp: number) => (
     Number.isSafeInteger(target) && target >= 1 && target <= 100
-    && Number.isSafeInteger(points) && points >= 0 && points <= 5000
+    && Number.isSafeInteger(coins) && coins >= 0 && coins <= 100
     && Number.isSafeInteger(xp) && xp >= 0 && xp <= 1000
-    && (points > 0 || xp > 0)
+    && (coins > 0 || xp > 0)
   );
 
   const save = async (mission: DailyMission) => {
     if (!mission.title.trim() || !mission.description.trim()
-      || !validate(mission.target_count, mission.reward_game_points, mission.reward_xp)) {
+      || !validate(mission.target_count, mission.reward_gold, mission.reward_xp)) {
       toast.error('تحقق من عنوان ووصف المهمة وحدود التقدم والمكافآت');
       return;
     }
@@ -95,7 +95,7 @@ export function MissionsPage() {
           title: mission.title.trim(),
           description: mission.description.trim(),
           target_count: mission.target_count,
-          reward_game_points: mission.reward_game_points,
+          reward_gold: mission.reward_gold,
           reward_xp: mission.reward_xp,
           is_enabled: mission.is_enabled,
           updated_at: new Date().toISOString(),
@@ -113,10 +113,10 @@ export function MissionsPage() {
   const create = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const target = Number(form.target_count);
-    const points = Number(form.reward_game_points);
+    const coins = Number(form.reward_gold);
     const xp = Number(form.reward_xp);
     if (!/^[a-z0-9][a-z0-9-]{2,79}$/.test(form.mission_key.trim())
-      || !form.title.trim() || !form.description.trim() || !validate(target, points, xp)) {
+      || !form.title.trim() || !form.description.trim() || !validate(target, coins, xp)) {
       toast.error('تحقق من المعرّف الإنجليزي والعنوان والوصف وحدود التقدم والمكافآت');
       return;
     }
@@ -128,7 +128,7 @@ export function MissionsPage() {
         title: form.title.trim(),
         description: form.description.trim(),
         target_count: target,
-        reward_game_points: points,
+        reward_gold: coins,
         reward_xp: xp,
       });
       if (error) throw error;
@@ -153,7 +153,7 @@ export function MissionsPage() {
       <div>
         <h1 className="text-2xl font-bold text-white">المهمات اليومية</h1>
         <p className="mt-1 text-sm text-gray-400">
-          تُتحقق الأهداف من سجلات الخادم، ومكافآتها نقاط لعب مجانية وXP فقط؛ كل تعديل يُسجل إداريًا.
+          تُتحقق الأهداف من سجلات الخادم، ومكافآتها Coin مجانية (حتى 100 Coin للمهمة) وXP فقط؛ كل تعديل يُسجل إداريًا.
         </p>
       </div>
 
@@ -165,7 +165,7 @@ export function MissionsPage() {
           <Input label="الوصف" value={form.description} onChange={(v) => setForm({ ...form, description: v })} />
           <SelectEvent value={form.event_type} onChange={(v) => setForm({ ...form, event_type: v })} />
           <Input label="العدد المطلوب (1–100)" type="number" value={form.target_count} onChange={(v) => setForm({ ...form, target_count: v })} />
-          <Input label="مكافأة Point (0–5000)" type="number" value={form.reward_game_points} onChange={(v) => setForm({ ...form, reward_game_points: v })} />
+          <Input label="مكافأة Coin (0–100)" type="number" value={form.reward_gold} onChange={(v) => setForm({ ...form, reward_gold: v })} />
           <Input label="XP (0–1000)" type="number" value={form.reward_xp} onChange={(v) => setForm({ ...form, reward_xp: v })} />
         </div>
         <button disabled={creating} className="flex items-center gap-2 rounded-lg bg-wattar-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
@@ -206,7 +206,7 @@ export function MissionsPage() {
                 <Input label="العنوان" value={mission.title} onChange={(v) => updateMission(mission.id, 'title', v)} />
                 <Input label="الوصف" value={mission.description} onChange={(v) => updateMission(mission.id, 'description', v)} />
                 <Input label="العدد المطلوب" type="number" value={String(mission.target_count)} onChange={(v) => updateMission(mission.id, 'target_count', Number(v))} />
-                <Input label="مكافأة Point" type="number" value={String(mission.reward_game_points)} onChange={(v) => updateMission(mission.id, 'reward_game_points', Number(v))} />
+                <Input label="مكافأة Coin" type="number" value={String(mission.reward_gold)} onChange={(v) => updateMission(mission.id, 'reward_gold', Number(v))} />
                 <Input label="XP" type="number" value={String(mission.reward_xp)} onChange={(v) => updateMission(mission.id, 'reward_xp', Number(v))} />
               </div>
               <div className="flex justify-end">

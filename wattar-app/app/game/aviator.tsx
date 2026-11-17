@@ -32,7 +32,7 @@ export default function AviatorGame() {
   const [loading, setLoading] = useState(false);
   const multAnim = useRef(new Animated.Value(1)).current;
   const flightAnim = useRef(new Animated.Value(0)).current;
-  const validBet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
+  const validBet = parseValidGameBet(betAmount, profile?.balance_gold ?? 0);
 
   useEffect(() => {
     const listenerId = multAnim.addListener(({ value }) => setMultiplier(value));
@@ -43,7 +43,7 @@ export default function AviatorGame() {
   }, [multAnim]);
 
   const play = async () => {
-    const bet = parseValidGameBet(betAmount, profile?.game_points ?? 0);
+    const bet = parseValidGameBet(betAmount, profile?.balance_gold ?? 0);
     const target = Number(cashoutMult);
     if (bet === null || !Number.isFinite(target) || target <= 1 || loading || isFlying) return;
     setLoading(true);
@@ -92,7 +92,7 @@ export default function AviatorGame() {
           payout: response.payout,
         });
         void loadProfile().catch((error: unknown) => {
-          console.warn('[Wattar] Failed to refresh game points after Aviator:', error);
+          console.warn('[Wattar] Failed to refresh Coin balance after Aviator:', error);
         });
       });
     } catch (err: unknown) {
@@ -112,7 +112,7 @@ export default function AviatorGame() {
       <GameHeader
         title="طيارة المضاعفات"
         subtitle="حدد رهانك ومضاعف السحب قبل إقلاع الجولة."
-        balance={profile?.game_points ?? 0}
+        balance={profile?.balance_gold ?? 0}
       />
 
       <View style={styles.gameArea}>
@@ -142,7 +142,7 @@ export default function AviatorGame() {
           )}
           {result && (
             <Text style={[styles.resultText, result.won ? styles.winText : styles.loseText]}>
-              {result.won ? `ربحت ${result.payout} نقطة!` : `انهارت عند ${result.crash}x`}
+              {result.won ? `ربحت ${result.payout} Coin!` : `انهارت عند ${result.crash}x`}
             </Text>
           )}
         </View>
@@ -151,7 +151,7 @@ export default function AviatorGame() {
       <View style={styles.controlsCard}>
         <GameBetControl
           value={betAmount}
-          balance={profile?.game_points ?? 0}
+          balance={profile?.balance_gold ?? 0}
           disabled={loading || isFlying}
           onChange={setBetAmount}
         />
