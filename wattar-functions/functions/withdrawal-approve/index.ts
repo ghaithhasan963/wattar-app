@@ -9,13 +9,17 @@ import {
   validateBody,
 } from '../_shared/supabase.ts';
 
+type WithdrawalAction = 'approve' | 'reject' | 'review' | 'request_info' | 'processing' | 'fail';
+
 interface ApproveBody {
   withdrawal_id: string;
-  action: 'approve' | 'reject';
+  action: WithdrawalAction;
   external_ref?: string;
   proof_url?: string;
   reason?: string;
 }
+
+const WITHDRAWAL_ACTIONS: WithdrawalAction[] = ['approve', 'reject', 'review', 'request_info', 'processing', 'fail'];
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return jsonResponse({}, 200);
@@ -27,8 +31,8 @@ Deno.serve(async (req: Request) => {
 
     const body = await parseBody<ApproveBody>(req);
     validateBody(body, ['withdrawal_id', 'action']);
-    if (body.action !== 'approve' && body.action !== 'reject') {
-      throw new HttpError(400, 'INVALID_ACTION', 'Action must be approve or reject');
+    if (!WITHDRAWAL_ACTIONS.includes(body.action)) {
+      throw new HttpError(400, 'INVALID_ACTION', 'Action must be one of approve, reject, review, request_info, processing, fail');
     }
     const externalRef = body.external_ref?.trim();
     const proofPath = body.proof_url?.trim();
@@ -107,7 +111,11 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({
       success: true,
       result: data,
-      message: body.action === 'approve' ? 'تم تأكيد الدفع.' : 'تم رفض الطلب وإعادة Diamonds.',
+      message: body.action === 'approve'
+        ? 'تم تأكيد الدفع.'
+        : body.action === 'reject' || body.action === 'fail'
+          ? 'تم رفض الطلب وإعادة Diamonds.'
+          : 'تم تحديث حالة طلب السحب.',
     });
   } catch (err) {
     return errorResponse(err);

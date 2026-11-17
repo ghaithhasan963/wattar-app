@@ -342,6 +342,10 @@ function DepositModal({
   const [amount, setAmount] = useState('');
   const [externalRef, setExternalRef] = useState('');
   const [image, setImage] = useState<string | null>(null);
+  const [network, setNetwork] = useState<'trc20' | 'bep20'>('trc20');
+  const [txHash, setTxHash] = useState('');
+  const [fromAddress, setFromAddress] = useState('');
+  const [usdtWallets, setUsdtWallets] = useState<{ trc20?: string; bep20?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [attempt, setAttempt] = useState<{ fingerprint: string; key: string } | null>(null);
   const selectedMethod = methods.find((method) => method.method === methodCode) ?? methods[0] ?? null;
@@ -351,6 +355,21 @@ function DepositModal({
       setMethodCode(methods[0]?.method ?? null);
     }
   }, [methodCode, methods, selectedMethod]);
+
+  useEffect(() => {
+    if (selectedMethod?.method !== 'usdt' || usdtWallets) return;
+    supabase
+      .from('admin_settings')
+      .select('value')
+      .eq('key', 'usdt_wallets')
+      .maybeSingle()
+      .then(({ data }: { data: { value: unknown } | null }) => {
+        const value = data?.value;
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+          setUsdtWallets(value as { trc20?: string; bep20?: string });
+        }
+      });
+  }, [selectedMethod?.method, usdtWallets]);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -369,6 +388,27 @@ function DepositModal({
       || !externalRef.trim() || !image) {
       Alert.alert('راجع البيانات', `أدخل مبلغًا بين $${selectedMethod?.min_amount_usd ?? 1} و$${selectedMethod?.max_amount_usd ?? 2000}، ورقم العملية وصورة الإثبات.`);
       return;
+    }
+    if (selectedMethod.method === 'usdt') {
+      const hash = txHash.trim();
+      const validHash = network === 'trc20'
+        ? /^[0-9a-fA-F]{64}$/.test(hash)
+        : /^0x[0-9a-fA-F]{64}$/.test(hash);
+      if (!validHash) {
+        Alert.alert('رقم العملية غير صالح', network === 'trc20'
+          ? 'أدخل رقم عملية TRC20 (64 حرفًا سداسي عشري).'
+          : 'أدخل رقم عملية BEP20 (0x متبوعة بـ64 حرفًا سداسي عشري).');
+        return;
+      }
+      if (fromAddress.trim()) {
+        const validAddress = network === 'trc20'
+          ? /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(fromAddress.trim())
+          : /^0x[0-9a-fA-F]{40}$/.test(fromAddress.trim());
+        if (!validAddress) {
+          Alert.alert('عنوان المرسل غير صالح', 'تأكد من صحة عنوان محفظتك.');
+          return;
+        }
+      }
     }
 
     const fingerprint = `${selectedMethod.method}:${numericAmount}:${externalRef.trim()}`;
@@ -391,6 +431,11 @@ function DepositModal({
         amount_usd: numericAmount,
         external_ref: externalRef.trim(),
         proof_url: proofUrl,
+        ...(selectedMethod.method === 'usdt' ? {
+          usdt_network: network,
+          usdt_tx_hash: txHash.trim(),
+          usdt_from_address: fromAddress.trim() || undefined,
+        } : {}),
       }, idempotencyKey);
       setAttempt(null);
       Alert.alert('تم استلام الطلب', 'سيظهر الرصيد بعد مراجعة إثبات الشحن.');
@@ -456,6 +501,56 @@ function DepositModal({
               maxLength={200}
             />
 
+            {selectedMethod?.method === 'usdt' ? (
+              <>
+                <Text style={styles.fieldLabel}>شبكة USDT</Text>
+                <View style={styles.methods}>
+                  {(['trc20', 'bep20'] as const).map((item) => (
+                    <TouchableOpacity
+                      key={item}
+                      style={[styles.methodButton, network === item && styles.methodButtonActive]}
+                      onPress={() => setNetwork(item)}
+                      disabled={loading}
+                    >
+                      <Text style={[styles.methodText, network === item && styles.methodTextActive]}>
+                        {item === 'trc20' ? 'TRC20' : 'BEP20'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                {usdtWallets?.[network] ? (
+                  <View style={styles.instructions}>
+                    <Text style={styles.instructionsTitle}>عنوان المحفظة للاستلام</Text>
+                    <Text style={styles.instructionsText} selectable>{usdtWallets[network]}</Text>
+                  </View>
+                ) : null}
+                <Text style={styles.fieldLabel}>رقم عملية التحويل (TxID)</Text>
+                <TextInput
+                  style={styles.inputField}
+                  value={txHash}
+                  onChangeText={setTxHash}
+                  placeholder={network === 'trc20' ? '64 حرفًا سداسي عشري' : '0x + 64 حرفًا سداسي عشري'}
+                  placeholderTextColor={palette.muted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
+                  maxLength={80}
+                />
+                <Text style={styles.fieldLabel}>عنوان محفظتك (اختياري)</Text>
+                <TextInput
+                  style={styles.inputField}
+                  value={fromAddress}
+                  onChangeText={setFromAddress}
+                  placeholder="العنوان الذي أرسلت منه USDT"
+                  placeholderTextColor={palette.muted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
+                  maxLength={60}
+                />
+              </>
+            ) : null}
+
             <Text style={styles.fieldLabel}>صورة إثبات الدفع</Text>
             <TouchableOpacity style={styles.proofPicker} onPress={pickImage} disabled={loading}>
               {image ? (
@@ -500,8 +595,7 @@ function WithdrawalModal({
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<DepositMethodCode>(hasAgent ? 'agent' : 'usdt');
   const [address, setAddress] = useState('');
-  const [network, setNetwork] = useState('');
-  const [phone, setPhone] = useState('');
+  const [network, setNetwork] = useState<'trc20' | 'bep20'>('trc20');
   const [loading, setLoading] = useState(false);
   const [attempt, setAttempt] = useState<{ fingerprint: string; key: string } | null>(null);
 
@@ -515,18 +609,22 @@ function WithdrawalModal({
       Alert.alert('راجع المبلغ', `أدخل عددًا صحيحًا بين ${minimum.toLocaleString()} و${balance.toLocaleString()} Diamond.`);
       return;
     }
-    if (method === 'usdt' && (!address.trim() || !network.trim())) {
-      Alert.alert('بيانات ناقصة', 'أدخل عنوان المحفظة وشبكة USDT.');
-      return;
-    }
-    if ((method === 'sham_cash' || method === 'syriatel_cash') && !phone.trim()) {
-      Alert.alert('بيانات ناقصة', 'أدخل رقم الهاتف المستلم.');
-      return;
+    if (method === 'usdt') {
+      const trimmedAddress = address.trim();
+      const validAddress = network === 'trc20'
+        ? /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(trimmedAddress)
+        : /^0x[0-9a-fA-F]{40}$/.test(trimmedAddress);
+      if (!trimmedAddress || !validAddress) {
+        Alert.alert('بيانات ناقصة', network === 'trc20'
+          ? 'أدخل عنوان محفظة TRC20 صالحًا (يبدأ بحرف T).'
+          : 'أدخل عنوان محفظة BEP20 صالحًا (يبدأ بـ0x).');
+        return;
+      }
     }
 
     const payoutDetails = method === 'usdt'
-      ? { address: address.trim(), network: network.trim() }
-      : method === 'agent' ? {} : { phone: phone.trim() };
+      ? { address: address.trim(), network }
+      : {};
     const fingerprint = `${diamonds}:${method}:${JSON.stringify(payoutDetails)}`;
     const key = attempt?.fingerprint === fingerprint
       ? attempt.key
@@ -550,9 +648,7 @@ function WithdrawalModal({
     }
   };
 
-  const methods: DepositMethodCode[] = hasAgent
-    ? ['agent', 'usdt', 'sham_cash', 'syriatel_cash']
-    : ['usdt', 'sham_cash', 'syriatel_cash'];
+  const methods: DepositMethodCode[] = hasAgent ? ['agent', 'usdt'] : ['usdt'];
   const estimateUsd = Number(amount) > 0 && rate > 0 ? Number(amount) / rate : 0;
 
   return (
@@ -584,7 +680,7 @@ function WithdrawalModal({
                   disabled={loading}
                 >
                   <Text style={[styles.methodText, method === item && styles.methodTextActive]}>
-                    {item === 'agent' ? 'الوكيل' : item === 'usdt' ? 'USDT' : item === 'sham_cash' ? 'شام كاش' : 'سيريتل كاش'}
+                    {item === 'agent' ? 'الوكيل' : 'USDT'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -592,14 +688,29 @@ function WithdrawalModal({
             {method === 'usdt' ? (
               <>
                 <Text style={styles.fieldLabel}>عنوان المحفظة</Text>
-                <TextInput style={styles.inputField} value={address} onChangeText={setAddress} autoCapitalize="none" editable={!loading} />
+                <TextInput
+                  style={styles.inputField}
+                  value={address}
+                  onChangeText={setAddress}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
+                />
                 <Text style={styles.fieldLabel}>الشبكة</Text>
-                <TextInput style={styles.inputField} value={network} onChangeText={setNetwork} editable={!loading} />
-              </>
-            ) : method !== 'agent' ? (
-              <>
-                <Text style={styles.fieldLabel}>رقم الهاتف المستلم</Text>
-                <TextInput style={styles.inputField} value={phone} onChangeText={setPhone} keyboardType="phone-pad" editable={!loading} />
+                <View style={styles.methods}>
+                  {(['trc20', 'bep20'] as const).map((item) => (
+                    <TouchableOpacity
+                      key={item}
+                      style={[styles.methodButton, network === item && styles.methodButtonActive]}
+                      onPress={() => setNetwork(item)}
+                      disabled={loading}
+                    >
+                      <Text style={[styles.methodText, network === item && styles.methodTextActive]}>
+                        {item === 'trc20' ? 'TRC20' : 'BEP20'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </>
             ) : (
               <Text style={styles.instructionsText}>سيحوّل الوكيل المعتمد المبلغ إليك خارج التطبيق.</Text>

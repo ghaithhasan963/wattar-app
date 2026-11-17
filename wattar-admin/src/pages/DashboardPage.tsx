@@ -85,7 +85,7 @@ export function DashboardPage() {
         supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'user').gte('last_seen_at', activeSince),
         supabase.from('agents').select('id', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('deposits').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('withdrawals').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('diamond_withdrawals').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('rooms').select('id', { count: 'exact', head: true }).eq('status', 'live'),
         supabase.from('user_reports').select('id', { count: 'exact', head: true }),
         supabase.from('admin_audit_log')

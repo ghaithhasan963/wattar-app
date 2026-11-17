@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 import { supabase, callFunction } from '@/lib/supabase';
-import { Check, X, Eye, Loader2 } from 'lucide-react';
+import { Check, X, Eye, Loader2, Search, MessageCircleQuestion, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Withdrawal {
@@ -23,7 +23,7 @@ interface Withdrawal {
 export function WithdrawalsPage() {
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'pending' | 'all' | 'completed'>('pending');
+  const [filter, setFilter] = useState<'pending' | 'reviewing' | 'all' | 'completed'>('pending');
   const [selected, setSelected] = useState<Withdrawal | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
   const [proofUrl, setProofUrl] = useState('');
@@ -53,8 +53,8 @@ export function WithdrawalsPage() {
     setLoading(false);
   };
 
-  const handleApprove = async (id: string) => {
-    if (!proofUrl || !externalRef) {
+  const handleAction = async (id: string, action: 'approve' | 'reject' | 'review' | 'request_info' | 'processing' | 'fail', reason?: string) => {
+    if (action === 'approve' && (!proofUrl || !externalRef)) {
       toast.error('يجب رفع صورة الإثبات وإدخال رقم العملية');
       return;
     }
@@ -62,31 +62,23 @@ export function WithdrawalsPage() {
     try {
       await callFunction('withdrawal-approve', {
         withdrawal_id: id,
-        action: 'approve',
-        proof_url: proofUrl,
-        external_ref: externalRef,
+        action,
+        ...(action === 'approve' ? { proof_url: proofUrl, external_ref: externalRef } : {}),
+        ...(reason ? { reason } : {}),
       });
-      toast.success('تم تنفيذ السحب');
-      setProofUrl('');
-      setExternalRef('');
+      toast.success(
+        action === 'approve' ? 'تم تنفيذ السحب'
+          : action === 'reject' ? 'تم رفض السحب وإعادة الرصيد'
+          : action === 'fail' ? 'تم تسجيل فشل الدفع وإعادة الرصيد'
+          : action === 'request_info' ? 'طُلبت معلومات إضافية وأُشعر المستخدم'
+          : action === 'processing' ? 'نُقل الطلب إلى قيد التنفيذ'
+          : 'نُقل الطلب إلى المراجعة',
+      );
+      if (action === 'approve') {
+        setProofUrl('');
+        setExternalRef('');
+      }
       setSelected(null);
-      await load();
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setProcessing(null);
-    }
-  };
-
-  const handleReject = async (id: string, reason: string) => {
-    setProcessing(id);
-    try {
-      await callFunction('withdrawal-approve', {
-        withdrawal_id: id,
-        action: 'reject',
-        reason,
-      });
-      toast.success('تم رفض السحب وإعادة الرصيد');
       await load();
     } catch (err: any) {
       toast.error(err.message);
@@ -103,13 +95,13 @@ export function WithdrawalsPage() {
           <p className="text-gray-400 mt-1">معالجة طلبات السحب — تحويل خارجي + تأكيد</p>
         </div>
         <div className="flex items-center gap-2 bg-dark-surface rounded-lg p-1 border border-wattar-900">
-          {(['pending', 'all', 'completed'] as const).map(f => (
+          {(['pending', 'reviewing', 'all', 'completed'] as const).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
               className={`px-3 py-1.5 rounded-md text-sm ${filter === f ? 'bg-wattar-600 text-white' : 'text-gray-400'}`}
             >
-              {f === 'pending' ? 'معلّقة' : f === 'completed' ? 'مكتملة' : 'الكل'}
+              {f === 'pending' ? 'معلّقة' : f === 'reviewing' ? 'قيد المراجعة' : f === 'completed' ? 'مكتملة' : 'الكل'}
             </button>
           ))}
         </div>
@@ -145,7 +137,9 @@ export function WithdrawalsPage() {
                 <td className="p-4">
                   <span className={`inline-flex px-2 py-1 rounded-md text-xs font-medium border ${
                     wd.status === 'completed' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                    wd.status === 'rejected' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                    wd.status === 'processing' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                    wd.status === 'reviewing' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' :
+                    wd.status === 'rejected' || wd.status === 'failed' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
                     'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
                   }`}>
                     {getStatusLabels(wd.status)}
@@ -154,8 +148,18 @@ export function WithdrawalsPage() {
                 <td className="p-4 text-sm text-gray-400">{new Date(wd.created_at).toLocaleString('ar-EG')}</td>
                 <td className="p-4">
                   <div className="flex items-center gap-2">
-                    {wd.status === 'pending' && (
+                    {['pending', 'reviewing', 'processing'].includes(wd.status) && (
                       <>
+                        {wd.status === 'pending' && (
+                          <button
+                            onClick={() => handleAction(wd.id, 'review')}
+                            disabled={processing === wd.id}
+                            className="rounded-lg p-2 text-blue-400 hover:bg-blue-500/10 disabled:opacity-50"
+                            title="نقل إلى المراجعة"
+                          >
+                            <Search size={16} />
+                          </button>
+                        )}
                         <button
                           onClick={() => setSelected(wd)}
                           className="rounded-lg p-2 text-blue-400 hover:bg-blue-500/10"
@@ -165,11 +169,23 @@ export function WithdrawalsPage() {
                         </button>
                         <button
                           onClick={() => {
-                            const r = prompt('سبب الرفض:');
-                            if (r) handleReject(wd.id, r);
+                            const r = prompt('ما المعلومات المطلوبة من المستخدم؟');
+                            if (r) handleAction(wd.id, 'request_info', r);
                           }}
                           disabled={processing === wd.id}
-                          className="rounded-lg p-2 text-red-400 hover:bg-red-500/10"
+                          className="rounded-lg p-2 text-amber-400 hover:bg-amber-500/10 disabled:opacity-50"
+                          title="طلب معلومات إضافية"
+                        >
+                          <MessageCircleQuestion size={16} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            const r = prompt('سبب الرفض:');
+                            if (r) handleAction(wd.id, 'reject', r);
+                          }}
+                          disabled={processing === wd.id}
+                          className="rounded-lg p-2 text-red-400 hover:bg-red-500/10 disabled:opacity-50"
+                          title="رفض"
                         >
                           <X size={16} />
                         </button>
@@ -248,22 +264,43 @@ export function WithdrawalsPage() {
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => handleApprove(selected.id)}
+                  onClick={() => handleAction(selected.id, 'approve')}
                   disabled={processing === selected.id}
                   className="flex-1 rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 py-2.5 font-medium text-white"
                 >
                   {processing === selected.id ? 'جاري...' : 'تأكيد الدفع'}
                 </button>
+                {selected.status !== 'processing' && (
+                  <button
+                    onClick={() => handleAction(selected.id, 'processing')}
+                    disabled={processing === selected.id}
+                    className="flex-1 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 py-2.5 font-medium text-white"
+                  >
+                    بدء التنفيذ
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     const r = prompt('سبب الرفض:');
-                    if (r) handleReject(selected.id, r);
+                    if (r) handleAction(selected.id, 'reject', r);
                   }}
-                  className="flex-1 rounded-lg bg-red-600 hover:bg-red-700 py-2.5 font-medium text-white"
+                  disabled={processing === selected.id}
+                  className="flex-1 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 py-2.5 font-medium text-white"
                 >
                   رفض
                 </button>
               </div>
+              <button
+                onClick={() => {
+                  const r = prompt('سبب فشل الدفع (سيُعاد الرصيد للمستخدم):');
+                  if (r) handleAction(selected.id, 'fail', r);
+                }}
+                disabled={processing === selected.id}
+                className="w-full rounded-lg border border-red-500/30 text-red-300 hover:bg-red-500/10 disabled:opacity-50 py-2.5 text-sm font-medium flex items-center justify-center gap-2"
+              >
+                <AlertTriangle size={16} />
+                فشل الدفع (إعادة الرصيد)
+              </button>
             </div>
           </div>
         </div>
@@ -276,5 +313,5 @@ function getMethodLabel(m: string): string {
   return ({ usdt: 'USDT', sham_cash: 'شام كاش', syriatel_cash: 'سيرياتيل كاش', agent: 'وكيل' } as Record<string, string>)[m] ?? m;
 }
 function getStatusLabels(s: string): string {
-  return ({ pending: 'معلّق', approved: 'موافق', completed: 'مكتمل', rejected: 'مرفوض', cancelled: 'ملغى', failed: 'فشل' } as Record<string, string>)[s] ?? s;
+  return ({ pending: 'معلّق', reviewing: 'قيد المراجعة', approved: 'موافق', processing: 'قيد التنفيذ', completed: 'مكتمل', rejected: 'مرفوض', cancelled: 'ملغى', failed: 'فشل' } as Record<string, string>)[s] ?? s;
 }

@@ -42,6 +42,8 @@ export function SettingsPage() {
   const [methodsLoading, setMethodsLoading] = useState(true);
   const [methodsError, setMethodsError] = useState<string | null>(null);
   const [savingMethod, setSavingMethod] = useState<string | null>(null);
+  const [usdtWallets, setUsdtWallets] = useState<{ trc20: string; bep20: string }>({ trc20: '', bep20: '' });
+  const [savingWallets, setSavingWallets] = useState(false);
 
   useEffect(() => {
     load();
@@ -58,6 +60,7 @@ export function SettingsPage() {
         setting.key !== 'free_coin_daily_grant'
         && setting.key !== 'free_coin_balance_cap'
         && setting.key !== 'diamond_to_coin_rate'
+        && setting.key !== 'usdt_wallets'
         &&
         (!setting.key.startsWith('withdraw') || [
           'withdrawals_enabled',
@@ -66,6 +69,14 @@ export function SettingsPage() {
         ].includes(setting.key))
         && !setting.key.startsWith('transfer')
       ));
+      const walletsSetting = (data ?? []).find((setting) => setting.key === 'usdt_wallets');
+      const walletsValue = walletsSetting?.value;
+      if (walletsValue && typeof walletsValue === 'object') {
+        setUsdtWallets({
+          trc20: typeof walletsValue.trc20 === 'string' ? walletsValue.trc20 : '',
+          bep20: typeof walletsValue.bep20 === 'string' ? walletsValue.bep20 : '',
+        });
+      }
     } catch (err: unknown) {
       setLoadError(err instanceof Error ? err.message : 'تعذر تحميل الإعدادات');
     } finally {
@@ -128,6 +139,32 @@ export function SettingsPage() {
     setDepositMethods((current) => current.map((item) => item.method === method
       ? { ...item, ...changes }
       : item));
+  };
+
+  const saveUsdtWallets = async () => {
+    const trc20 = usdtWallets.trc20.trim();
+    const bep20 = usdtWallets.bep20.trim();
+    if (trc20 && !/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(trc20)) {
+      toast.error('عنوان TRC20 غير صالح (يجب أن يبدأ بحرف T وطوله 34 حرفًا)');
+      return;
+    }
+    if (bep20 && !/^0x[0-9a-fA-F]{40}$/.test(bep20)) {
+      toast.error('عنوان BEP20 غير صالح (يجب أن يبدأ بـ0x وطوله 42 حرفًا)');
+      return;
+    }
+    setSavingWallets(true);
+    try {
+      const { error } = await supabase
+        .from('admin_settings')
+        .update({ value: { trc20: trc20 || null, bep20: bep20 || null } })
+        .eq('key', 'usdt_wallets');
+      if (error) throw error;
+      toast.success('تم حفظ محافظ استلام USDT');
+    } catch (err: any) {
+      toast.error(err.message ?? 'تعذر حفظ المحافظ');
+    } finally {
+      setSavingWallets(false);
+    }
   };
 
   const saveDepositMethod = async (item: DepositMethod) => {
@@ -246,6 +283,45 @@ export function SettingsPage() {
       )}
 
       <section className="space-y-4">
+        <div className="bg-dark-surface rounded-xl border border-wattar-900 p-6">
+          <h2 className="text-lg font-semibold text-white">محافظ استلام USDT</h2>
+          <p className="text-xs text-gray-500 mt-1 mb-4">
+            عناوين عامة لاستلام شحن المستخدمين فقط — تظهر لهم عند اختيار الشحن بـUSDT. لا تُدخل مفاتيح خاصة هنا أبدًا.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-white mb-1 block">عنوان TRC20</label>
+              <input
+                type="text"
+                dir="ltr"
+                value={usdtWallets.trc20}
+                onChange={(e) => setUsdtWallets((current) => ({ ...current, trc20: e.target.value }))}
+                placeholder="T..."
+                className="w-full rounded bg-dark-elevated border border-wattar-900 px-3 py-2 text-white text-sm font-mono"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-white mb-1 block">عنوان BEP20</label>
+              <input
+                type="text"
+                dir="ltr"
+                value={usdtWallets.bep20}
+                onChange={(e) => setUsdtWallets((current) => ({ ...current, bep20: e.target.value }))}
+                placeholder="0x..."
+                className="w-full rounded bg-dark-elevated border border-wattar-900 px-3 py-2 text-white text-sm font-mono"
+              />
+            </div>
+          </div>
+          <button
+            onClick={saveUsdtWallets}
+            disabled={savingWallets}
+            className="mt-4 rounded bg-wattar-600 hover:bg-wattar-700 px-4 py-2 text-white text-sm disabled:opacity-50 inline-flex items-center gap-2"
+          >
+            {savingWallets ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            حفظ المحافظ
+          </button>
+        </div>
+
         <div>
           <h2 className="text-xl font-bold text-white">وسائل الشحن اليدوي</h2>
           <p className="mt-1 text-sm text-gray-400">

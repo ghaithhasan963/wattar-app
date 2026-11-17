@@ -9,12 +9,16 @@ import {
   validateBody,
 } from '../_shared/supabase.ts';
 
+type DepositAction = 'approve' | 'reject' | 'review' | 'request_info' | 'fail';
+
 interface ApproveBody {
   deposit_id: string;
-  action: 'approve' | 'reject';
+  action: DepositAction;
   reason?: string;
   notes?: string;
 }
+
+const DEPOSIT_ACTIONS: DepositAction[] = ['approve', 'reject', 'review', 'request_info', 'fail'];
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return jsonResponse({}, 200);
@@ -26,8 +30,8 @@ Deno.serve(async (req: Request) => {
 
     const body = await parseBody<ApproveBody>(req);
     validateBody(body, ['deposit_id', 'action']);
-    if (body.action !== 'approve' && body.action !== 'reject') {
-      throw new HttpError(400, 'INVALID_ACTION', 'Action must be approve or reject');
+    if (!DEPOSIT_ACTIONS.includes(body.action)) {
+      throw new HttpError(400, 'INVALID_ACTION', 'Action must be one of approve, reject, review, request_info, fail');
     }
 
     const supabase = getSupabaseAdmin();
@@ -78,7 +82,11 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({
       success: true,
       result: data,
-      message: body.action === 'approve' ? 'تم اعتماد الشحن وتحديث الرصيد.' : 'تم رفض طلب الشحن.',
+      message: body.action === 'approve'
+        ? 'تم اعتماد الشحن وتحديث الرصيد.'
+        : body.action === 'reject' || body.action === 'fail'
+          ? 'تم رفض طلب الشحن.'
+          : 'تم تحديث حالة طلب الشحن.',
     });
   } catch (err) {
     return errorResponse(err);

@@ -39,6 +39,25 @@ Deno.serve(async (req: Request) => {
     if (!Number.isFinite(body.amount_usd) || body.amount_usd <= 0) {
       throw new HttpError(400, 'INVALID_AMOUNT', 'Deposit amount must be positive');
     }
+    if (body.method === 'usdt') {
+      if (body.usdt_network !== 'trc20' && body.usdt_network !== 'bep20') {
+        throw new HttpError(400, 'INVALID_NETWORK', 'USDT deposits require network trc20 or bep20');
+      }
+      const txHash = body.usdt_tx_hash?.trim() ?? '';
+      if (body.usdt_network === 'trc20' && !/^[0-9a-fA-F]{64}$/.test(txHash)) {
+        throw new HttpError(400, 'INVALID_TX_HASH', 'A valid TRC20 transaction hash is required');
+      }
+      if (body.usdt_network === 'bep20' && !/^0x[0-9a-fA-F]{64}$/.test(txHash)) {
+        throw new HttpError(400, 'INVALID_TX_HASH', 'A valid BEP20 transaction hash is required');
+      }
+      const fromAddress = body.usdt_from_address?.trim() ?? '';
+      if (body.usdt_network === 'trc20' && fromAddress && !/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(fromAddress)) {
+        throw new HttpError(400, 'INVALID_FROM_ADDRESS', 'Invalid TRC20 sender address');
+      }
+      if (body.usdt_network === 'bep20' && fromAddress && !/^0x[0-9a-fA-F]{40}$/.test(fromAddress)) {
+        throw new HttpError(400, 'INVALID_FROM_ADDRESS', 'Invalid BEP20 sender address');
+      }
+    }
 
     const idempotencyKey = req.headers.get('X-Idempotency-Key')?.trim();
     if (!idempotencyKey || !/^[A-Za-z0-9._:-]{10,100}$/.test(idempotencyKey)) {

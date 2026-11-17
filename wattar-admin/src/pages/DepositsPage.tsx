@@ -4,28 +4,34 @@
  */
 import { useEffect, useState } from 'react';
 import { supabase, callFunction } from '@/lib/supabase';
-import { Check, X, Eye, Loader2, Filter } from 'lucide-react';
+import { Check, X, Eye, Loader2, Filter, Search, MessageCircleQuestion } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Deposit {
   id: string;
   amount_usd: number;
   amount_gold: number;
+  fee_usd: number;
   method: string;
   external_ref: string;
   proof_url: string;
   sender_phone: string | null;
   sender_name: string | null;
+  usdt_network: string | null;
+  usdt_tx_hash: string | null;
+  usdt_from_address: string | null;
   status: string;
   created_at: string;
   user: { username: string; display_name: string | null } | null;
   agent: { id: string; user_id: string } | null;
 }
 
+type DepositAction = 'approve' | 'reject' | 'review' | 'request_info' | 'fail';
+
 export function DepositsPage() {
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'pending' | 'all' | 'completed'>('pending');
+  const [filter, setFilter] = useState<'pending' | 'reviewing' | 'all' | 'completed'>('pending');
   const [selectedDeposit, setSelectedDeposit] = useState<Deposit | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
 
@@ -39,8 +45,8 @@ export function DepositsPage() {
       let query = supabase
         .from('deposits')
         .select(`
-          id, amount_usd, amount_gold, method, external_ref, proof_url,
-          sender_phone, sender_name, status, created_at,
+          id, amount_usd, amount_gold, fee_usd, method, external_ref, proof_url,
+          sender_phone, sender_name, usdt_network, usdt_tx_hash, usdt_from_address, status, created_at,
           user:users!deposits_user_id_fkey(username, display_name),
           agent:agents(id, user_id)
         `)
@@ -77,11 +83,17 @@ export function DepositsPage() {
     }
   };
 
-  const handleAction = async (depositId: string, action: 'approve' | 'reject', reason?: string) => {
+  const handleAction = async (depositId: string, action: DepositAction, reason?: string, notes?: string) => {
     setProcessing(depositId);
     try {
-      await callFunction('deposit-approve', { deposit_id: depositId, action, reason });
-      toast.success(action === 'approve' ? 'تمت الموافقة على الشحن' : 'تم رفض الشحن');
+      await callFunction('deposit-approve', { deposit_id: depositId, action, reason, notes });
+      toast.success(
+        action === 'approve' ? 'تمت الموافقة على الشحن'
+          : action === 'reject' ? 'تم رفض الشحن'
+          : action === 'fail' ? 'تم تسجيل فشل الشحن'
+          : action === 'request_info' ? 'طُلبت معلومات إضافية وأُشعر المستخدم'
+          : 'نُقل الطلب إلى المراجعة',
+      );
       await loadDeposits();
       setSelectedDeposit(null);
     } catch (err: any) {
@@ -99,7 +111,7 @@ export function DepositsPage() {
           <p className="text-gray-400 mt-1">مراجعة وموافقة على طلبات شحن المستخدمين</p>
         </div>
         <div className="flex items-center gap-2 bg-dark-surface rounded-lg p-1 border border-wattar-900">
-          {(['pending', 'all', 'completed'] as const).map(f => (
+          {(['pending', 'reviewing', 'all', 'completed'] as const).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -107,7 +119,7 @@ export function DepositsPage() {
                 filter === f ? 'bg-wattar-600 text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
-              {f === 'pending' ? 'معلّقة' : f === 'completed' ? 'مكتملة' : 'الكل'}
+              {f === 'pending' ? 'معلّقة' : f === 'reviewing' ? 'قيد المراجعة' : f === 'completed' ? 'مكتملة' : 'الكل'}
             </button>
           ))}
         </div>
@@ -155,8 +167,18 @@ export function DepositsPage() {
                     >
                       <Eye size={16} />
                     </button>
-                    {dep.status === 'pending' && (
+                    {(dep.status === 'pending' || dep.status === 'reviewing') && (
                       <>
+                        {dep.status === 'pending' && (
+                          <button
+                            onClick={() => handleAction(dep.id, 'review')}
+                            disabled={processing === dep.id}
+                            className="rounded-lg p-2 text-blue-400 hover:bg-blue-500/10 disabled:opacity-50"
+                            title="نقل إلى المراجعة"
+                          >
+                            <Search size={16} />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleAction(dep.id, 'approve')}
                           disabled={processing === dep.id}
@@ -164,6 +186,17 @@ export function DepositsPage() {
                           title="موافقة"
                         >
                           {processing === dep.id ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                        </button>
+                        <button
+                          onClick={() => {
+                            const message = prompt('ما المعلومات المطلوبة من المستخدم؟');
+                            if (message) handleAction(dep.id, 'request_info', undefined, message);
+                          }}
+                          disabled={processing === dep.id}
+                          className="rounded-lg p-2 text-amber-400 hover:bg-amber-500/10 disabled:opacity-50"
+                          title="طلب معلومات إضافية"
+                        >
+                          <MessageCircleQuestion size={16} />
                         </button>
                         <button
                           onClick={() => {
@@ -252,6 +285,24 @@ function DepositModal({
               <p className="text-xs text-gray-500 mb-1">هاتف المرسل</p>
               <p className="text-sm text-white">{deposit.sender_phone ?? '—'}</p>
             </div>
+            {deposit.method === 'usdt' && (
+              <>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">الشبكة</p>
+                  <p className="text-sm text-white uppercase">{deposit.usdt_network ?? '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">رقم عملية USDT</p>
+                  <p className="text-sm text-white font-mono break-all" dir="ltr">{deposit.usdt_tx_hash ?? '—'}</p>
+                </div>
+                {deposit.usdt_from_address && (
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">عنوان المرسل</p>
+                    <p className="text-sm text-white font-mono break-all" dir="ltr">{deposit.usdt_from_address}</p>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           <div>
@@ -268,12 +319,12 @@ function DepositModal({
             </div>
           </div>
 
-          {deposit.status === 'pending' && (
-            <div className="flex gap-3 pt-4">
+          {(deposit.status === 'pending' || deposit.status === 'reviewing') && (
+            <div className="grid grid-cols-2 gap-3 pt-4">
               <button
                 onClick={onApprove}
                 disabled={processing}
-                className="flex-1 rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 py-2.5 font-medium text-white"
+                className="rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 py-2.5 font-medium text-white"
               >
                 {processing ? 'جاري المعالجة...' : 'موافقة وإضافة الرصيد'}
               </button>
@@ -283,7 +334,7 @@ function DepositModal({
                   if (reason) onReject(reason);
                 }}
                 disabled={processing}
-                className="flex-1 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 py-2.5 font-medium text-white"
+                className="rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 py-2.5 font-medium text-white"
               >
                 رفض
               </button>
@@ -331,6 +382,7 @@ function StatusBadge({ status }: { status: string }) {
     pending: 'معلّق',
     reviewing: 'قيد المراجعة',
     approved: 'موافق عليه',
+    processing: 'قيد التنفيذ',
     completed: 'مكتمل',
     failed: 'فشل',
     cancelled: 'ملغى',
