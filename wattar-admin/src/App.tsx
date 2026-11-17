@@ -15,6 +15,7 @@ import { DepositsPage } from '@/pages/DepositsPage';
 import { WithdrawalsPage } from '@/pages/WithdrawalsPage';
 import { UsersPage } from '@/pages/UsersPage';
 import { AgentsPage } from '@/pages/AgentsPage';
+import { AgenciesPage } from '@/pages/AgenciesPage';
 import { GamesPage } from '@/pages/GamesPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { TransfersPage } from '@/pages/TransfersPage';
@@ -62,7 +63,7 @@ function ProtectedRoute({
     return <Navigate to="/login" replace />;
   }
   if (!roles.includes(profile.role)) {
-    return <Navigate to={profile.role === 'agent' ? '/agent' : '/'} replace />;
+    return <Navigate to={profile.role === 'agent' || profile.role === 'agency_manager' ? '/agent' : '/'} replace />;
   }
 
   return withLayout ? <Layout>{children}</Layout> : <>{children}</>;
@@ -75,7 +76,7 @@ function HomeRoute() {
     return <div className="flex min-h-screen items-center justify-center text-sm text-gray-400">جاري التحقق من الحساب...</div>;
   }
   if (!session || !profile) return <Navigate to="/login" replace />;
-  return profile.role === 'agent'
+  return profile.role === 'agent' || profile.role === 'agency_manager'
     ? <Navigate to="/agent" replace />
     : profile.role === 'support'
       ? <Navigate to="/support" replace />
@@ -102,7 +103,7 @@ export default function App() {
           <Route
             path="/agent"
             element={
-              <ProtectedRoute roles={['agent']} withLayout={false}>
+              <ProtectedRoute roles={['agent', 'agency_manager']} withLayout={false}>
                 <AgentDashboardPage />
               </ProtectedRoute>
             }
@@ -144,6 +145,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <AgentsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/agencies"
+            element={
+              <ProtectedRoute>
+                <AgenciesPage />
               </ProtectedRoute>
             }
           />

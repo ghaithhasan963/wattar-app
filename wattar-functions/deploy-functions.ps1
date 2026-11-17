@@ -46,7 +46,8 @@ $availableFunctions = @(
   'auth-sign-up-email',
   'admin-delete-user',
   'admin-reset-user-password',
-  'admin-moderation'
+  'admin-moderation',
+  'admin-agencies'
 )
 $confirmationArgs = @()
 if ($Yes) {
