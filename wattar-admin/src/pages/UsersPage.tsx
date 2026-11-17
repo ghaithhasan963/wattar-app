@@ -4,10 +4,11 @@
  */
 import { useEffect, useState } from 'react';
 import { supabase, callFunction } from '@/lib/supabase';
-import { Search, Settings, Shield, Archive, KeyRound, Trash2, X, Check, Loader2, AlertTriangle } from 'lucide-react';
+import { Search, Settings, Shield, Archive, KeyRound, Trash2, X, Check, Loader2, AlertTriangle, Filter, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
+import { PageHeader, SelectField } from '@/components/ui';
 
 interface UserRow {
   id: string;
@@ -34,6 +35,9 @@ export function UsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(() => searchParams.get('search') ?? '');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [ageFilter, setAgeFilter] = useState('all');
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [statusUser, setStatusUser] = useState<UserRow | null>(null);
   const [statusTarget, setStatusTarget] = useState<'active' | 'suspended' | 'banned'>('suspended');
@@ -45,7 +49,9 @@ export function UsersPage() {
 
   useEffect(() => {
     load();
-  }, [search]);
+    // Filters are server-side so the admin sees exactly the chosen slice.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, statusFilter, roleFilter, ageFilter]);
 
   const load = async () => {
     setLoading(true);
@@ -54,6 +60,11 @@ export function UsersPage() {
       .select('id, username, display_name, phone, balance_gold, balance_diamond, status, role, gender, profile_visibility, adult_confirmed_at, onboarding_completed_at, rtp_override, is_force_win, is_force_lose, created_at, last_seen_at')
       .order('created_at', { ascending: false })
       .limit(100);
+
+    if (statusFilter !== 'all') query = query.eq('status', statusFilter);
+    if (roleFilter !== 'all') query = query.eq('role', roleFilter);
+    if (ageFilter === 'confirmed') query = query.not('adult_confirmed_at', 'is', null);
+    if (ageFilter === 'pending') query = query.is('adult_confirmed_at', null);
 
     if (search) {
       if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(search)) {
@@ -159,20 +170,89 @@ export function UsersPage() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div>
-        <h1 className="text-2xl font-bold text-white">المستخدمون</h1>
-        <p className="text-gray-400 mt-1">إدارة الحسابات — الأرشفة الآمنة، استعادة كلمة المرور، وحذف مشروط بالسجلات المرتبطة</p>
-      </div>
+      <PageHeader
+        title="المستخدمون"
+        subtitle="إدارة الحسابات — الأرشفة الآمنة، استعادة كلمة المرور، وحذف مشروط بالسجلات المرتبطة."
+        actions={(
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-gray-300">
+            {loading ? 'جارٍ التحميل…' : `${users.length.toLocaleString()} حساب ظاهر`}
+          </span>
+        )}
+      />
 
-      <div className="relative max-w-md">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="بحث باسم المستخدم أو الهاتف..."
-          className="w-full rounded-lg bg-dark-surface border border-wattar-900 py-2.5 pr-10 pl-4 text-white placeholder-gray-500"
-        />
+      <div className="rounded-2xl border border-white/[0.07] bg-[#171a2c] p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="relative block min-w-[240px] flex-1">
+            <span className="mb-1.5 block text-sm font-medium text-gray-200">بحث بالاسم أو الهاتف أو رقم الحساب</span>
+            <Search className="absolute right-3 top-[2.55rem] -translate-y-1/2 text-gray-500" size={17} />
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="اكتب اسم المستخدم أو رقم الهاتف…"
+              className="w-full rounded-xl border border-white/[0.08] bg-[#111424] py-2.5 pr-10 pl-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-wattar-400/60"
+            />
+          </label>
+          <div className="w-full sm:w-40">
+            <SelectField
+              label="الحالة"
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={[
+                { value: 'all', label: 'كل الحالات' },
+                { value: 'active', label: 'نشط' },
+                { value: 'suspended', label: 'موقوف' },
+                { value: 'banned', label: 'محظور' },
+                { value: 'blacklisted', label: 'قائمة سوداء' },
+              ]}
+            />
+          </div>
+          <div className="w-full sm:w-40">
+            <SelectField
+              label="الدور"
+              value={roleFilter}
+              onChange={setRoleFilter}
+              options={[
+                { value: 'all', label: 'كل الأدوار' },
+                { value: 'user', label: 'مستخدم' },
+                { value: 'guest', label: 'زائر' },
+                { value: 'agent', label: 'وكيل' },
+                { value: 'support', label: 'دعم' },
+                { value: 'admin', label: 'إدارة' },
+                { value: 'super_admin', label: 'إدارة عليا' },
+              ]}
+            />
+          </div>
+          <div className="w-full sm:w-40">
+            <SelectField
+              label="تأكيد العمر"
+              value={ageFilter}
+              onChange={setAgeFilter}
+              options={[
+                { value: 'all', label: 'الكل' },
+                { value: 'confirmed', label: 'مؤكَّد' },
+                { value: 'pending', label: 'غير مؤكَّد' },
+              ]}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSearch('');
+              setStatusFilter('all');
+              setRoleFilter('all');
+              setAgeFilter('all');
+            }}
+            className="inline-flex h-[42px] items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 text-xs text-gray-300 transition hover:bg-white/[0.06]"
+          >
+            <RotateCcw size={14} />
+            تصفير الفلاتر
+          </button>
+        </div>
+        <p className="mt-3 flex items-center gap-1.5 text-[11px] text-gray-500">
+          <Filter size={12} />
+          تعرض القائمة أحدث 100 حساب مطابق للاختيارات — استخدم البحث للوصول إلى حساب محدد.
+        </p>
       </div>
 
       <div className="bg-dark-surface rounded-xl border border-wattar-900 overflow-hidden overflow-x-auto">
@@ -228,10 +308,13 @@ export function UsersPage() {
                 <td className="p-4">
                   <span className={`inline-flex px-2 py-1 rounded-md text-xs font-medium border ${
                     u.status === 'active' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                    u.status === 'banned' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                    'bg-gray-500/10 text-gray-400 border-gray-500/20'
+                    u.status === 'banned' || u.status === 'blacklisted' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                    'bg-amber-500/10 text-amber-300 border-amber-500/20'
                   }`}>
-                    {u.status === 'active' ? 'نشط' : u.status === 'banned' ? 'محظور' : u.status}
+                    {u.status === 'active' ? 'نشط' :
+                      u.status === 'banned' ? 'محظور' :
+                      u.status === 'suspended' ? 'موقوف' :
+                      u.status === 'blacklisted' ? 'قائمة سوداء' : u.status}
                   </span>
                 </td>
                 <td className="p-4 text-sm text-gray-400">

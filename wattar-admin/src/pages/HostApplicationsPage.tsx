@@ -2,6 +2,35 @@ import { useCallback, useEffect, useState } from 'react';
 import { BadgeCheck, Check, Loader2, RefreshCw, Search, ShieldOff, UserPlus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { callFunction, supabase } from '@/lib/supabase';
+import { ReasonPickerModal } from '@/components/ReasonPicker';
+
+const approveNotes = [
+  'بدون ملاحظة',
+  'تم التحقق من الشروط واكتمال الملف.',
+  'اعتماد بعد المقابلة وتقييم الأداء.',
+  'توثيق استثنائي بقرار الإدارة.',
+];
+
+const rejectReasons = [
+  'لم يكتمل تأكيد العمر أو الملف الشخصي',
+  'معلومات الطلب غير واضحة أو ناقصة',
+  'عدم استيفاء شروط برنامج المضيفات',
+  'سابقة مخالفة لقواعد المجتمع',
+  'طلب مكرر أو غير جدي',
+];
+
+const suspendHostReasons = [
+  'مخالفة قواعد المحتوى داخل الغرف',
+  'شكاوى متكررة من المستخدمين',
+  'عدم الالتزام بجدول النشاط',
+  'مراجعة إدارية مؤقتة',
+];
+
+const activateHostReasons = [
+  'اكتمال التحقق المطلوب',
+  'إعادة تفعيل بعد مراجعة الإدارة',
+  'تسوية المخالفة السابقة',
+];
 
 interface HostApplication {
   id: string;
@@ -49,6 +78,12 @@ export function HostApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hostPicker, setHostPicker] = useState<
+    | { kind: 'approve'; application: HostApplication }
+    | { kind: 'reject'; application: HostApplication }
+    | { kind: 'host'; host: HostAccount; action: 'activate' | 'suspend' | 'assign' }
+    | null
+  >(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -199,11 +234,13 @@ export function HostApplicationsPage() {
     }
   };
 
-  const review = async (application: HostApplication, approve: boolean) => {
-    const reviewNote = approve
-      ? window.prompt('ملاحظة للمتقدمة (اختياري):') ?? ''
-      : window.prompt('اكتب سبب رفض الطلب:') ?? '';
-    if (!approve && !reviewNote.trim()) return;
+  const review = async (application: HostApplication, approve: boolean, providedNote?: string) => {
+    if (providedNote === undefined) {
+      setHostPicker({ kind: approve ? 'approve' : 'reject', application });
+      return;
+    }
+    const reviewNote = providedNote.trim();
+    if (!approve && !reviewNote) return;
 
     setProcessingId(application.id);
     try {
@@ -423,14 +460,11 @@ export function HostApplicationsPage() {
                       : host.status === 'pending'
                         ? 'assign'
                         : 'activate';
-                    const reason = window.prompt(
-                      action === 'suspend'
-                        ? 'سبب إيقاف التوثيق:'
-                        : action === 'assign'
-                          ? 'سبب اعتماد التوثيق بعد اكتمال التحقق:'
-                          : 'سبب إعادة التفعيل:',
-                    );
-                    if (reason?.trim()) void manageHost(host.id, action, reason);
+                    if (action === 'assign') {
+                      setHostPicker({ kind: 'host', host, action: 'assign' });
+                      return;
+                    }
+                    setHostPicker({ kind: 'host', host, action });
                   }}
                   className={`inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs disabled:opacity-50 ${host.status === 'active' ? 'bg-amber-500/10 text-amber-300' : 'bg-green-500/10 text-green-300'}`}
                 >
@@ -491,6 +525,58 @@ export function HostApplicationsPage() {
           </div>
         )}
       </section>
+
+      {hostPicker && (
+        <ReasonPickerModal
+          title={
+            hostPicker.kind === 'approve' ? 'اعتماد طلب التوثيق'
+              : hostPicker.kind === 'reject' ? 'رفض طلب التوثيق'
+                : hostPicker.action === 'suspend' ? 'إيقاف توثيق الحساب'
+                  : hostPicker.action === 'assign' ? 'اعتماد التوثيق'
+                    : 'إعادة تفعيل التوثيق'
+          }
+          subtitle={
+            hostPicker.kind === 'host'
+              ? `@${hostPicker.host.username}`
+              : `@${hostPicker.application.user?.username ?? ''}`
+          }
+          description={
+            hostPicker.kind === 'reject'
+              ? 'سيُسجَّل السبب ويظهر للمتقدمة في إشعارها.'
+              : hostPicker.kind === 'approve'
+                ? 'اختر ملاحظة جاهزة أو اكتب واحدة — يمكنك أيضًا تركها بدون ملاحظة.'
+                : 'اختر سببًا جاهزًا ليُسجَّل في سجل الإدارة.'
+          }
+          options={
+            hostPicker.kind === 'approve' ? approveNotes
+              : hostPicker.kind === 'reject' ? rejectReasons
+                : hostPicker.action === 'suspend' ? suspendHostReasons
+                  : activateHostReasons
+          }
+          confirmLabel={
+            hostPicker.kind === 'approve' ? 'اعتماد التوثيق'
+              : hostPicker.kind === 'reject' ? 'تأكيد الرفض'
+                : hostPicker.action === 'suspend' ? 'تأكيد الإيقاف' : 'تأكيد التفعيل'
+          }
+          tone={hostPicker.kind === 'reject' || (hostPicker.kind === 'host' && hostPicker.action === 'suspend') ? 'danger' : 'info'}
+          processing={processingId === (hostPicker.kind === 'host' ? hostPicker.host.id : hostPicker.application.id)}
+          onClose={() => {
+            if (processingId) return;
+            setHostPicker(null);
+          }}
+          onSubmit={(reason) => {
+            const picker = hostPicker;
+            setHostPicker(null);
+            if (picker.kind === 'approve') {
+              void review(picker.application, true, reason === 'بدون ملاحظة' ? '' : reason);
+            } else if (picker.kind === 'reject') {
+              void review(picker.application, false, reason);
+            } else {
+              void manageHost(picker.host.id, picker.action, reason);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

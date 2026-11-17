@@ -6,6 +6,21 @@ import { useEffect, useState } from 'react';
 import { supabase, callFunction } from '@/lib/supabase';
 import { Plus, DollarSign, Loader2, X, Shield, ShieldOff, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ReasonPickerModal } from '@/components/ReasonPicker';
+
+const suspendReasons = [
+  'مخالفة شروط العمل كوسيط',
+  'تأخر في تسوية مستحقات العملاء',
+  'شكاوى متكررة من المستخدمين',
+  'عدم مطابقة السجلات المالية',
+];
+
+const banReasons = [
+  'احتيال أو تلاعب مالي مؤكد',
+  'استخدام بيانات مستخدمين دون إذن',
+  'تسريب بيانات أو مخالفة قانونية',
+  'تكرار المخالفات بعد الإيقاف',
+];
 
 interface Agent {
   id: string;
@@ -54,6 +69,7 @@ export function AgentsPage() {
   const [creditAgent, setCreditAgent] = useState<Agent | null>(null);
   const [settingsAgent, setSettingsAgent] = useState<Agent | null>(null);
   const [processingAgentId, setProcessingAgentId] = useState<string | null>(null);
+  const [statusPicker, setStatusPicker] = useState<{ agent: Agent; status: 'suspended' | 'banned' } | null>(null);
 
   useEffect(() => {
     load();
@@ -84,11 +100,12 @@ export function AgentsPage() {
     }
   };
 
-  const setAgentStatus = async (agent: Agent, status: 'active' | 'suspended' | 'banned') => {
-    const reason = status === 'active'
-      ? undefined
-      : window.prompt(status === 'banned' ? 'اكتب سبب الحظر الدائم للوكيل:' : 'اكتب سبب إيقاف/أرشفة الوكيل:');
-    if (status !== 'active' && !reason?.trim()) return;
+  const setAgentStatus = async (agent: Agent, status: 'active' | 'suspended' | 'banned', providedReason?: string) => {
+    if (status !== 'active' && !providedReason) {
+      setStatusPicker({ agent, status });
+      return;
+    }
+    const reason = status === 'active' ? undefined : providedReason;
     if (status === 'active' && !window.confirm('هل تريد إعادة تفعيل دخول هذا الوكيل؟')) return;
 
     setProcessingAgentId(agent.id);
@@ -254,6 +271,28 @@ export function AgentsPage() {
           onSaved={() => {
             setSettingsAgent(null);
             load();
+          }}
+        />
+      )}
+      {statusPicker && (
+        <ReasonPickerModal
+          title={statusPicker.status === 'banned' ? 'حظر الوكيل نهائيًا' : 'إيقاف الوكيل مؤقتًا'}
+          subtitle={`@${statusPicker.agent.user?.username ?? ''} · ${statusPicker.agent.user?.display_name ?? ''}`}
+          description={statusPicker.status === 'banned'
+            ? 'الحظر يمنع الوكيل من الدخول وكل صلاحياته. اختر سببًا جاهزًا ليُسجَّل في سجل التدقيق.'
+            : 'الإيقاف مؤقت وقابل للتراجع. اختر سببًا جاهزًا ليُسجَّل في سجل التدقيق.'}
+          options={statusPicker.status === 'banned' ? banReasons : suspendReasons}
+          confirmLabel={statusPicker.status === 'banned' ? 'تأكيد الحظر' : 'تأكيد الإيقاف'}
+          tone="danger"
+          processing={processingAgentId === statusPicker.agent.id}
+          onClose={() => {
+            if (processingAgentId) return;
+            setStatusPicker(null);
+          }}
+          onSubmit={(reason) => {
+            const picker = statusPicker;
+            setStatusPicker(null);
+            void setAgentStatus(picker.agent, picker.status, reason);
           }}
         />
       )}

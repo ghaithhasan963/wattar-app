@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,7 +14,16 @@ import {
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { ArrowDownToLine, History, ShieldCheck } from 'lucide-react-native';
+import {
+  ArrowDownToLine,
+  ArrowRightLeft,
+  ArrowUpFromLine,
+  Coins,
+  Gem,
+  History,
+  Info,
+  ShieldCheck,
+} from 'lucide-react-native';
 import { supabase, callFunction, uploadPrivateMedia } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 import { CurrencyIcon } from '@/components/CurrencyIcon';
@@ -30,10 +39,18 @@ interface WalletAccess {
 }
 
 interface WalletOptions {
+  diamond_to_coin_rate: number;
   diamonds_per_usd: number;
   withdrawals_enabled: boolean;
   min_withdrawal_diamonds: number;
   has_assigned_agent: boolean;
+  is_verified_host: boolean;
+  is_agent: boolean;
+  withdrawal_fee_percent: number;
+  max_withdrawal_usd_per_day: number;
+  coins_per_usd: number;
+  deposit_fee_percent: number;
+  min_withdrawal_usd: number;
 }
 
 interface DepositMethod {
@@ -42,6 +59,8 @@ interface DepositMethod {
   instructions: string;
   min_amount_usd: number;
   max_amount_usd: number;
+  effective_rate: number | null;
+  fee_percent: number | null;
 }
 
 interface WalletTransaction {
@@ -70,6 +89,7 @@ const palette = {
   muted: '#B2A6C3',
   primary: '#B44BFF',
   gold: '#F4BD55',
+  teal: '#72DCCA',
   success: '#43D69A',
   danger: '#FF718E',
 } as const;
@@ -82,6 +102,7 @@ export default function WalletScreen() {
   const [withdrawals, setWithdrawals] = useState<WithdrawalRecord[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [withdrawalVisible, setWithdrawalVisible] = useState(false);
+  const [conversionVisible, setConversionVisible] = useState(false);
   const [walletOptions, setWalletOptions] = useState<WalletOptions | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -143,8 +164,24 @@ export default function WalletScreen() {
     void loadWallet();
   }, [loadWallet]);
 
-  const coinBalance = profile?.balance_gold ?? 0;
-  const diamondBalance = profile?.balance_diamond ?? 0;
+  const coinBalance = Number(profile?.balance_gold ?? 0);
+  const diamondBalance = Number(profile?.balance_diamond ?? 0);
+  const coinPerDiamond = Number(walletOptions?.diamond_to_coin_rate ?? 0);
+  const diamondsPerUsd = Number(walletOptions?.diamonds_per_usd ?? 0);
+  const withdrawalFeePercent = Number(walletOptions?.withdrawal_fee_percent ?? 0);
+  const minWithdrawalDiamonds = Number(walletOptions?.min_withdrawal_diamonds ?? 0);
+  const minWithdrawalUsd = Number(walletOptions?.min_withdrawal_usd ?? 0);
+  const isHost = walletOptions?.is_verified_host === true;
+  const isAgent = walletOptions?.is_agent === true;
+  const canWithdraw = Boolean(walletOptions?.withdrawals_enabled) && (isHost || isAgent);
+  const diamondCoinValue = Math.floor(diamondBalance * coinPerDiamond);
+
+  const eligibilityHint = useMemo(() => {
+    if (!walletOptions) return '';
+    if (isHost) return 'أنت مضيفة موثقة — يمكنك سحب Diamond كدولار أو تحويله إلى Coin.';
+    if (isAgent) return 'أنت وكيل معتمد — يمكنك سحب Diamond كدولار أو تحويله إلى Coin.';
+    return 'المستخدم العادي يحوّل Diamond إلى Coin للاستخدام داخل التطبيق. السحب النقدي متاح للمضيفات الموثقات والوكلاء فقط.';
+  }, [isAgent, isHost, walletOptions]);
 
   return (
     <View style={styles.screen}>
@@ -153,8 +190,11 @@ export default function WalletScreen() {
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => loadWallet()} tintColor={palette.gold} />}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>المحفظة</Text>
-          <Text style={styles.subtitle}>أرصدة واضحة ومعاملات موثّقة</Text>
+          <View>
+            <Text style={styles.title}>المحفظة</Text>
+            <Text style={styles.subtitle}>أرصدة واضحة، عمولات ظاهرة، وتحويلات سلسة</Text>
+          </View>
+          <View style={styles.headerIcon}><Coins size={21} color={palette.gold} /></View>
         </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -176,56 +216,124 @@ export default function WalletScreen() {
               </View>
             ) : null}
 
-            <View style={styles.balances}>
-              <View style={[styles.balanceCard, styles.coinsCard]}>
-                <View style={styles.balanceHeader}>
-                  <CurrencyIcon currency="coin" size={31} />
-                  <Text style={styles.balanceLabel}>Coin</Text>
+            <View style={styles.balanceHero}>
+              <View style={styles.heroGlow} />
+              <View style={styles.heroRow}>
+                <View style={styles.heroBalance}>
+                  <View style={styles.heroLabelRow}>
+                    <CurrencyIcon currency="coin" size={22} />
+                    <Text style={styles.heroLabel}>رصيد Coin</Text>
+                  </View>
+                  <Text style={styles.heroValue}>{coinBalance.toLocaleString()}</Text>
+                  <Text style={styles.heroHint}>للشحن والهدايا والألعاب والرسائل المدفوعة</Text>
                 </View>
-                <Text style={styles.coinValue}>{coinBalance.toLocaleString()}</Text>
-                <Text style={styles.balanceHint}>للشحن والهدايا والألعاب</Text>
-              </View>
-              <View style={[styles.balanceCard, styles.diamondsCard]}>
-                <View style={styles.balanceHeader}>
-                  <CurrencyIcon currency="diamond" size={31} />
-                  <Text style={styles.balanceLabel}>Diamond</Text>
+                <View style={styles.heroDivider} />
+                <View style={styles.heroBalance}>
+                  <View style={styles.heroLabelRow}>
+                    <CurrencyIcon currency="diamond" size={22} />
+                    <Text style={styles.heroLabel}>رصيد Diamond</Text>
+                  </View>
+                  <Text style={[styles.heroValue, styles.diamondValue]}>{diamondBalance.toLocaleString()}</Text>
+                  <Text style={styles.heroHint}>
+                    {coinPerDiamond > 0
+                      ? `تعادل ${diamondCoinValue.toLocaleString()} Coin`
+                      : 'أرباح الهدايا والمضيفات'}
+                  </Text>
                 </View>
-                <Text style={styles.diamondValue}>{diamondBalance.toLocaleString()}</Text>
-                <Text style={styles.balanceHint}>أرباح الهدايا · السحب حسب الإتاحة</Text>
               </View>
             </View>
+
+            <View style={styles.quickActions}>
+              <TouchableOpacity
+                style={[styles.quickAction, !methods.length && styles.disabled]}
+                onPress={() => setModalVisible(true)}
+                disabled={!methods.length}
+                accessibilityRole="button"
+              >
+                <View style={[styles.quickIcon, styles.quickIconGold]}><ArrowDownToLine size={18} color={palette.gold} /></View>
+                <Text style={styles.quickLabel}>شحن Coin</Text>
+                <Text style={styles.quickCaption}>1$ = {Number(walletOptions?.coins_per_usd ?? 3000).toLocaleString()} Coin</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.quickAction, !(coinPerDiamond > 0 && diamondBalance > 0) && styles.disabled]}
+                onPress={() => setConversionVisible(true)}
+                disabled={!(coinPerDiamond > 0 && diamondBalance > 0)}
+                accessibilityRole="button"
+              >
+                <View style={[styles.quickIcon, styles.quickIconTeal]}><ArrowRightLeft size={18} color={palette.teal} /></View>
+                <Text style={styles.quickLabel}>تحويل Diamond</Text>
+                <Text style={styles.quickCaption}>
+                  {coinPerDiamond > 0 ? `1 Diamond = ${coinPerDiamond.toLocaleString()} Coin` : 'غير مفعّل'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.quickAction, !canWithdraw && styles.disabled]}
+                onPress={() => setWithdrawalVisible(true)}
+                disabled={!canWithdraw}
+                accessibilityRole="button"
+              >
+                <View style={[styles.quickIcon, styles.quickIconViolet]}><ArrowUpFromLine size={18} color={palette.primary} /></View>
+                <Text style={styles.quickLabel}>سحب نقدي</Text>
+                <Text style={styles.quickCaption}>
+                  {canWithdraw
+                    ? `الحد الأدنى $${minWithdrawalUsd.toFixed(0)}`
+                    : isHost || isAgent ? 'غير مفعّل حاليًا' : 'للمضيفات والوكلاء'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.eligibilityCard}>
+              <View style={styles.eligibilityIcon}><Info size={16} color={palette.gold} /></View>
+              <Text style={styles.eligibilityText}>{eligibilityHint}</Text>
+            </View>
+
+            {coinPerDiamond > 0 && diamondBalance > 0 ? (
+              <View style={styles.conversionCard}>
+                <View style={styles.sectionHeadingRow}>
+                  <Text style={styles.sectionTitle}>تحويل Diamond إلى Coin</Text>
+                  <View style={styles.ratePill}>
+                    <Text style={styles.ratePillText}>
+                      1 Diamond = {coinPerDiamond.toLocaleString()} Coin
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.sectionCopy}>
+                  حوّل أرباحك إلى Coin للاستخدام داخل التطبيق: الهدايا، الألعاب، والرسائل المدفوعة.
+                </Text>
+                <View style={styles.conversionPreview}>
+                  <View>
+                    <Text style={styles.conversionLabel}>ستحصل على</Text>
+                    <Text style={styles.conversionValue}>{diamondCoinValue.toLocaleString()} Coin</Text>
+                  </View>
+                  <ArrowRightLeft size={22} color={palette.teal} />
+                  <View style={styles.conversionFrom}>
+                    <Text style={styles.conversionLabel}>من رصيدك</Text>
+                    <Text style={styles.conversionSource}>{diamondBalance.toLocaleString()} Diamond</Text>
+                  </View>
+                </View>
+                <TouchableOpacity style={styles.conversionButton} onPress={() => setConversionVisible(true)}>
+                  <Text style={styles.conversionButtonText}>اختيار مبلغ التحويل</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
 
             <View style={styles.walletNotice}>
               <Text style={styles.walletNoticeTitle}>عملتان، لكل واحدة استخدام واضح</Text>
-              <Text style={styles.walletNoticeText}>
-                Coin للشحن والهدايا والألعاب ولا تُسحب نقدًا، وDiamond لأرباح المضيفات الموثقات ويمكن سحبه كدولار أو تحويله إلى Coin.
-              </Text>
+              <View style={styles.noticeRow}>
+                <View style={styles.noticeBullet} />
+                <Text style={styles.walletNoticeText}>
+                  <Text style={styles.noticeStrong}>Coin</Text> يُشترى بالدولار ويُستخدم داخل Wattar فقط، ولا يُسحب نقدًا.
+                </Text>
+              </View>
+              <View style={styles.noticeRow}>
+                <View style={styles.noticeBullet} />
+                <Text style={styles.walletNoticeText}>
+                  <Text style={styles.noticeStrong}>Diamond</Text> يأتي من أرباح الهدايا ويمكن تحويله إلى Coin، أو سحبه كدولار للمضيفات الموثقات والوكلاء.
+                </Text>
+              </View>
             </View>
-
-            <View style={styles.walletActions}>
-              {walletOptions?.withdrawals_enabled && Number(walletOptions.diamonds_per_usd) > 0 ? (
-                <TouchableOpacity
-                  style={[styles.secondaryAction, diamondBalance < Number(walletOptions.min_withdrawal_diamonds) && styles.disabled]}
-                  onPress={() => setWithdrawalVisible(true)}
-                  disabled={diamondBalance < Number(walletOptions.min_withdrawal_diamonds)}
-                >
-                  <ArrowDownToLine size={17} color={palette.success} />
-                  <Text style={styles.secondaryActionText}>طلب سحب Diamond</Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
-
-            <TouchableOpacity
-              style={[styles.depositButton, !methods.length && styles.disabled]}
-              onPress={() => setModalVisible(true)}
-              disabled={!methods.length}
-              accessibilityRole="button"
-            >
-              <ArrowDownToLine size={19} color="#FFFFFF" />
-              <Text style={styles.depositButtonText}>
-                {methods.length ? 'طلب شحن يدوي' : 'الشحن غير متاح حاليًا'}
-              </Text>
-            </TouchableOpacity>
 
             {!methods.length ? (
               <Text style={styles.emptyMethods}>لم تفعّل الإدارة وسائل شحن حاليًا.</Text>
@@ -234,7 +342,7 @@ export default function WalletScreen() {
             {withdrawals.length ? (
               <View style={styles.historyCard}>
                 <View style={styles.historyHeading}>
-                  <ArrowDownToLine size={17} color={palette.success} />
+                  <ArrowUpFromLine size={17} color={palette.success} />
                   <Text style={styles.historyTitle}>طلبات السحب</Text>
                 </View>
                 {withdrawals.map((withdrawal) => (
@@ -243,9 +351,14 @@ export default function WalletScreen() {
                       <Text style={styles.transactionType}>{getWithdrawalStatus(withdrawal.status)}</Text>
                       <Text style={styles.transactionDate}>{new Date(withdrawal.created_at).toLocaleString('ar')}</Text>
                     </View>
-                    <Text style={styles.transactionAmount}>
-                      {Number(withdrawal.amount_diamond).toLocaleString()} Diamond
-                    </Text>
+                    <View style={styles.transactionAmountCopy}>
+                      <Text style={styles.transactionAmount}>
+                        {Number(withdrawal.amount_diamond).toLocaleString()} Diamond
+                      </Text>
+                      <Text style={styles.transactionSubAmount}>
+                        صافي ${Number(withdrawal.net_usd).toFixed(2)}
+                      </Text>
+                    </View>
                   </View>
                 ))}
               </View>
@@ -263,28 +376,18 @@ export default function WalletScreen() {
                   scrollEnabled={false}
                   ItemSeparatorComponent={() => <View style={styles.separator} />}
                   renderItem={({ item }) => {
-                    const positive = item.amount > 0;
+                    const positive = Number(item.amount) > 0;
                     const currency = item.currency === 'diamond' || item.currency === 'promo_dia'
                       ? 'Diamond'
                       : 'Coin';
                     return (
                       <View style={styles.transactionRow}>
                         <View style={styles.transactionInfo}>
-                          <Text style={styles.transactionType}>
-                            {item.reference_type === 'conversion'
-                              ? 'تحويل قديم بين العملات'
-                              : item.reference_type === 'diamond_withdrawal' && item.amount > 0
-                                ? 'إعادة رصيد Diamond بعد رفض السحب'
-                                : item.reference_type === 'diamond_withdrawal'
-                                  ? 'حجز Diamond للسحب'
-                                : item.type === 'gift_received' && item.currency === 'promo_dia'
-                              ? 'Diamond من هدية'
-                              : getTransactionLabel(item.type)}
-                          </Text>
+                          <Text style={styles.transactionType}>{getTransactionLabel(item)}</Text>
                           <Text style={styles.transactionDate}>{new Date(item.created_at).toLocaleString('ar')}</Text>
                         </View>
                         <Text style={[styles.transactionAmount, { color: positive ? palette.success : palette.danger }]}>
-                          {positive ? '+' : ''}{item.amount.toLocaleString()} {currency}
+                          {positive ? '+' : ''}{Number(item.amount).toLocaleString()} {currency}
                         </Text>
                       </View>
                     );
@@ -302,19 +405,38 @@ export default function WalletScreen() {
         <DepositModal
           visible={modalVisible}
           methods={methods}
+          coinBalance={coinBalance}
+          options={walletOptions}
           onClose={() => setModalVisible(false)}
           onSuccess={async () => {
             await loadWallet();
           }}
         />
       ) : null}
-      {access && walletOptions?.withdrawals_enabled ? (
+
+      {access && coinPerDiamond > 0 ? (
+        <ConversionModal
+          visible={conversionVisible}
+          balance={diamondBalance}
+          rate={coinPerDiamond}
+          onClose={() => setConversionVisible(false)}
+          onSuccess={async () => {
+            setConversionVisible(false);
+            await loadWallet();
+          }}
+        />
+      ) : null}
+
+      {access && canWithdraw ? (
         <WithdrawalModal
           visible={withdrawalVisible}
           balance={diamondBalance}
-          minimum={Number(walletOptions.min_withdrawal_diamonds)}
-          rate={Number(walletOptions.diamonds_per_usd)}
-          hasAgent={walletOptions.has_assigned_agent}
+          minimum={minWithdrawalDiamonds}
+          minimumUsd={minWithdrawalUsd}
+          rate={diamondsPerUsd}
+          feePercent={withdrawalFeePercent}
+          maxDailyUsd={Number(walletOptions?.max_withdrawal_usd_per_day ?? 0)}
+          hasAgent={walletOptions?.has_assigned_agent === true}
           onClose={() => setWithdrawalVisible(false)}
           onSuccess={async () => {
             setWithdrawalVisible(false);
@@ -329,11 +451,15 @@ export default function WalletScreen() {
 function DepositModal({
   visible,
   methods,
+  coinBalance,
+  options,
   onClose,
   onSuccess,
 }: {
   visible: boolean;
   methods: DepositMethod[];
+  coinBalance: number;
+  options: WalletOptions | null;
   onClose: () => void;
   onSuccess: () => Promise<void>;
 }) {
@@ -380,8 +506,16 @@ function DepositModal({
     if (!result.canceled) setImage(result.assets[0].uri);
   };
 
+  const numericAmount = Number(amount);
+  const feePercent = Number(selectedMethod?.fee_percent ?? options?.deposit_fee_percent ?? 0);
+  const rate = Number(selectedMethod?.effective_rate ?? options?.coins_per_usd ?? 0);
+  const feeUsd = Number.isFinite(numericAmount) && numericAmount > 0
+    ? Math.round(numericAmount * feePercent) / 100
+    : 0;
+  const creditedUsd = Math.max(0, Math.round((numericAmount - feeUsd) * 100) / 100);
+  const coinsToReceive = Math.floor(creditedUsd * rate);
+
   const submit = async () => {
-    const numericAmount = Number(amount);
     if (!selectedMethod || !Number.isFinite(numericAmount)
       || numericAmount < Number(selectedMethod.min_amount_usd)
       || numericAmount > Number(selectedMethod.max_amount_usd)
@@ -453,23 +587,37 @@ function DepositModal({
       <View style={styles.modalOverlay}>
         <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>طلب شحن Coin</Text>
-            <Text style={styles.modalSubtitle}>اختر وسيلة الدفع واتبع تعليمات الوكيل</Text>
+            <Text style={styles.modalTitle}>شحن Coin</Text>
+            <Text style={styles.modalSubtitle}>اختر وسيلة الدفع، وسنوضّح لك المبلغ والعمولة وما ستحصل عليه بالضبط.</Text>
+
+            <View style={styles.compactBalance}>
+              <Coins size={15} color={palette.gold} />
+              <Text style={styles.compactBalanceText}>
+                رصيدك الحالي: {coinBalance.toLocaleString()} Coin
+              </Text>
+            </View>
 
             <Text style={styles.fieldLabel}>وسيلة الشحن</Text>
-            <View style={styles.methods}>
-              {methods.map((method) => (
-                <TouchableOpacity
-                  key={method.method}
-                  style={[styles.methodButton, selectedMethod?.method === method.method && styles.methodButtonActive]}
-                  onPress={() => setMethodCode(method.method)}
-                  disabled={loading}
-                >
-                  <Text style={[styles.methodText, selectedMethod?.method === method.method && styles.methodTextActive]}>
-                    {method.name_ar}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.methodCards}>
+              {methods.map((method) => {
+                const active = selectedMethod?.method === method.method;
+                return (
+                  <TouchableOpacity
+                    key={method.method}
+                    style={[styles.methodCard, active && styles.methodCardActive]}
+                    onPress={() => setMethodCode(method.method)}
+                    disabled={loading}
+                  >
+                    <Text style={[styles.methodCardTitle, active && styles.methodCardTitleActive]}>
+                      {method.name_ar}
+                    </Text>
+                    <Text style={styles.methodCardCaption}>
+                      ${Number(method.min_amount_usd).toFixed(0)} – ${Number(method.max_amount_usd).toFixed(0)}
+                    </Text>
+                    {active ? <View style={styles.methodActiveDot} /> : null}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             {selectedMethod?.instructions ? (
@@ -480,15 +628,41 @@ function DepositModal({
             ) : null}
 
             <Text style={styles.fieldLabel}>المبلغ بالدولار</Text>
-            <TextInput
-              style={styles.inputField}
-              value={amount}
-              onChangeText={setAmount}
-              placeholder={`من ${selectedMethod?.min_amount_usd ?? 1}`}
-              placeholderTextColor={palette.muted}
-              keyboardType="decimal-pad"
-              editable={!loading}
-            />
+            <View style={styles.amountInputRow}>
+              <TextInput
+                style={[styles.inputField, styles.amountInput]}
+                value={amount}
+                onChangeText={setAmount}
+                placeholder={`من ${selectedMethod?.min_amount_usd ?? 1}`}
+                placeholderTextColor={palette.muted}
+                keyboardType="decimal-pad"
+                editable={!loading}
+              />
+              <View style={styles.amountCurrency}><Text style={styles.amountCurrencyText}>USD</Text></View>
+            </View>
+
+            {numericAmount > 0 ? (
+              <View style={styles.mathCard}>
+                <View style={styles.mathRow}>
+                  <Text style={styles.mathLabel}>المبلغ المُدخل</Text>
+                  <Text style={styles.mathValue}>${numericAmount.toFixed(2)}</Text>
+                </View>
+                <View style={styles.mathRow}>
+                  <Text style={styles.mathLabel}>عمولة الشحن ({feePercent.toFixed(2)}%)</Text>
+                  <Text style={styles.mathValue}>−${feeUsd.toFixed(2)}</Text>
+                </View>
+                <View style={styles.mathRow}>
+                  <Text style={styles.mathLabel}>المبلغ الصافي</Text>
+                  <Text style={styles.mathValue}>${creditedUsd.toFixed(2)}</Text>
+                </View>
+                <View style={styles.mathDivider} />
+                <View style={styles.mathRow}>
+                  <Text style={styles.mathHighlightLabel}>سوف تحصل على</Text>
+                  <Text style={styles.mathHighlightValue}>{coinsToReceive.toLocaleString()} Coin</Text>
+                </View>
+                <Text style={styles.mathHint}>سعر الصرف: 1$ = {rate.toLocaleString()} Coin</Text>
+              </View>
+            ) : null}
 
             <Text style={styles.fieldLabel}>رقم العملية / مرجع الحوالة</Text>
             <TextInput
@@ -504,15 +678,15 @@ function DepositModal({
             {selectedMethod?.method === 'usdt' ? (
               <>
                 <Text style={styles.fieldLabel}>شبكة USDT</Text>
-                <View style={styles.methods}>
+                <View style={styles.segmented}>
                   {(['trc20', 'bep20'] as const).map((item) => (
                     <TouchableOpacity
                       key={item}
-                      style={[styles.methodButton, network === item && styles.methodButtonActive]}
+                      style={[styles.segment, network === item && styles.segmentActive]}
                       onPress={() => setNetwork(item)}
                       disabled={loading}
                     >
-                      <Text style={[styles.methodText, network === item && styles.methodTextActive]}>
+                      <Text style={[styles.segmentText, network === item && styles.segmentTextActive]}>
                         {item === 'trc20' ? 'TRC20' : 'BEP20'}
                       </Text>
                     </TouchableOpacity>
@@ -575,11 +749,140 @@ function DepositModal({
   );
 }
 
+function ConversionModal({
+  visible,
+  balance,
+  rate,
+  onClose,
+  onSuccess,
+}: {
+  visible: boolean;
+  balance: number;
+  rate: number;
+  onClose: () => void;
+  onSuccess: () => Promise<void>;
+}) {
+  const [amount, setAmount] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [attempt, setAttempt] = useState<{ fingerprint: string; key: string } | null>(null);
+
+  const diamonds = Number(amount);
+  const validAmount = Number.isSafeInteger(diamonds) && diamonds > 0 && diamonds <= balance;
+  const coins = validAmount ? Math.floor(diamonds * rate) : 0;
+
+  const submit = async () => {
+    if (!validAmount) {
+      Alert.alert('راجع المبلغ', `أدخل عددًا صحيحًا من Diamond بين 1 و${balance.toLocaleString()}.`);
+      return;
+    }
+    const fingerprint = String(diamonds);
+    const key = attempt?.fingerprint === fingerprint
+      ? attempt.key
+      : `convert-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+    setAttempt({ fingerprint, key });
+    setLoading(true);
+    try {
+      await supabase.rpc('convert_my_diamonds_to_coins', {
+        p_amount_diamond: diamonds,
+        p_idempotency_key: key,
+      });
+      setAttempt(null);
+      setAmount('');
+      Alert.alert('تم التحويل', `أُضيف ${coins.toLocaleString()} Coin إلى رصيدك.`);
+      await onSuccess();
+    } catch (error: unknown) {
+      Alert.alert('تعذر التحويل', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>تحويل Diamond إلى Coin</Text>
+            <Text style={styles.modalSubtitle}>
+              التحويل فوري داخل التطبيق. لا يمكن تحويل Coin إلى Diamond مرة أخرى.
+            </Text>
+
+            <View style={styles.conversionRateCard}>
+              <View style={styles.conversionRateSide}>
+                <Gem size={20} color={palette.teal} />
+                <Text style={styles.conversionRateLabel}>Diamond</Text>
+              </View>
+              <ArrowRightLeft size={18} color={palette.muted} />
+              <View style={styles.conversionRateSide}>
+                <Coins size={20} color={palette.gold} />
+                <Text style={styles.conversionRateLabel}>Coin</Text>
+              </View>
+              <Text style={styles.conversionRateValue}>1 = {rate.toLocaleString()}</Text>
+            </View>
+
+            <Text style={styles.fieldLabel}>عدد Diamond المراد تحويله · رصيدك {balance.toLocaleString()}</Text>
+            <View style={styles.amountInputRow}>
+              <TextInput
+                style={[styles.inputField, styles.amountInput]}
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="number-pad"
+                placeholder="0"
+                placeholderTextColor={palette.muted}
+                editable={!loading}
+              />
+              <TouchableOpacity
+                style={styles.maxButton}
+                onPress={() => setAmount(String(balance))}
+                disabled={loading}
+              >
+                <Text style={styles.maxButtonText}>الكل</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.mathCard}>
+              <View style={styles.mathRow}>
+                <Text style={styles.mathLabel}>المبلغ المحوّل</Text>
+                <Text style={styles.mathValue}>{validAmount ? diamonds.toLocaleString() : 0} Diamond</Text>
+              </View>
+              <View style={styles.mathRow}>
+                <Text style={styles.mathLabel}>رسوم التحويل</Text>
+                <Text style={styles.mathValue}>مجانًا</Text>
+              </View>
+              <View style={styles.mathDivider} />
+              <View style={styles.mathRow}>
+                <Text style={styles.mathHighlightLabel}>سوف تحصل على</Text>
+                <Text style={styles.mathHighlightValue}>{coins.toLocaleString()} Coin</Text>
+              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelButton} onPress={onClose} disabled={loading}>
+                <Text style={styles.cancelText}>إلغاء</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmButton, (loading || !validAmount) && styles.disabled]}
+                onPress={submit}
+                disabled={loading || !validAmount}
+              >
+                {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.confirmText}>تحويل الآن</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
 function WithdrawalModal({
   visible,
   balance,
   minimum,
+  minimumUsd,
   rate,
+  feePercent,
+  maxDailyUsd,
   hasAgent,
   onClose,
   onSuccess,
@@ -587,7 +890,10 @@ function WithdrawalModal({
   visible: boolean;
   balance: number;
   minimum: number;
+  minimumUsd: number;
   rate: number;
+  feePercent: number;
+  maxDailyUsd: number;
   hasAgent: boolean;
   onClose: () => void;
   onSuccess: () => Promise<void>;
@@ -603,8 +909,13 @@ function WithdrawalModal({
     if (method === 'agent' && !hasAgent) setMethod('usdt');
   }, [hasAgent, method]);
 
+  const diamonds = Number(amount);
+  const grossUsd = diamonds > 0 && rate > 0 ? diamonds / rate : 0;
+  const feeUsd = grossUsd * feePercent / 100;
+  const netUsd = Math.max(0, grossUsd - feeUsd);
+  const belowMinimum = diamonds > 0 && diamonds < minimum;
+
   const submit = async () => {
-    const diamonds = Number(amount);
     if (!Number.isSafeInteger(diamonds) || diamonds < minimum || diamonds > balance) {
       Alert.alert('راجع المبلغ', `أدخل عددًا صحيحًا بين ${minimum.toLocaleString()} و${balance.toLocaleString()} Diamond.`);
       return;
@@ -649,42 +960,83 @@ function WithdrawalModal({
   };
 
   const methods: DepositMethodCode[] = hasAgent ? ['agent', 'usdt'] : ['usdt'];
-  const estimateUsd = Number(amount) > 0 && rate > 0 ? Number(amount) / rate : 0;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>سحب Diamond</Text>
+            <Text style={styles.modalTitle}>سحب Diamond نقدًا</Text>
             <Text style={styles.modalSubtitle}>
-              الحد الأدنى {minimum.toLocaleString()} · السعر التقديري ${estimateUsd.toFixed(2)} قبل الرسوم
+              رصيدك {balance.toLocaleString()} Diamond · الحد الأدنى {minimum.toLocaleString()} Diamond (${minimumUsd.toFixed(2)})
             </Text>
-            <Text style={styles.fieldLabel}>عدد Diamond · رصيدك {balance.toLocaleString()}</Text>
-            <TextInput
-              style={styles.inputField}
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="number-pad"
-              placeholder="أدخل المبلغ"
-              placeholderTextColor={palette.muted}
-              editable={!loading}
-            />
-            <Text style={styles.fieldLabel}>طريقة الاستلام</Text>
-            <View style={styles.methods}>
-              {methods.map((item) => (
-                <TouchableOpacity
-                  key={item}
-                  style={[styles.methodButton, method === item && styles.methodButtonActive]}
-                  onPress={() => setMethod(item)}
-                  disabled={loading}
-                >
-                  <Text style={[styles.methodText, method === item && styles.methodTextActive]}>
-                    {item === 'agent' ? 'الوكيل' : 'USDT'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+
+            <Text style={styles.fieldLabel}>عدد Diamond المراد سحبه</Text>
+            <View style={styles.amountInputRow}>
+              <TextInput
+                style={[styles.inputField, styles.amountInput]}
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="number-pad"
+                placeholder="0"
+                placeholderTextColor={palette.muted}
+                editable={!loading}
+              />
+              <TouchableOpacity
+                style={styles.maxButton}
+                onPress={() => setAmount(String(balance))}
+                disabled={loading}
+              >
+                <Text style={styles.maxButtonText}>الكل</Text>
+              </TouchableOpacity>
             </View>
+            {belowMinimum ? (
+              <Text style={styles.warningText}>أقل من الحد الأدنى للسحب ({minimum.toLocaleString()} Diamond).</Text>
+            ) : null}
+
+            {diamonds > 0 ? (
+              <View style={styles.mathCard}>
+                <View style={styles.mathRow}>
+                  <Text style={styles.mathLabel}>قيمة السحب</Text>
+                  <Text style={styles.mathValue}>${grossUsd.toFixed(2)}</Text>
+                </View>
+                <View style={styles.mathRow}>
+                  <Text style={styles.mathLabel}>عمولة السحب ({feePercent.toFixed(2)}%)</Text>
+                  <Text style={styles.mathValue}>−${feeUsd.toFixed(2)}</Text>
+                </View>
+                <View style={styles.mathDivider} />
+                <View style={styles.mathRow}>
+                  <Text style={styles.mathHighlightLabel}>ستستلم في حسابك</Text>
+                  <Text style={styles.mathHighlightValue}>${netUsd.toFixed(2)}</Text>
+                </View>
+                <Text style={styles.mathHint}>
+                  سعر الصرف: {rate.toLocaleString()} Diamond = $1 · الحد اليومي ${maxDailyUsd.toFixed(0)}
+                </Text>
+              </View>
+            ) : null}
+
+            <Text style={styles.fieldLabel}>طريقة الاستلام</Text>
+            <View style={styles.methodCards}>
+              {methods.map((item) => {
+                const active = method === item;
+                return (
+                  <TouchableOpacity
+                    key={item}
+                    style={[styles.methodCard, active && styles.methodCardActive]}
+                    onPress={() => setMethod(item)}
+                    disabled={loading}
+                  >
+                    <Text style={[styles.methodCardTitle, active && styles.methodCardTitleActive]}>
+                      {item === 'agent' ? 'عبر الوكيل' : 'محفظة USDT'}
+                    </Text>
+                    <Text style={styles.methodCardCaption}>
+                      {item === 'agent' ? 'تحويل خارج التطبيق' : 'TRC20 / BEP20'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
             {method === 'usdt' ? (
               <>
                 <Text style={styles.fieldLabel}>عنوان المحفظة</Text>
@@ -695,17 +1047,19 @@ function WithdrawalModal({
                   autoCapitalize="none"
                   autoCorrect={false}
                   editable={!loading}
+                  placeholder={network === 'trc20' ? 'T...' : '0x...'}
+                  placeholderTextColor={palette.muted}
                 />
                 <Text style={styles.fieldLabel}>الشبكة</Text>
-                <View style={styles.methods}>
+                <View style={styles.segmented}>
                   {(['trc20', 'bep20'] as const).map((item) => (
                     <TouchableOpacity
                       key={item}
-                      style={[styles.methodButton, network === item && styles.methodButtonActive]}
+                      style={[styles.segment, network === item && styles.segmentActive]}
                       onPress={() => setNetwork(item)}
                       disabled={loading}
                     >
-                      <Text style={[styles.methodText, network === item && styles.methodTextActive]}>
+                      <Text style={[styles.segmentText, network === item && styles.segmentTextActive]}>
                         {item === 'trc20' ? 'TRC20' : 'BEP20'}
                       </Text>
                     </TouchableOpacity>
@@ -713,8 +1067,11 @@ function WithdrawalModal({
                 </View>
               </>
             ) : (
-              <Text style={styles.instructionsText}>سيحوّل الوكيل المعتمد المبلغ إليك خارج التطبيق.</Text>
+              <Text style={styles.instructionsText}>
+                سيحوّل الوكيل المعتمد المبلغ إليك خارج التطبيق بعد موافقة الإدارة.
+              </Text>
             )}
+
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.cancelButton} onPress={onClose} disabled={loading}>
                 <Text style={styles.cancelText}>إلغاء</Text>
@@ -730,7 +1087,14 @@ function WithdrawalModal({
   );
 }
 
-function getTransactionLabel(type: string): string {
+function getTransactionLabel(item: WalletTransaction): string {
+  if (item.reference_type === 'conversion') {
+    return item.currency === 'diamond' ? 'تحويل إلى Coin (خصم Diamond)' : 'تحويل من Diamond (إضافة Coin)';
+  }
+  if (item.reference_type === 'diamond_withdrawal') {
+    return item.amount > 0 ? 'إعادة رصيد Diamond بعد رفض السحب' : 'حجز Diamond للسحب';
+  }
+  if (item.type === 'gift_received' && item.currency === 'promo_dia') return 'Diamond من هدية';
   const labels: Record<string, string> = {
     deposit: 'شحن Coin',
     gift_sent: 'هدية مرسلة',
@@ -745,13 +1109,15 @@ function getTransactionLabel(type: string): string {
     signup_bonus: 'مكافأة تسجيل',
     admin_adjustment: 'تسوية إدارية',
   };
-  return labels[type] ?? type;
+  return labels[item.type] ?? item.type;
 }
 
 function getWithdrawalStatus(status: string): string {
   const labels: Record<string, string> = {
     pending: 'طلب سحب قيد المراجعة',
     reviewing: 'طلب السحب قيد المعالجة',
+    approved: 'تمت الموافقة على السحب',
+    processing: 'جارٍ تنفيذ السحب',
     completed: 'تم تنفيذ السحب',
     rejected: 'رُفض الطلب وأعيد الرصيد',
     cancelled: 'تم إلغاء الطلب',
@@ -763,9 +1129,10 @@ function getWithdrawalStatus(status: string): string {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: palette.background },
   content: { paddingHorizontal: 16, paddingBottom: 110 },
-  header: { paddingTop: 58, paddingBottom: 20 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 58, paddingBottom: 18 },
   title: { color: palette.text, fontSize: 25, fontWeight: '800', textAlign: 'right' },
   subtitle: { color: palette.muted, fontSize: 12, marginTop: 5, textAlign: 'right' },
+  headerIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: '#302312', borderWidth: 1, borderColor: '#725224' },
   error: { color: palette.danger, fontSize: 12, textAlign: 'center', marginBottom: 12 },
   gateCard: { alignItems: 'center', padding: 22, borderRadius: 22, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, marginTop: 18 },
   gateIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: '#302312', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
@@ -773,25 +1140,48 @@ const styles = StyleSheet.create({
   gateText: { color: palette.muted, fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 9 },
   agentNotice: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, backgroundColor: '#143027', borderRadius: 14, marginBottom: 13 },
   agentNoticeText: { color: palette.success, fontSize: 12, fontWeight: '700' },
-  balances: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' },
-  balanceCard: { width: '48%', minHeight: 132, padding: 10, borderRadius: 19, backgroundColor: palette.surface, borderWidth: 1 },
-  coinsCard: { borderColor: '#725224' },
-  diamondsCard: { borderColor: '#285D56' },
-  balanceHeader: { alignItems: 'flex-end', gap: 6 },
-  balanceLabel: { color: palette.muted, fontSize: 11, fontWeight: '700' },
-  coinValue: { color: palette.gold, fontSize: 17, fontWeight: '800', marginTop: 8, textAlign: 'right' },
-  diamondValue: { color: '#72DCCA', fontSize: 17, fontWeight: '800', marginTop: 8, textAlign: 'right' },
-  balanceHint: { color: palette.muted, fontSize: 9, lineHeight: 13, marginTop: 6, textAlign: 'right' },
+  balanceHero: { overflow: 'hidden', padding: 17, borderRadius: 24, backgroundColor: palette.surface, borderWidth: 1, borderColor: '#5B3477' },
+  heroGlow: { position: 'absolute', top: -70, right: -30, width: 180, height: 140, borderRadius: 90, backgroundColor: '#7B2FD1', opacity: 0.28 },
+  heroRow: { flexDirection: 'row', alignItems: 'stretch' },
+  heroBalance: { flex: 1 },
+  heroDivider: { width: 1, backgroundColor: palette.border, marginHorizontal: 12 },
+  heroLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  heroLabel: { color: palette.muted, fontSize: 11, fontWeight: '700' },
+  heroValue: { color: palette.gold, fontSize: 25, fontWeight: '900', marginTop: 9, textAlign: 'left' },
+  diamondValue: { color: palette.teal },
+  heroHint: { color: palette.muted, fontSize: 9, lineHeight: 14, marginTop: 6 },
+  quickActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  quickAction: { flex: 1, alignItems: 'center', paddingVertical: 13, paddingHorizontal: 6, borderRadius: 18, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
+  quickIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  quickIconGold: { backgroundColor: '#382A14' },
+  quickIconTeal: { backgroundColor: '#153832' },
+  quickIconViolet: { backgroundColor: '#2E1B45' },
+  quickLabel: { color: palette.text, fontSize: 11, fontWeight: '800', textAlign: 'center' },
+  quickCaption: { color: palette.muted, fontSize: 8.5, marginTop: 4, textAlign: 'center', lineHeight: 12 },
+  eligibilityCard: { flexDirection: 'row', gap: 9, alignItems: 'flex-start', padding: 13, marginTop: 12, borderRadius: 16, backgroundColor: '#1D1628', borderWidth: 1, borderColor: palette.border },
+  eligibilityIcon: { width: 28, height: 28, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#302312' },
+  eligibilityText: { flex: 1, color: palette.muted, fontSize: 11, lineHeight: 18, textAlign: 'right' },
+  conversionCard: { padding: 15, marginTop: 13, borderRadius: 20, backgroundColor: palette.surface, borderWidth: 1, borderColor: '#2A5A54' },
+  sectionHeadingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  sectionTitle: { color: palette.text, fontSize: 14, fontWeight: '800', flexShrink: 1 },
+  ratePill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 20, backgroundColor: '#153832' },
+  ratePillText: { color: palette.teal, fontSize: 9, fontWeight: '800' },
+  sectionCopy: { color: palette.muted, fontSize: 11, lineHeight: 18, marginTop: 8, textAlign: 'right' },
+  conversionPreview: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 13, padding: 12, borderRadius: 14, backgroundColor: palette.elevated },
+  conversionLabel: { color: palette.muted, fontSize: 9 },
+  conversionValue: { color: palette.gold, fontSize: 16, fontWeight: '900', marginTop: 4 },
+  conversionFrom: { alignItems: 'flex-end' },
+  conversionSource: { color: palette.teal, fontSize: 13, fontWeight: '800', marginTop: 4 },
+  conversionButton: { minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: 11, borderRadius: 13, backgroundColor: '#1F6D61' },
+  conversionButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
   walletNotice: { padding: 15, marginTop: 12, borderRadius: 16, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
-  walletNoticeTitle: { color: palette.text, fontSize: 13, fontWeight: '700', textAlign: 'right' },
-  walletNoticeText: { color: palette.muted, fontSize: 11, lineHeight: 18, marginTop: 5, textAlign: 'right' },
-  walletActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginTop: 12 },
-  secondaryAction: { flexGrow: 1, minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 12, borderRadius: 14, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
-  secondaryActionText: { color: palette.text, fontSize: 11, fontWeight: '700' },
-  depositButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, minHeight: 52, marginTop: 13, borderRadius: 15, backgroundColor: palette.primary },
-  depositButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+  walletNoticeTitle: { color: palette.text, fontSize: 13, fontWeight: '700', textAlign: 'right', marginBottom: 7 },
+  noticeRow: { flexDirection: 'row', gap: 7, alignItems: 'flex-start', marginTop: 5 },
+  noticeBullet: { width: 5, height: 5, borderRadius: 3, backgroundColor: palette.gold, marginTop: 6 },
+  walletNoticeText: { flex: 1, color: palette.muted, fontSize: 11, lineHeight: 18, textAlign: 'right' },
+  noticeStrong: { color: palette.text, fontWeight: '800' },
   disabled: { opacity: 0.5 },
-  emptyMethods: { color: palette.muted, fontSize: 11, textAlign: 'center', marginTop: 9 },
+  emptyMethods: { color: palette.muted, fontSize: 11, textAlign: 'center', marginTop: 12 },
   historyCard: { padding: 15, marginTop: 17, borderRadius: 18, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
   historyHeading: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   historyTitle: { color: palette.text, fontSize: 14, fontWeight: '700' },
@@ -800,23 +1190,49 @@ const styles = StyleSheet.create({
   transactionInfo: { flex: 1 },
   transactionType: { color: palette.text, fontSize: 13, fontWeight: '600', textAlign: 'right' },
   transactionDate: { color: palette.muted, fontSize: 10, marginTop: 4, textAlign: 'right' },
-  transactionAmount: { fontSize: 12, fontWeight: '700', textAlign: 'left', marginLeft: 12 },
+  transactionAmountCopy: { alignItems: 'flex-end', marginLeft: 10 },
+  transactionAmount: { fontSize: 12, fontWeight: '700', textAlign: 'left' },
+  transactionSubAmount: { color: palette.muted, fontSize: 9, marginTop: 3 },
   emptyHistory: { color: palette.muted, fontSize: 12, textAlign: 'center', paddingVertical: 18 },
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.72)' },
   modalScroll: { flexGrow: 1, justifyContent: 'flex-end' },
-  modalCard: { padding: 22, paddingBottom: 30, backgroundColor: palette.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, borderColor: palette.border },
+  modalCard: { padding: 20, paddingBottom: 30, backgroundColor: palette.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, borderColor: palette.border },
   modalTitle: { color: palette.text, fontSize: 20, fontWeight: '800', textAlign: 'right' },
-  modalSubtitle: { color: palette.muted, fontSize: 12, marginTop: 5, marginBottom: 15, textAlign: 'right' },
-  fieldLabel: { color: palette.text, fontSize: 12, fontWeight: '700', marginTop: 12, marginBottom: 7, textAlign: 'right' },
-  methods: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  methodButton: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 12, backgroundColor: palette.elevated, borderWidth: 1, borderColor: palette.border },
-  methodButtonActive: { backgroundColor: '#402256', borderColor: palette.primary },
-  methodText: { color: palette.muted, fontSize: 11, fontWeight: '700' },
-  methodTextActive: { color: '#FFFFFF' },
+  modalSubtitle: { color: palette.muted, fontSize: 12, lineHeight: 18, marginTop: 5, marginBottom: 13, textAlign: 'right' },
+  compactBalance: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, backgroundColor: '#302312' },
+  compactBalanceText: { color: palette.gold, fontSize: 10, fontWeight: '700' },
+  fieldLabel: { color: palette.text, fontSize: 12, fontWeight: '700', marginTop: 13, marginBottom: 7, textAlign: 'right' },
+  methodCards: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  methodCard: { flexGrow: 1, minWidth: '30%', padding: 11, borderRadius: 14, backgroundColor: palette.elevated, borderWidth: 1, borderColor: palette.border },
+  methodCardActive: { backgroundColor: '#3A2054', borderColor: palette.primary },
+  methodCardTitle: { color: palette.muted, fontSize: 12, fontWeight: '800', textAlign: 'right' },
+  methodCardTitleActive: { color: '#FFFFFF' },
+  methodCardCaption: { color: palette.muted, fontSize: 9, marginTop: 4, textAlign: 'right' },
+  methodActiveDot: { position: 'absolute', top: 9, left: 9, width: 7, height: 7, borderRadius: 4, backgroundColor: palette.gold },
   instructions: { padding: 12, marginTop: 12, borderRadius: 13, backgroundColor: '#302312', borderWidth: 1, borderColor: '#725224' },
   instructionsTitle: { color: palette.gold, fontSize: 11, fontWeight: '800', textAlign: 'right' },
   instructionsText: { color: palette.text, fontSize: 12, lineHeight: 18, marginTop: 5, textAlign: 'right' },
+  amountInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   inputField: { minHeight: 48, paddingHorizontal: 13, borderRadius: 12, backgroundColor: palette.elevated, borderWidth: 1, borderColor: palette.border, color: palette.text, textAlign: 'right', fontSize: 13 },
+  amountInput: { flex: 1, fontSize: 16, fontWeight: '700' },
+  amountCurrency: { minHeight: 48, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: '#302312' },
+  amountCurrencyText: { color: palette.gold, fontSize: 11, fontWeight: '800' },
+  maxButton: { minHeight: 48, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: '#2E1B45', borderWidth: 1, borderColor: palette.primary },
+  maxButtonText: { color: palette.text, fontSize: 12, fontWeight: '800' },
+  mathCard: { marginTop: 13, padding: 13, borderRadius: 15, backgroundColor: palette.elevated, borderWidth: 1, borderColor: palette.border },
+  mathRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 },
+  mathLabel: { color: palette.muted, fontSize: 11 },
+  mathValue: { color: palette.text, fontSize: 12, fontWeight: '700' },
+  mathDivider: { height: 1, backgroundColor: palette.border, marginVertical: 6 },
+  mathHighlightLabel: { color: palette.text, fontSize: 12, fontWeight: '800' },
+  mathHighlightValue: { color: palette.success, fontSize: 16, fontWeight: '900' },
+  mathHint: { color: palette.muted, fontSize: 9, marginTop: 7, textAlign: 'right' },
+  warningText: { color: palette.gold, fontSize: 10, marginTop: 7, textAlign: 'right' },
+  segmented: { flexDirection: 'row', gap: 8 },
+  segment: { flex: 1, minHeight: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: palette.elevated, borderWidth: 1, borderColor: palette.border },
+  segmentActive: { backgroundColor: '#3A2054', borderColor: palette.primary },
+  segmentText: { color: palette.muted, fontSize: 11, fontWeight: '800' },
+  segmentTextActive: { color: '#FFFFFF' },
   proofPicker: { minHeight: 92, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: palette.border, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: palette.elevated },
   proofPreview: { width: '100%', height: 145, resizeMode: 'cover' },
   proofText: { color: palette.muted, fontSize: 12 },
@@ -825,4 +1241,8 @@ const styles = StyleSheet.create({
   cancelText: { color: palette.muted, fontSize: 13, fontWeight: '700' },
   confirmButton: { flex: 1.4, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 13, backgroundColor: palette.primary },
   confirmText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  conversionRateCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 13, borderRadius: 15, backgroundColor: palette.elevated, borderWidth: 1, borderColor: palette.border },
+  conversionRateSide: { alignItems: 'center', gap: 5 },
+  conversionRateLabel: { color: palette.text, fontSize: 10, fontWeight: '700' },
+  conversionRateValue: { color: palette.muted, fontSize: 10 },
 });

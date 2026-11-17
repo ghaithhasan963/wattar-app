@@ -81,6 +81,7 @@ export default function RoomScreen() {
   const chatListRef = useRef<FlatList>(null);
   const lkRoomRef = useRef<Room | null>(null);
   const seatsRef = useRef<Seat[]>([]);
+  const participantProfilesRef = useRef<Record<string, { username: string; display_name: string | null; avatar_url: string | null }>>({});
   const closedRoomNoticeRef = useRef(false);
   const giftCelebrationAnim = useRef(new Animated.Value(0)).current;
   const speakersCount = seats.filter(seat => seat.status === 'occupied' && seat.user_id).length;
@@ -197,10 +198,38 @@ export default function RoomScreen() {
     };
   }, [id]);
 
+  const loadParticipantProfiles = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_room_participant_profiles', { p_room_id: id });
+      if (error) throw error;
+      const profiles = ((data ?? []) as Array<{
+        user_id: string;
+        username: string;
+        display_name: string | null;
+        avatar_url: string | null;
+      }>).reduce<Record<string, { username: string; display_name: string | null; avatar_url: string | null }>>(
+        (map, row) => {
+          map[row.user_id] = {
+            username: row.username,
+            display_name: row.display_name,
+            avatar_url: row.avatar_url,
+          };
+          return map;
+        },
+        {},
+      );
+      participantProfilesRef.current = profiles;
+      return profiles;
+    } catch (error: unknown) {
+      console.warn('[Wattar] Failed to load room participant profiles:', error);
+      return participantProfilesRef.current;
+    }
+  };
+
   const loadRoom = async () => {
     setRoomLoading(true);
     setRoomError(null);
-    const [roomResult, seatsResult, messagesResult] = await Promise.all([
+    const [roomResult, seatsResult, messagesResult, profiles] = await Promise.all([
       supabase
       .from('rooms')
       .select(`
@@ -226,6 +255,7 @@ export default function RoomScreen() {
       .eq('room_id', id)
       .order('created_at', { ascending: true })
       .limit(100),
+      loadParticipantProfiles(),
     ]);
 
     const queryError = roomResult.error ?? seatsResult.error ?? messagesResult.error;
@@ -238,30 +268,41 @@ export default function RoomScreen() {
       throw new Error('الغرفة غير موجودة أو لا تملك صلاحية الدخول إليها.');
     }
     setRoom(roomResult.data);
-    setRoom(roomResult.data);
-    const loadedSeats = seatsResult.data ?? [];
-    seatsRef.current = loadedSeats as Seat[];
+    const loadedSeats = (seatsResult.data ?? []).map((seat) => ({
+      ...(seat as Seat),
+      user: seat.user_id ? profiles[seat.user_id] ?? (seat as Seat).user : (seat as Seat).user,
+    }));
+    seatsRef.current = loadedSeats;
     setSeats(loadedSeats);
     const myOccupiedSeat = loadedSeats.find(
       seat => seat.user_id === profile?.id && seat.status === 'occupied',
     );
     setMySeat(myOccupiedSeat?.seat_index ?? null);
-    setMessages(messagesResult.data ?? []);
+    setMessages((messagesResult.data ?? []).map((item) => ({
+      ...(item as Message),
+      user: item.user_id ? profiles[item.user_id] ?? (item as Message).user : (item as Message).user,
+    })));
     setRoomLoading(false);
   };
 
   const loadSeats = async () => {
-    const { data, error } = await supabase
-      .from('room_seats')
-      .select(`
-        *,
-        user:users(username, display_name, avatar_url)
-      `)
-      .eq('room_id', id)
-      .order('seat_index', { ascending: true });
+    const [seatsResponse, profiles] = await Promise.all([
+      supabase
+        .from('room_seats')
+        .select(`
+          *,
+          user:users(username, display_name, avatar_url)
+        `)
+        .eq('room_id', id)
+        .order('seat_index', { ascending: true }),
+      loadParticipantProfiles(),
+    ]);
 
-    if (error) throw error;
-    const loadedSeats = (data ?? []) as Seat[];
+    if (seatsResponse.error) throw seatsResponse.error;
+    const loadedSeats = (seatsResponse.data ?? []).map((seat) => ({
+      ...(seat as Seat),
+      user: seat.user_id ? profiles[seat.user_id] ?? (seat as Seat).user : (seat as Seat).user,
+    }));
     seatsRef.current = loadedSeats;
     setSeats(loadedSeats);
     const occupiedSeat = loadedSeats.find(
@@ -309,7 +350,7 @@ export default function RoomScreen() {
                     display_name: profile.display_name,
                     avatar_url: profile.avatar_url,
                   }
-                : undefined,
+                : participantProfilesRef.current[incoming.user_id],
             };
             if (existingIndex >= 0) {
               return withoutPending.map((message, index) => index === existingIndex ? savedMessage : message);
@@ -776,7 +817,7 @@ export default function RoomScreen() {
                   <View style={[styles.messageBubble, isMine ? styles.ownMessageBubble : styles.otherMessageBubble]}>
                     <View style={styles.messageMeta}>
                       <Text style={[styles.messageUser, isMine && styles.ownMessageUser]} numberOfLines={1}>
-                        {item.user?.display_name ?? item.user?.username ?? 'مستخدم'}
+                        {item.user?.display_name ?? item.user?.username ?? 'عضو'}
                       </Text>
                       <Text style={styles.messageTime}>
                         {new Date(item.created_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}
@@ -1148,7 +1189,7 @@ function GiftsModal({
   // المستلمون الممكنون: جميع أصحاب المقاعد عدا أنا
   const recipients = seats
     .filter(s => s.status === 'occupied' && s.user_id && s.user_id !== profile?.id)
-    .map(s => ({ id: s.user_id!, name: s.user?.display_name ?? s.user?.username ?? 'مستخدم' }));
+    .map(s => ({ id: s.user_id!, name: s.user?.display_name ?? s.user?.username ?? 'عضو' }));
   const selectedGiftRecord = gifts.find(gift => gift.id === selectedGift);
   const filteredGifts = gifts.filter((gift) => {
     const query = giftSearch.trim().toLocaleLowerCase();

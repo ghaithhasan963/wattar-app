@@ -1,8 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, RefreshCw, Search, ShieldAlert, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, Search, ShieldAlert, X, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase, callFunction } from '@/lib/supabase';
+import { Segmented } from '@/components/ui';
+
+const durationChoices = [
+  { label: 'ساعة', value: 60 },
+  { label: 'يوم', value: 1440 },
+  { label: 'أسبوع', value: 10080 },
+  { label: 'شهر', value: 43200 },
+];
 
 interface UserReport {
   id: string;
@@ -39,6 +47,7 @@ export function UserReportsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [reportModal, setReportModal] = useState<{ report: UserReport; decision: 'actioned' | 'dismissed' } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -88,32 +97,13 @@ export function UserReportsPage() {
   }, [reports, search, statusFilter]);
 
   const reviewReport = useCallback(
-    async (report: UserReport, decision: 'actioned' | 'dismissed') => {
-      let penalty: string | null = null;
-      let durationMinutes: number | null = null;
-      let note = '';
-      if (decision === 'actioned') {
-        const labels = PENALTY_OPTIONS.map((option, index) => `${index + 1}. ${option.label}`).join('\n');
-        const answer = window.prompt(
-          `اختر الإجراء على ${displayUser(report.reported)} (اكتب الرقم):\n${labels}`,
-          '1',
-        );
-        const index = Number(answer) - 1;
-        if (!Number.isInteger(index) || index < 0 || index >= PENALTY_OPTIONS.length) return;
-        const selected = PENALTY_OPTIONS[index];
-        penalty = selected.value === 'none' ? null : selected.value;
-        if (selected.needsDuration) {
-          const duration = window.prompt('المدة بالدقائق (مثال: 60 أو 1440):', '60');
-          const minutes = Number(duration);
-          if (!Number.isFinite(minutes) || minutes < 1 || minutes > 43200) {
-            alert('مدة غير صالحة (1 إلى 43200 دقيقة).');
-            return;
-          }
-          durationMinutes = minutes;
-        }
-      }
-      note = window.prompt('ملاحظة المراجعة (اختياري):') ?? '';
-
+    async (
+      report: UserReport,
+      decision: 'actioned' | 'dismissed',
+      penalty: string | null,
+      durationMinutes: number | null,
+      note: string,
+    ) => {
       setBusy(true);
       try {
         await callFunction('admin-moderation', {
@@ -126,8 +116,10 @@ export function UserReportsPage() {
         });
         toast.success(decision === 'actioned' ? 'تم تأكيد البلاغ وتنفيذ الإجراء' : 'تم رفض البلاغ');
         await load();
+        return true;
       } catch (caught: unknown) {
         toast.error(caught instanceof Error ? caught.message : 'فشلت المراجعة');
+        return false;
       } finally {
         setBusy(false);
       }
@@ -256,7 +248,7 @@ export function UserReportsPage() {
                         <button
                           type="button"
                           disabled={busy}
-                          onClick={() => void reviewReport(report, 'actioned')}
+                          onClick={() => setReportModal({ report, decision: 'actioned' })}
                           className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-300 transition hover:bg-emerald-500/20 disabled:opacity-50"
                         >
                           <CheckCircle2 size={13} /> تأكيد وإجراء
@@ -264,7 +256,7 @@ export function UserReportsPage() {
                         <button
                           type="button"
                           disabled={busy}
-                          onClick={() => void reviewReport(report, 'dismissed')}
+                          onClick={() => setReportModal({ report, decision: 'dismissed' })}
                           className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
                         >
                           <XCircle size={13} /> رفض
@@ -278,6 +270,197 @@ export function UserReportsPage() {
           </div>
         )}
       </section>
+
+      {reportModal && (
+        <ReportDecisionModal
+          report={reportModal.report}
+          decision={reportModal.decision}
+          busy={busy}
+          onClose={() => {
+            if (busy) return;
+            setReportModal(null);
+          }}
+          onSubmit={async (penalty, duration, note) => {
+            const ok = await reviewReport(reportModal.report, reportModal.decision, penalty, duration, note);
+            if (ok) setReportModal(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ReportDecisionModal({
+  report,
+  decision,
+  busy,
+  onClose,
+  onSubmit,
+}: {
+  report: UserReport;
+  decision: 'actioned' | 'dismissed';
+  busy: boolean;
+  onClose: () => void;
+  onSubmit: (penalty: string | null, durationMinutes: number | null, note: string) => Promise<void>;
+}) {
+  const [penaltyValue, setPenaltyValue] = useState('warning');
+  const [duration, setDuration] = useState(1440);
+  const [customDuration, setCustomDuration] = useState('');
+  const [note, setNote] = useState('');
+  const [useCustomDuration, setUseCustomDuration] = useState(false);
+  const selectedPenalty = PENALTY_OPTIONS.find((option) => option.value === penaltyValue);
+  const needsDuration = selectedPenalty?.needsDuration === true;
+  const numericDuration = useCustomDuration ? Number(customDuration) : duration;
+  const resolvedDuration = needsDuration ? numericDuration : null;
+  const durationValid = !needsDuration
+    || (Number.isFinite(numericDuration) && numericDuration >= 1 && numericDuration <= 43200);
+  const canSubmit = !busy && durationValid && note.length <= 500;
+  const actioning = decision === 'actioned';
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-[#171a2c]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-white/[0.07] p-5">
+          <div>
+            <h2 className="text-lg font-semibold text-white">
+              {actioning ? 'تأكيد البلاغ واتخاذ إجراء' : 'رفض البلاغ'}
+            </h2>
+            <p className="mt-1 text-xs text-gray-400">
+              المُبلَّغ عنه: {displayUser(report.reported)} · السبب: {report.reason}
+            </p>
+          </div>
+          <button onClick={onClose} disabled={busy} className="text-gray-400 hover:text-white disabled:opacity-50" aria-label="إغلاق">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="max-h-[75vh] space-y-4 overflow-y-auto p-5">
+          {actioning ? (
+            <>
+              <div>
+                <p className="mb-2 text-sm font-medium text-gray-200">الإجراء على الحساب</p>
+                <div className="space-y-2">
+                  {PENALTY_OPTIONS.map((option) => {
+                    const active = penaltyValue === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        disabled={busy}
+                        onClick={() => setPenaltyValue(option.value)}
+                        className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-right text-sm transition ${
+                          active
+                            ? 'border-wattar-400/50 bg-wattar-600/20 font-semibold text-white'
+                            : 'border-white/[0.07] bg-white/[0.02] text-gray-300 hover:border-white/15'
+                        }`}
+                      >
+                        <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${active ? 'border-wattar-300 bg-wattar-500' : 'border-gray-600'}`}>
+                          {active ? <CheckCircle2 size={10} className="text-white" /> : null}
+                        </span>
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {needsDuration ? (
+                <div>
+                  <p className="mb-2 text-sm font-medium text-gray-200">مدة العقوبة</p>
+                  <Segmented
+                    options={durationChoices}
+                    value={useCustomDuration ? -1 : duration}
+                    onChange={(value) => {
+                      if (value === -1) {
+                        setUseCustomDuration(true);
+                        return;
+                      }
+                      setUseCustomDuration(false);
+                      setDuration(Number(value));
+                    }}
+                    columns={5}
+                  />
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setUseCustomDuration(true)}
+                      className={`rounded-xl border px-3 py-2 text-xs transition ${
+                        useCustomDuration
+                          ? 'border-wattar-400/50 bg-wattar-600/20 text-white'
+                          : 'border-white/[0.07] bg-white/[0.02] text-gray-400'
+                      }`}
+                    >
+                      مدة مخصصة
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      max={43200}
+                      value={customDuration}
+                      disabled={busy || !useCustomDuration}
+                      onChange={(event) => setCustomDuration(event.target.value)}
+                      placeholder="بالدقائق"
+                      className="w-full rounded-xl border border-white/[0.08] bg-[#111424] px-3 py-2 text-sm text-white placeholder:text-gray-600 disabled:opacity-40"
+                    />
+                  </div>
+                  {!durationValid ? (
+                    <p className="mt-1 text-[11px] text-red-300">أدخل مدة بين 1 و43200 دقيقة.</p>
+                  ) : null}
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <div className="flex items-start gap-2 rounded-xl border border-red-500/25 bg-red-500/10 p-3 text-xs leading-6 text-red-200">
+              <AlertTriangle size={16} className="mt-1 shrink-0" />
+              سيُغلق البلاغ دون اتخاذ إجراء على الحساب. يمكنك إضافة ملاحظة توضّح سبب الرفض.
+            </div>
+          )}
+
+          <label className="block">
+            <span className="mb-1.5 block text-xs text-gray-400">{actioning ? 'ملاحظة المراجعة (اختياري)' : 'سبب الرفض (اختياري)'}</span>
+            <textarea
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              rows={3}
+              maxLength={500}
+              disabled={busy}
+              placeholder="تظهر في سجل الإدارة"
+              className="w-full resize-y rounded-xl border border-white/[0.08] bg-[#111424] px-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:border-wattar-400/60 focus:outline-none"
+            />
+          </label>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              onClick={onClose}
+              disabled={busy}
+              className="rounded-xl border border-white/[0.08] px-4 py-2 text-sm text-gray-300 hover:bg-white/[0.04] disabled:opacity-50"
+            >
+              إلغاء
+            </button>
+            <button
+              onClick={() => {
+                const penalty = actioning
+                  ? (penaltyValue === 'none' ? null : penaltyValue)
+                  : null;
+                void onSubmit(penalty, resolvedDuration, note);
+              }}
+              disabled={!canSubmit}
+              className={`flex min-w-32 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 ${
+                actioning ? 'bg-emerald-700 hover:bg-emerald-600' : 'bg-red-700 hover:bg-red-600'
+              }`}
+            >
+              {busy ? <Loader2 size={16} className="animate-spin" /> : actioning ? <CheckCircle2 size={15} /> : <XCircle size={15} />}
+              {actioning ? 'تأكيد الإجراء' : 'تأكيد الرفض'}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

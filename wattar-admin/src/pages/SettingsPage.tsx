@@ -1,11 +1,36 @@
 /**
- * Wattar Admin — صفحة الإعدادات العامة
- * مفاتيح admin_settings
+ * Wattar Admin — الإعدادات العامة
+ * واجهة اختيارات (Toggle / Segmented) بدل الكتابة اليدوية، مقسّمة إلى أقسام واضحة.
  */
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Save, Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Coins,
+  Gem,
+  Gift,
+  Landmark,
+  Loader2,
+  Percent,
+  Save,
+  Search,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+  Wallet,
+} from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
+import {
+  Badge,
+  EmptyState,
+  NumberField,
+  PageHeader,
+  SectionCard,
+  Segmented,
+  TextField,
+  Toggle,
+} from '@/components/ui';
 
 interface Setting {
   key: string;
@@ -25,19 +50,185 @@ interface DepositMethod {
   sort_order: number;
 }
 
-const settingLabels: Record<string, string> = {
-  daily_bonus_gold: 'مكافأة الدخول اليومية (Coin)',
+type TabKey = 'economy' | 'deposits' | 'withdrawals' | 'rewards' | 'platform';
+
+interface SettingMeta {
+  label: string;
+  description?: string;
+  tab: TabKey;
+  editor: 'toggle' | 'choice' | 'number' | 'text';
+  unit?: string;
+  options?: number[];
+  min?: number;
+  max?: number;
+  step?: number;
+  multiline?: boolean;
+  dir?: 'rtl' | 'ltr';
+}
+
+const tabs: Array<{ key: TabKey; label: string; icon: typeof Wallet }> = [
+  { key: 'economy', label: 'الاقتصاد والعملات', icon: Coins },
+  { key: 'deposits', label: 'الشحن', icon: ArrowDownToLine },
+  { key: 'withdrawals', label: 'السحب', icon: ArrowUpFromLine },
+  { key: 'rewards', label: 'المكافآت والتحويل', icon: Gift },
+  { key: 'platform', label: 'النظام والمتقدم', icon: Settings2 },
+];
+
+const meta: Record<string, SettingMeta> = {
+  paid_coins_per_usd: {
+    label: 'سعر الشحن — Coins لكل دولار',
+    description: 'كم Coin يحصل المستخدم مقابل كل دولار يُشحنه. القيمة المعتمدة حاليًا 3000.',
+    tab: 'economy', editor: 'choice', options: [3000, 2500, 2000, 1000], unit: 'Coin/$', min: 1, max: 100000,
+  },
+  usdt_to_gold_rate: {
+    label: 'سعر USDT إلى Coin',
+    description: 'يُستخدم في تحويلات USDT القديمة. وحّده مع سعر الشحن لتجنّب الالتباس.',
+    tab: 'economy', editor: 'choice', options: [3000, 1000], unit: 'Coin/USDT', min: 1, max: 100000,
+  },
+  diamonds_per_usd: {
+    label: 'سعر السحب — Diamond لكل دولار',
+    description: 'كم Diamond يعادل دولارًا واحدًا عند السحب. 3000 تعني أن 30000 Diamond = 10$.',
+    tab: 'economy', editor: 'choice', options: [3000, 1000], unit: 'Diamond/$', min: 1, max: 100000,
+  },
+  diamond_to_coin_rate: {
+    label: 'تحويل Diamond إلى Coin',
+    description: 'كم Coin يحصل المستخدم مقابل كل Diamond عند التحويل داخل التطبيق.',
+    tab: 'economy', editor: 'choice', options: [1, 0.5, 2], unit: 'Coin/Diamond', min: 0.01, max: 100, step: 0.01,
+  },
+  gold_to_usdt_rate: {
+    label: 'قيمة Coin بالدولار (قديم)',
+    description: 'سعر مرجعي قديم يُستخدم في تقارير الألعاب. القيمة الحالية 0.00033333 = 1/3000.',
+    tab: 'economy', editor: 'number', unit: 'USDT/Coin', min: 0, max: 1, step: 0.00000001,
+  },
+  global_rtp_default: {
+    label: 'نسبة العائد الافتراضية للألعاب (RTP)',
+    description: 'النسبة الافتراضية لكل المستخدمين الذين لا يملكون إعدادًا خاصًا.',
+    tab: 'economy', editor: 'choice', options: [30, 50, 70, 90], unit: '%', min: 0, max: 100,
+  },
+  deposits_enabled: {
+    label: 'تفعيل الشحن',
+    description: 'إيقافه يمنع كل طلبات الشحن فورًا من التطبيق.',
+    tab: 'deposits', editor: 'toggle',
+  },
+  deposit_fee_percent: {
+    label: 'عمولة الشحن',
+    description: 'نسبة تُخصم من مبلغ الشحن قبل إضافة Coin. اتركها 0 لإلغاء العمولة.',
+    tab: 'deposits', editor: 'choice', options: [0, 2, 5, 10], unit: '%', min: 0, max: 99, step: 0.01,
+  },
+  max_deposit_usd_per_day: {
+    label: 'أعلى شحن يومي للمستخدم',
+    description: 'مجموع طلبات الشحن اليومية المسموح بها لكل مستخدم.',
+    tab: 'deposits', editor: 'choice', options: [500, 2000, 5000, 10000], unit: 'USD', min: 1, max: 100000,
+  },
+  withdrawals_enabled: {
+    label: 'تفعيل السحب',
+    description: 'إيقافه يمنع طلبات السحب. السحب متاح للمضيفات الموثقات والوكلاء فقط.',
+    tab: 'withdrawals', editor: 'toggle',
+  },
+  withdrawal_fee_percent: {
+    label: 'عمولة السحب',
+    description: 'نسبة تُخصم من قيمة السحب قبل تحويل المبلغ الصافي.',
+    tab: 'withdrawals', editor: 'choice', options: [0, 2, 5, 10], unit: '%', min: 0, max: 99, step: 0.01,
+  },
+  min_withdrawal_diamonds: {
+    label: 'الحد الأدنى للسحب',
+    description: 'أقل عدد Diamond يمكن سحبه في الطلب الواحد.',
+    tab: 'withdrawals', editor: 'choice', options: [10000, 30000, 50000, 100000], unit: 'Diamond', min: 1, max: 10000000,
+  },
+  max_withdrawal_usd_per_day: {
+    label: 'أعلى سحب يومي للمستخدم',
+    description: 'مجموع قيمة طلبات السحب اليومية لكل مستخدم بالدولار.',
+    tab: 'withdrawals', editor: 'choice', options: [100, 500, 1000, 5000], unit: 'USD', min: 1, max: 100000,
+  },
+  signup_bonus_enabled: {
+    label: 'تفعيل مكافأة التسجيل',
+    description: 'منح Coin مجانية للمستخدم الجديد عند إكمال التسجيل.',
+    tab: 'rewards', editor: 'toggle',
+  },
+  new_user_bonus_gold: {
+    label: 'مكافأة التسجيل',
+    description: 'عدد Coin الممنوحة لكل مستخدم جديد.',
+    tab: 'rewards', editor: 'choice', options: [0, 100, 500, 1000], unit: 'Coin', min: 0, max: 100000,
+  },
+  referral_bonus_gold: {
+    label: 'مكافأة الإحالة',
+    description: 'عدد Coin التي يحصل عليها صاحب كود الدعوة.',
+    tab: 'rewards', editor: 'choice', options: [0, 100, 500, 1000], unit: 'Coin', min: 0, max: 100000,
+  },
+  daily_bonus_gold: {
+    label: 'مكافأة الدخول اليومية',
+    description: 'عدد Coin المجانية عند استلام مكافأة الدخول مرة كل 24 ساعة (الحد الأقصى 100).',
+    tab: 'rewards', editor: 'choice', options: [10, 25, 50, 100], unit: 'Coin', min: 1, max: 100,
+  },
+  transfers_enabled: {
+    label: 'تفعيل التحويل بين المستخدمين',
+    description: 'السماح بتحويل Coin بين الحسابات داخل التطبيق.',
+    tab: 'rewards', editor: 'toggle',
+  },
+  transfer_fee_percent: {
+    label: 'عمولة التحويل',
+    description: 'نسبة تُخصم من مبلغ التحويل بين المستخدمين.',
+    tab: 'rewards', editor: 'choice', options: [0, 2, 5, 10], unit: '%', min: 0, max: 99, step: 0.01,
+  },
+  min_transfer_gold: {
+    label: 'أقل مبلغ للتحويل',
+    description: 'أقل كمية Coin يمكن تحويلها في عملية واحدة.',
+    tab: 'rewards', editor: 'number', unit: 'Coin', min: 1, max: 1000000,
+  },
+  maintenance_mode: {
+    label: 'وضع الصيانة',
+    description: 'إيقاف مؤقت للتطبيق مع إظهار رسالة للمستخدمين.',
+    tab: 'platform', editor: 'toggle',
+  },
+  min_app_version: {
+    label: 'أقل إصدار مسموح للتطبيق',
+    description: 'المستخدمون على إصدار أقدم سيُطلب منهم التحديث.',
+    tab: 'platform', editor: 'text', dir: 'ltr',
+  },
+  force_update_message: {
+    label: 'رسالة التحديث الإجباري',
+    description: 'تظهر للمستخدم عند الحاجة إلى تحديث التطبيق.',
+    tab: 'platform', editor: 'text', multiline: true,
+  },
+  default_room_seat_count: {
+    label: 'عدد مقاعد الغرفة الافتراضي',
+    description: 'عدد المقاعد عند إنشاء غرفة صوتية جديدة.',
+    tab: 'platform', editor: 'choice', options: [4, 6, 8, 10, 12], unit: 'مقعد', min: 1, max: 30,
+  },
+  free_coin_daily_grant: {
+    label: 'منحة Coin المجانية اليومية (نظام قديم)',
+    description: 'بقايا نظام الألعاب السابق؛ لا تُستخدم في اقتصاد Bigo الحالي.',
+    tab: 'platform', editor: 'number', unit: 'Coin', min: 0, max: 100000,
+  },
+  free_coin_balance_cap: {
+    label: 'سقف رصيد Coin المجانية (نظام قديم)',
+    description: 'بقايا نظام الألعاب السابق؛ لا تُستخدم في اقتصاد Bigo الحالي.',
+    tab: 'platform', editor: 'number', unit: 'Coin', min: 0, max: 1000000,
+  },
 };
 
-const settingDescriptions: Record<string, string> = {
-  daily_bonus_gold: 'عدد Coin المجانية عند استلام مكافأة الدخول مرة كل 24 ساعة (الحد الأقصى 100).',
-};
+const hiddenKeys = new Set<string>(['usdt_wallets']);
+
+function defaultMeta(key: string): SettingMeta {
+  return {
+    label: key,
+    tab: 'platform',
+    editor: 'text',
+  };
+}
+
+function isBooleanSetting(setting: Setting, settingMeta: SettingMeta | undefined): boolean {
+  return settingMeta?.editor === 'toggle' || typeof setting.value === 'boolean';
+}
 
 export function SettingsPage() {
   const [settings, setSettings] = useState<Setting[]>([]);
   const [loading, setLoading] = useState(true);
-  const [savingKey, setSavingKey] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState<TabKey>('economy');
+  const [search, setSearch] = useState('');
   const [depositMethods, setDepositMethods] = useState<DepositMethod[]>([]);
   const [methodsLoading, setMethodsLoading] = useState(true);
   const [methodsError, setMethodsError] = useState<string | null>(null);
@@ -46,8 +237,8 @@ export function SettingsPage() {
   const [savingWallets, setSavingWallets] = useState(false);
 
   useEffect(() => {
-    load();
-    loadDepositMethods();
+    void load();
+    void loadDepositMethods();
   }, []);
 
   const load = async () => {
@@ -56,20 +247,15 @@ export function SettingsPage() {
     try {
       const { data, error } = await supabase.from('admin_settings').select('*').order('key');
       if (error) throw error;
-      setSettings((data ?? []).filter((setting) =>
-        setting.key !== 'free_coin_daily_grant'
-        && setting.key !== 'free_coin_balance_cap'
-        && setting.key !== 'diamond_to_coin_rate'
-        && setting.key !== 'usdt_wallets'
-        &&
-        (!setting.key.startsWith('withdraw') || [
-          'withdrawals_enabled',
-          'withdrawal_fee_percent',
-          'min_withdrawal_diamonds',
-        ].includes(setting.key))
-        && !setting.key.startsWith('transfer')
-      ));
-      const walletsSetting = (data ?? []).find((setting) => setting.key === 'usdt_wallets');
+      const rows = (data ?? []) as Setting[];
+      setSettings(rows);
+      const nextDrafts: Record<string, string> = {};
+      rows.forEach((setting) => {
+        if (setting.value !== null && typeof setting.value === 'object') return;
+        nextDrafts[setting.key] = String(setting.value ?? '');
+      });
+      setDrafts(nextDrafts);
+      const walletsSetting = rows.find((setting) => setting.key === 'usdt_wallets');
       const walletsValue = walletsSetting?.value;
       if (walletsValue && typeof walletsValue === 'object') {
         setUsdtWallets({
@@ -82,40 +268,6 @@ export function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const save = async (key: string) => {
-    setSavingKey(key);
-    const setting = settings.find(s => s.key === key);
-    if (!setting) return;
-    try {
-      // تحويل القيمة إلى JSONB-compatible
-      let val: any = setting.value;
-      if (typeof val === 'string') {
-        if (val === 'true') val = true;
-        else if (val === 'false') val = false;
-        else if (!isNaN(Number(val))) val = Number(val);
-      }
-      if (key === 'daily_bonus_gold' && (!Number.isInteger(Number(val)) || Number(val) < 1 || Number(val) > 100)) {
-        toast.error('مكافأة الدخول اليومية يجب أن تكون رقماً صحيحاً بين 1 و100 Coin');
-        setSavingKey(null);
-        return;
-      }
-      const { error } = await supabase
-        .from('admin_settings')
-        .update({ value: val })
-        .eq('key', key);
-      if (error) throw error;
-      toast.success('تم حفظ الإعداد');
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setSavingKey(null);
-    }
-  };
-
-  const update = (key: string, value: any) => {
-    setSettings(prev => prev.map(s => s.key === key ? { ...s, value } : s));
   };
 
   const loadDepositMethods = async () => {
@@ -135,36 +287,78 @@ export function SettingsPage() {
     }
   };
 
+  const persist = async (key: string, value: any) => {
+    setSavingKey(key);
+    try {
+      const { error } = await supabase
+        .from('admin_settings')
+        .update({ value })
+        .eq('key', key);
+      if (error) throw error;
+      setSettings((current) => current.map((setting) => setting.key === key ? { ...setting, value } : setting));
+      setDrafts((current) => ({ ...current, [key]: typeof value === 'object' ? '' : String(value) }));
+      toast.success('تم حفظ الإعداد');
+    } catch (err: any) {
+      toast.error(err?.message ?? 'تعذر حفظ الإعداد');
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  const saveDraft = async (setting: Setting) => {
+    const settingMeta = meta[setting.key];
+    const raw = drafts[setting.key] ?? '';
+    if (settingMeta?.editor === 'number' || settingMeta?.editor === 'choice') {
+      const numeric = Number(raw);
+      if (!Number.isFinite(numeric)) {
+        toast.error('أدخل قيمة رقمية صحيحة');
+        return;
+      }
+      if (settingMeta.min !== undefined && numeric < settingMeta.min) {
+        toast.error(`أقل قيمة مسموحة ${settingMeta.min}`);
+        return;
+      }
+      if (settingMeta.max !== undefined && numeric > settingMeta.max) {
+        toast.error(`أعلى قيمة مسموحة ${settingMeta.max}`);
+        return;
+      }
+      await persist(setting.key, numeric);
+      return;
+    }
+    await persist(setting.key, raw);
+  };
+
+  const getValue = (key: string): any => settings.find((setting) => setting.key === key)?.value;
+  const coinRate = Number(getValue('paid_coins_per_usd') ?? 3000);
+  const diamondRate = Number(getValue('diamonds_per_usd') ?? 3000);
+  const depositsEnabled = getValue('deposits_enabled') === true;
+  const withdrawalsEnabled = getValue('withdrawals_enabled') === true;
+  const withdrawalFee = Number(getValue('withdrawal_fee_percent') ?? 0);
+  const depositFee = Number(getValue('deposit_fee_percent') ?? 0);
+  const minWithdrawalDiamonds = Number(getValue('min_withdrawal_diamonds') ?? 30000);
+  const minWithdrawalUsd = diamondRate > 0 ? minWithdrawalDiamonds / diamondRate : 0;
+
+  const filteredByTab = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return settings
+      .filter((setting) => !hiddenKeys.has(setting.key))
+      .filter((setting) => {
+        const settingMeta = meta[setting.key] ?? defaultMeta(setting.key);
+        if (!query) return settingMeta.tab === activeTab;
+        const haystack = `${setting.key} ${settingMeta.label} ${settingMeta.description ?? ''}`.toLowerCase();
+        return haystack.includes(query);
+      })
+      .sort((a, b) => {
+        const metaA = meta[a.key] ?? defaultMeta(a.key);
+        const metaB = meta[b.key] ?? defaultMeta(b.key);
+        return metaA.label.localeCompare(metaB.label, 'ar');
+      });
+  }, [activeTab, search, settings]);
+
   const updateDepositMethod = (method: string, changes: Partial<DepositMethod>) => {
     setDepositMethods((current) => current.map((item) => item.method === method
       ? { ...item, ...changes }
       : item));
-  };
-
-  const saveUsdtWallets = async () => {
-    const trc20 = usdtWallets.trc20.trim();
-    const bep20 = usdtWallets.bep20.trim();
-    if (trc20 && !/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(trc20)) {
-      toast.error('عنوان TRC20 غير صالح (يجب أن يبدأ بحرف T وطوله 34 حرفًا)');
-      return;
-    }
-    if (bep20 && !/^0x[0-9a-fA-F]{40}$/.test(bep20)) {
-      toast.error('عنوان BEP20 غير صالح (يجب أن يبدأ بـ0x وطوله 42 حرفًا)');
-      return;
-    }
-    setSavingWallets(true);
-    try {
-      const { error } = await supabase
-        .from('admin_settings')
-        .update({ value: { trc20: trc20 || null, bep20: bep20 || null } })
-        .eq('key', 'usdt_wallets');
-      if (error) throw error;
-      toast.success('تم حفظ محافظ استلام USDT');
-    } catch (err: any) {
-      toast.error(err.message ?? 'تعذر حفظ المحافظ');
-    } finally {
-      setSavingWallets(false);
-    }
   };
 
   const saveDepositMethod = async (item: DepositMethod) => {
@@ -204,225 +398,494 @@ export function SettingsPage() {
     }
   };
 
-  // تجميع الإعدادات حسب الفئة
-  const categories: Record<string, Setting[]> = {};
-  settings.forEach(s => {
-    let cat = 'عام';
-    if (s.key.startsWith('deposit')) cat = 'الشحن';
-    else if (s.key.startsWith('withdraw') || s.key === 'diamonds_per_usd') cat = 'السحب';
-    else if (s.key.startsWith('transfer')) cat = 'التحويل';
-    else if (s.key.startsWith('usdt') || s.key.includes('gold') || s.key.includes('diamond') || s.key.includes('coins_per_usd')) cat = 'العملات';
-    else if (s.key.includes('bonus') || s.key.includes('referral') || s.key.includes('point_')) cat = 'المكافآت';
-    else if (s.key.includes('room')) cat = 'الغرف';
-    else if (s.key.includes('app') || s.key.includes('maintenance') || s.key.includes('update')) cat = 'النظام';
-
-    if (!categories[cat]) categories[cat] = [];
-    categories[cat].push(s);
-  });
+  const saveUsdtWallets = async () => {
+    const trc20 = usdtWallets.trc20.trim();
+    const bep20 = usdtWallets.bep20.trim();
+    if (trc20 && !/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(trc20)) {
+      toast.error('عنوان TRC20 غير صالح (يجب أن يبدأ بحرف T وطوله 34 حرفًا)');
+      return;
+    }
+    if (bep20 && !/^0x[0-9a-fA-F]{40}$/.test(bep20)) {
+      toast.error('عنوان BEP20 غير صالح (يجب أن يبدأ بـ0x وطوله 42 حرفًا)');
+      return;
+    }
+    setSavingWallets(true);
+    try {
+      const { error } = await supabase
+        .from('admin_settings')
+        .update({ value: { trc20: trc20 || null, bep20: bep20 || null } })
+        .eq('key', 'usdt_wallets');
+      if (error) throw error;
+      toast.success('تم حفظ محافظ استلام USDT');
+    } catch (err: any) {
+      toast.error(err?.message ?? 'تعذر حفظ المحافظ');
+    } finally {
+      setSavingWallets(false);
+    }
+  };
 
   return (
-    <div className="space-y-6" dir="rtl">
-      <div>
-        <h1 className="text-2xl font-bold text-white">الإعدادات العامة</h1>
-        <p className="text-gray-400 mt-1">ضبط كل جوانب التطبيق من مكان واحد</p>
+    <div className="space-y-5" dir="rtl">
+      <PageHeader
+        title="الإعدادات العامة"
+        subtitle="كل ما يخص الاقتصاد والشحن والسحب والمكافآت في مكان واحد — اختيارات جاهزة بدل الكتابة اليدوية."
+        actions={(
+          <div className="flex items-center gap-2">
+            <Badge tone={depositsEnabled ? 'success' : 'danger'}>
+              الشحن {depositsEnabled ? 'مفعّل' : 'متوقف'}
+            </Badge>
+            <Badge tone={withdrawalsEnabled ? 'success' : 'danger'}>
+              السحب {withdrawalsEnabled ? 'مفعّل' : 'متوقف'}
+            </Badge>
+          </div>
+        )}
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard
+          icon={Coins}
+          label="سعر الشحن"
+          value={`1$ = ${coinRate.toLocaleString()} Coin`}
+          hint={`عمولة الشحن ${depositFee}%`}
+          tone="gold"
+        />
+        <SummaryCard
+          icon={Gem}
+          label="سعر السحب"
+          value={`1$ = ${diamondRate.toLocaleString()} Diamond`}
+          hint={`عمولة السحب ${withdrawalFee}%`}
+          tone="teal"
+        />
+        <SummaryCard
+          icon={Percent}
+          label="الحد الأدنى للسحب"
+          value={`${minWithdrawalDiamonds.toLocaleString()} Diamond`}
+          hint={`≈ $${minWithdrawalUsd.toFixed(0)} · عمولة ${withdrawalFee}%`}
+          tone="violet"
+        />
+        <SummaryCard
+          icon={ShieldCheck}
+          label="أهلية السحب"
+          value="مضيفات موثقات + وكلاء"
+          hint="المستخدم العادي: تحويل إلى Coin فقط"
+          tone="emerald"
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[0.07] bg-[#171a2c] p-3">
+        <div className="flex flex-wrap gap-1.5">
+          {tabs.map((tab) => {
+            const active = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm transition ${active
+                  ? 'bg-wattar-600/20 font-semibold text-wattar-100 ring-1 ring-inset ring-wattar-500/30'
+                  : 'text-gray-400 hover:bg-white/[0.04] hover:text-gray-100'}`}
+              >
+                <tab.icon size={15} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+        <label className="relative block min-w-[220px] flex-1 sm:max-w-xs">
+          <Search size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="ابحث عن إعداد..."
+            className="w-full rounded-xl border border-white/[0.08] bg-[#111424] py-2 pr-9 pl-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-wattar-400/60"
+          />
+        </label>
       </div>
 
       {loading ? (
-        <p className="text-gray-400">جاري التحميل...</p>
+        <p className="text-sm text-gray-400">جارٍ تحميل الإعدادات...</p>
       ) : loadError ? (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-300">
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
           <p>تعذر تحميل الإعدادات: {loadError}</p>
-          <button onClick={load} className="mt-3 rounded-lg bg-red-500/20 px-4 py-2 text-sm">إعادة المحاولة</button>
+          <button onClick={load} className="mt-3 rounded-lg bg-red-500/20 px-4 py-2 text-xs">إعادة المحاولة</button>
         </div>
-      ) : settings.length === 0 ? (
-        <p className="text-gray-400">لا توجد إعدادات متاحة لهذا الحساب.</p>
       ) : (
-        <div className="space-y-6">
-          {Object.entries(categories).map(([cat, items]) => (
-            <div key={cat} className="bg-dark-surface rounded-xl border border-wattar-900 p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">{cat}</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {items.map(s => (
-                  <div key={s.key} className="bg-dark-elevated rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-medium text-white">{settingLabels[s.key] ?? s.key}</label>
-                      {s.is_public && (
-                        <span className="text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">عام</span>
-                      )}
-                    </div>
-                    {(settingDescriptions[s.key] ?? s.description) && (
-                      <p className="text-xs text-gray-500 mb-2">{settingDescriptions[s.key] ?? s.description}</p>
-                    )}
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={typeof s.value === 'object' ? JSON.stringify(s.value) : String(s.value)}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          if (v === 'true') update(s.key, true);
-                          else if (v === 'false') update(s.key, false);
-                          else if (!isNaN(Number(v)) && v !== '') update(s.key, Number(v));
-                          else update(s.key, v);
-                        }}
-                        className="flex-1 rounded bg-dark border border-wattar-900 px-3 py-2 text-white text-sm"
-                      />
-                      <button
-                        onClick={() => save(s.key)}
-                        disabled={savingKey === s.key}
-                        className="rounded bg-wattar-600 hover:bg-wattar-700 px-3 text-white"
-                      >
-                        {savingKey === s.key ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                      </button>
-                    </div>
-                  </div>
-                ))}
+        <>
+          {activeTab === 'deposits' ? (
+            <MethodsSection
+              methods={depositMethods}
+              loading={methodsLoading}
+              error={methodsError}
+              savingMethod={savingMethod}
+              onChange={updateDepositMethod}
+              onSave={saveDepositMethod}
+              onReload={loadDepositMethods}
+              wallets={usdtWallets}
+              setWallets={setUsdtWallets}
+              onSaveWallets={saveUsdtWallets}
+              savingWallets={savingWallets}
+            />
+          ) : null}
+
+          {activeTab === 'withdrawals' ? (
+            <SectionCard
+              title="محافظ استلام USDT"
+              description="عناوين عامة لاستلام شحن المستخدمين فقط — لا تُدخل مفاتيح خاصة هنا أبدًا."
+              icon={Landmark}
+            >
+              <div className="grid gap-4 md:grid-cols-2">
+                <TextField
+                  label="عنوان TRC20"
+                  value={usdtWallets.trc20}
+                  onChange={(value) => setUsdtWallets((current) => ({ ...current, trc20: value }))}
+                  placeholder="T..."
+                  dir="ltr"
+                />
+                <TextField
+                  label="عنوان BEP20"
+                  value={usdtWallets.bep20}
+                  onChange={(value) => setUsdtWallets((current) => ({ ...current, bep20: value }))}
+                  placeholder="0x..."
+                  dir="ltr"
+                />
               </div>
+              <button
+                onClick={() => void saveUsdtWallets()}
+                disabled={savingWallets}
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-wattar-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-wattar-500 disabled:opacity-50"
+              >
+                {savingWallets ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                حفظ المحافظ
+              </button>
+            </SectionCard>
+          ) : null}
+
+          {filteredByTab.length === 0 ? (
+            <EmptyState
+              title="لا توجد إعدادات في هذا القسم"
+              description="جرّب قسمًا آخر أو امسح كلمة البحث."
+            />
+          ) : (
+            <div className="grid gap-4 xl:grid-cols-2">
+              {filteredByTab.map((setting) => (
+                <SettingEditor
+                  key={setting.key}
+                  setting={setting}
+                  settingMeta={meta[setting.key] ?? defaultMeta(setting.key)}
+                  saving={savingKey === setting.key}
+                  draft={drafts[setting.key] ?? ''}
+                  onDraftChange={(value) => setDrafts((current) => ({ ...current, [setting.key]: value }))}
+                  onPersist={(value) => void persist(setting.key, value)}
+                  onSaveDraft={() => void saveDraft(setting)}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function SummaryCard({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  icon: typeof Coins;
+  label: string;
+  value: string;
+  hint: string;
+  tone: 'gold' | 'teal' | 'violet' | 'emerald';
+}) {
+  const toneClass = {
+    gold: 'text-amber-300 bg-amber-400/10',
+    teal: 'text-teal-300 bg-teal-400/10',
+    violet: 'text-wattar-300 bg-wattar-500/10',
+    emerald: 'text-emerald-300 bg-emerald-400/10',
+  }[tone];
+  return (
+    <div className="rounded-2xl border border-white/[0.07] bg-[#171a2c] p-4">
+      <div className="flex items-center gap-2.5">
+        <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${toneClass}`}>
+          <Icon size={17} />
+        </span>
+        <span className="text-xs text-gray-400">{label}</span>
+      </div>
+      <p className="mt-3 truncate text-lg font-bold text-white">{value}</p>
+      <p className="mt-1 text-[11px] text-gray-500">{hint}</p>
+    </div>
+  );
+}
+
+function SettingEditor({
+  setting,
+  settingMeta,
+  saving,
+  draft,
+  onDraftChange,
+  onPersist,
+  onSaveDraft,
+}: {
+  setting: Setting;
+  settingMeta: SettingMeta;
+  saving: boolean;
+  draft: string;
+  onDraftChange: (value: string) => void;
+  onPersist: (value: any) => void;
+  onSaveDraft: () => void;
+}) {
+  const [custom, setCustom] = useState(false);
+  const currentNumber = Number(setting.value);
+  const optionValues = settingMeta.options ?? [];
+  const usesOptions = settingMeta.editor === 'choice' && optionValues.length > 0;
+  const valueOutsideOptions = usesOptions && !optionValues.includes(currentNumber);
+  const isCustom = custom || valueOutsideOptions;
+  const isBoolean = isBooleanSetting(setting, settingMeta);
+  const dirty = draft !== String(setting.value ?? '');
+
+  return (
+    <div className="rounded-2xl border border-white/[0.07] bg-[#171a2c] p-4">
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold text-white">{settingMeta.label}</p>
+          {settingMeta.description ? (
+            <p className="mt-1 text-[11px] leading-5 text-gray-500">
+              {settingMeta.description}
+              {setting.is_public ? ' · عام' : ''}
+            </p>
+          ) : null}
+        </div>
+        <span className="shrink-0 rounded-md bg-white/[0.05] px-2 py-0.5 text-[10px] text-gray-500" dir="ltr">
+          {setting.key}
+        </span>
+      </div>
+
+      {isBoolean ? (
+        <Toggle
+          label={settingMeta.label}
+          checked={setting.value === true}
+          saving={saving}
+          onChange={(checked) => onPersist(checked)}
+        />
+      ) : usesOptions && !isCustom ? (
+        <>
+          <Segmented
+            options={optionValues.map((optionValue) => ({
+              value: optionValue,
+              label: `${optionValue.toLocaleString()}${settingMeta.unit ? ` ${settingMeta.unit}` : ''}`,
+            }))}
+            value={currentNumber}
+            onChange={(nextValue) => onPersist(Number(nextValue))}
+            columns={optionValues.length > 3 ? 4 : optionValues.length}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              setCustom(true);
+              onDraftChange(String(setting.value ?? ''));
+            }}
+            className="mt-2 text-[11px] font-medium text-wattar-300 hover:text-wattar-200"
+          >
+            قيمة أخرى (مخصصة)
+          </button>
+        </>
+      ) : settingMeta.editor === 'text' ? (
+        <TextField
+          label={settingMeta.label}
+          value={draft}
+          onChange={onDraftChange}
+          multiline={settingMeta.multiline}
+          dir={settingMeta.dir}
+          onSave={onSaveDraft}
+          saving={saving}
+          dirty={dirty}
+        />
+      ) : (
+        <div className="space-y-2">
+          {isCustom ? (
+            <button
+              type="button"
+              onClick={() => setCustom(false)}
+              className="text-[11px] font-medium text-wattar-300 hover:text-wattar-200"
+            >
+              العودة إلى الاختيارات الجاهزة
+            </button>
+          ) : null}
+          <NumberField
+            label="القيمة"
+            value={draft}
+            onChange={onDraftChange}
+            unit={settingMeta.unit}
+            min={settingMeta.min}
+            max={settingMeta.max}
+            step={settingMeta.step}
+            onSave={onSaveDraft}
+            saving={saving}
+            dirty={dirty}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MethodsSection({
+  methods,
+  loading,
+  error,
+  savingMethod,
+  onChange,
+  onSave,
+  onReload,
+  wallets,
+  setWallets,
+  onSaveWallets,
+  savingWallets,
+}: {
+  methods: DepositMethod[];
+  loading: boolean;
+  error: string | null;
+  savingMethod: string | null;
+  onChange: (method: string, changes: Partial<DepositMethod>) => void;
+  onSave: (item: DepositMethod) => void;
+  onReload: () => void;
+  wallets: { trc20: string; bep20: string };
+  setWallets: React.Dispatch<React.SetStateAction<{ trc20: string; bep20: string }>>;
+  onSaveWallets: () => void;
+  savingWallets: boolean;
+}) {
+  return (
+    <SectionCard
+      title="وسائل الشحن اليدوي"
+      description="فعّل الطريقة بمفتاح واحد، واختر الحدود وسعر التحويل من قائمة جاهزة."
+      icon={ArrowDownToLine}
+    >
+      {loading ? (
+        <p className="text-sm text-gray-400">جارٍ تحميل وسائل الشحن...</p>
+      ) : error ? (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+          <p>تعذر تحميل وسائل الشحن: {error}</p>
+          <button onClick={onReload} className="mt-3 rounded-lg bg-red-500/20 px-4 py-2 text-xs">إعادة المحاولة</button>
+        </div>
+      ) : methods.length === 0 ? (
+        <EmptyState title="لا توجد وسائل شحن" description="طبّق ترحيل محفظة Wattar v2 أولًا." />
+      ) : (
+        <div className="grid gap-4 xl:grid-cols-2">
+          {methods.map((method) => (
+            <div key={method.method} className="space-y-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">{method.name_ar}</p>
+                  <p className="text-[11px] text-gray-500" dir="ltr">{method.method}</p>
+                </div>
+                <Toggle
+                  label=""
+                  checked={method.is_enabled}
+                  onChange={(checked) => onChange(method.method, { is_enabled: checked })}
+                />
+              </div>
+              <TextField
+                label="الاسم الظاهر"
+                value={method.name_ar}
+                onChange={(value) => onChange(method.method, { name_ar: value })}
+              />
+              <TextField
+                label="تعليمات الدفع الظاهرة للمستخدم"
+                value={method.instructions}
+                onChange={(value) => onChange(method.method, { instructions: value })}
+                multiline
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <NumberField
+                  label="الحد الأدنى"
+                  value={String(method.min_amount_usd)}
+                  onChange={(value) => onChange(method.method, { min_amount_usd: Number(value) })}
+                  unit="USD"
+                  min={0.01}
+                  step={0.01}
+                />
+                <NumberField
+                  label="الحد الأعلى"
+                  value={String(method.max_amount_usd)}
+                  onChange={(value) => onChange(method.method, { max_amount_usd: Number(value) })}
+                  unit="USD"
+                  min={0.01}
+                  step={0.01}
+                />
+              </div>
+              <div>
+                <p className="mb-1.5 text-sm font-medium text-gray-200">سعر التحويل</p>
+                <Segmented
+                  options={[
+                    { label: 'السعر العام', value: 0 },
+                    { label: '3000 Coin/$', value: 3000 },
+                    { label: '1000 Coin/$', value: 1000 },
+                    { label: 'مخصص', value: -1 },
+                  ]}
+                  value={method.exchange_rate_usd_to_coins ?? 0}
+                  onChange={(value) => onChange(method.method, {
+                    exchange_rate_usd_to_coins: value === 0 ? null : value === -1 ? 3000 : Number(value),
+                  })}
+                  columns={2}
+                />
+                {method.exchange_rate_usd_to_coins !== null && method.exchange_rate_usd_to_coins !== 3000 && method.exchange_rate_usd_to_coins !== 1000 ? (
+                  <div className="mt-2">
+                    <NumberField
+                      label="سعر مخصص"
+                      value={String(method.exchange_rate_usd_to_coins)}
+                      onChange={(value) => onChange(method.method, { exchange_rate_usd_to_coins: Number(value) })}
+                      unit="Coin/$"
+                      min={1}
+                    />
+                  </div>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={() => onSave(method)}
+                disabled={savingMethod === method.method}
+                className="inline-flex items-center gap-2 rounded-xl bg-wattar-600 px-4 py-2 text-sm font-medium text-white hover:bg-wattar-500 disabled:opacity-50"
+              >
+                {savingMethod === method.method ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                حفظ الوسيلة
+              </button>
             </div>
           ))}
         </div>
       )}
 
-      <section className="space-y-4">
-        <div className="bg-dark-surface rounded-xl border border-wattar-900 p-6">
-          <h2 className="text-lg font-semibold text-white">محافظ استلام USDT</h2>
-          <p className="text-xs text-gray-500 mt-1 mb-4">
-            عناوين عامة لاستلام شحن المستخدمين فقط — تظهر لهم عند اختيار الشحن بـUSDT. لا تُدخل مفاتيح خاصة هنا أبدًا.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-white mb-1 block">عنوان TRC20</label>
-              <input
-                type="text"
-                dir="ltr"
-                value={usdtWallets.trc20}
-                onChange={(e) => setUsdtWallets((current) => ({ ...current, trc20: e.target.value }))}
-                placeholder="T..."
-                className="w-full rounded bg-dark-elevated border border-wattar-900 px-3 py-2 text-white text-sm font-mono"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-white mb-1 block">عنوان BEP20</label>
-              <input
-                type="text"
-                dir="ltr"
-                value={usdtWallets.bep20}
-                onChange={(e) => setUsdtWallets((current) => ({ ...current, bep20: e.target.value }))}
-                placeholder="0x..."
-                className="w-full rounded bg-dark-elevated border border-wattar-900 px-3 py-2 text-white text-sm font-mono"
-              />
-            </div>
-          </div>
-          <button
-            onClick={saveUsdtWallets}
-            disabled={savingWallets}
-            className="mt-4 rounded bg-wattar-600 hover:bg-wattar-700 px-4 py-2 text-white text-sm disabled:opacity-50 inline-flex items-center gap-2"
-          >
-            {savingWallets ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            حفظ المحافظ
-          </button>
+      <div className="mt-5 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+        <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
+          <Landmark size={16} className="text-wattar-300" /> محافظ استلام USDT
+        </p>
+        <div className="grid gap-4 md:grid-cols-2">
+          <TextField
+            label="عنوان TRC20"
+            value={wallets.trc20}
+            onChange={(value) => setWallets((current) => ({ ...current, trc20: value }))}
+            placeholder="T..."
+            dir="ltr"
+          />
+          <TextField
+            label="عنوان BEP20"
+            value={wallets.bep20}
+            onChange={(value) => setWallets((current) => ({ ...current, bep20: value }))}
+            placeholder="0x..."
+            dir="ltr"
+          />
         </div>
-
-        <div>
-          <h2 className="text-xl font-bold text-white">وسائل الشحن اليدوي</h2>
-          <p className="mt-1 text-sm text-gray-400">
-            تفعيل الطرق وتعليماتها وحدودها وسعر تحويل الدولار إلى Coins.
-          </p>
-        </div>
-        {methodsLoading ? (
-          <p className="text-gray-400">جاري تحميل وسائل الشحن...</p>
-        ) : methodsError ? (
-          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-300">
-            <p>تعذر تحميل وسائل الشحن: {methodsError}</p>
-            <button onClick={loadDepositMethods} className="mt-3 rounded-lg bg-red-500/20 px-4 py-2 text-sm">إعادة المحاولة</button>
-          </div>
-        ) : depositMethods.length === 0 ? (
-          <p className="text-gray-400">لا توجد وسائل شحن. طبّق ترحيل محفظة Wattar v2 أولًا.</p>
-        ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            {depositMethods.map((method) => (
-              <div key={method.method} className="space-y-4 rounded-xl border border-wattar-900 bg-dark-surface p-5">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="font-semibold text-white">{method.method}</p>
-                    <p className="text-xs text-gray-500">طريقة الدفع وإرشادات المستخدم</p>
-                  </div>
-                  <label className="flex items-center gap-2 text-sm text-gray-300">
-                    <input
-                      type="checkbox"
-                      checked={method.is_enabled}
-                      onChange={(event) => updateDepositMethod(method.method, { is_enabled: event.target.checked })}
-                      className="h-4 w-4 accent-purple-500"
-                    />
-                    مفعّلة
-                  </label>
-                </div>
-                <label className="block space-y-1">
-                  <span className="text-xs text-gray-400">الاسم الظاهر</span>
-                  <input
-                    value={method.name_ar}
-                    onChange={(event) => updateDepositMethod(method.method, { name_ar: event.target.value })}
-                    className="w-full rounded-lg border border-wattar-900 bg-dark px-3 py-2 text-sm text-white"
-                  />
-                </label>
-                <label className="block space-y-1">
-                  <span className="text-xs text-gray-400">تعليمات الدفع الظاهرة للمستخدم</span>
-                  <textarea
-                    value={method.instructions}
-                    onChange={(event) => updateDepositMethod(method.method, { instructions: event.target.value })}
-                    rows={3}
-                    className="w-full resize-y rounded-lg border border-wattar-900 bg-dark px-3 py-2 text-sm text-white"
-                  />
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <label className="space-y-1">
-                    <span className="text-xs text-gray-400">الحد الأدنى ($)</span>
-                    <input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={method.min_amount_usd}
-                      onChange={(event) => updateDepositMethod(method.method, { min_amount_usd: Number(event.target.value) })}
-                      className="w-full rounded-lg border border-wattar-900 bg-dark px-3 py-2 text-sm text-white"
-                    />
-                  </label>
-                  <label className="space-y-1">
-                    <span className="text-xs text-gray-400">الحد الأعلى ($)</span>
-                    <input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={method.max_amount_usd}
-                      onChange={(event) => updateDepositMethod(method.method, { max_amount_usd: Number(event.target.value) })}
-                      className="w-full rounded-lg border border-wattar-900 bg-dark px-3 py-2 text-sm text-white"
-                    />
-                  </label>
-                  <label className="space-y-1">
-                    <span className="text-xs text-gray-400">Coins لكل $1 (فارغ = السعر العام أو سعر الوكيل)</span>
-                    <input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={method.exchange_rate_usd_to_coins ?? ''}
-                      onChange={(event) => updateDepositMethod(method.method, {
-                        exchange_rate_usd_to_coins: event.target.value === '' ? null : Number(event.target.value),
-                      })}
-                      className="w-full rounded-lg border border-wattar-900 bg-dark px-3 py-2 text-sm text-white"
-                    />
-                  </label>
-                </div>
-                <button
-                  onClick={() => saveDepositMethod(method)}
-                  disabled={savingMethod === method.method}
-                  className="flex items-center gap-2 rounded-lg bg-wattar-600 px-4 py-2 text-sm font-medium text-white hover:bg-wattar-700 disabled:opacity-50"
-                >
-                  {savingMethod === method.method ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-                  حفظ الوسيلة
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-    </div>
+        <button
+          onClick={onSaveWallets}
+          disabled={savingWallets}
+          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-wattar-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-wattar-500 disabled:opacity-50"
+        >
+          {savingWallets ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+          حفظ المحافظ
+        </button>
+      </div>
+    </SectionCard>
   );
 }

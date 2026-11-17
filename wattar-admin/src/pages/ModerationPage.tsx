@@ -10,8 +10,30 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase, callFunction } from '@/lib/supabase';
+import { ReasonPickerModal } from '@/components/ReasonPicker';
 
 type WordTab = 'words' | 'settings' | 'penalties' | 'appeals' | 'exceptions';
+
+const revokePenaltyReasons = [
+  'خطأ في تطبيق العقوبة',
+  'انتهاء مدة العقوبة فعليًا',
+  'قرار إداري بعد المراجعة',
+  'الاعتراض مقبول والأدلة غير كافية',
+];
+
+const approveAppealNotes = [
+  'بدون ملاحظة',
+  'ثبت أن العقوبة غير مستحقة',
+  'الأدلة غير كافية لثبوت المخالفة',
+  'مراجعة إدارية أعلى',
+];
+
+const rejectAppealReasons = [
+  'المخالفة ثابتة بالسجلات',
+  'الاعتراض لا يحتوي معلومات جديدة',
+  'تكرار الاعتراض دون مبرر',
+  'العقوبة مطابقة لقواعد المجتمع',
+];
 
 interface ModerationWord {
   id: string;
@@ -108,6 +130,8 @@ export function ModerationPage() {
   const [newWordSeverity, setNewWordSeverity] = useState<ModerationWord['severity']>('medium');
   const [exceptionUser, setExceptionUser] = useState('');
   const [exceptionReason, setExceptionReason] = useState('');
+  const [penaltyPicker, setPenaltyPicker] = useState<PenaltyRow | null>(null);
+  const [appealPicker, setAppealPicker] = useState<{ appeal: AppealRow; decision: 'approved' | 'rejected' } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -420,12 +444,7 @@ export function ModerationPage() {
                       <button
                         type="button"
                         disabled={busy}
-                        onClick={() => {
-                          const reason = window.prompt('سبب رفع العقوبة (إلزامي):');
-                          if (reason && reason.trim()) {
-                            void run('revoke_penalty', { penalty_id: penalty.id, reason: reason.trim() }, 'رُفعت العقوبة');
-                          }
-                        }}
+                        onClick={() => setPenaltyPicker(penalty)}
                         className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-200 transition hover:bg-dark-elevated disabled:opacity-50"
                       >
                         رفع العقوبة
@@ -471,10 +490,7 @@ export function ModerationPage() {
                         <button
                           type="button"
                           disabled={busy}
-                          onClick={() => {
-                            const note = window.prompt('ملاحظة القبول (اختياري):') ?? '';
-                            void run('review_appeal', { appeal_id: appeal.id, decision: 'approved', note: note.trim() || undefined }, 'قُبل الاعتراض ورُفعت العقوبة');
-                          }}
+                          onClick={() => setAppealPicker({ appeal, decision: 'approved' })}
                           className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-300 transition hover:bg-emerald-500/20 disabled:opacity-50"
                         >
                           قبول ورفع العقوبة
@@ -482,10 +498,7 @@ export function ModerationPage() {
                         <button
                           type="button"
                           disabled={busy}
-                          onClick={() => {
-                            const note = window.prompt('سبب الرفض (اختياري):') ?? '';
-                            void run('review_appeal', { appeal_id: appeal.id, decision: 'rejected', note: note.trim() || undefined }, 'رُفض الاعتراض');
-                          }}
+                          onClick={() => setAppealPicker({ appeal, decision: 'rejected' })}
                           className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-300 transition hover:bg-red-500/20 disabled:opacity-50"
                         >
                           رفض
@@ -569,6 +582,67 @@ export function ModerationPage() {
             )}
           </div>
         </section>
+      )}
+
+      {penaltyPicker && (
+        <ReasonPickerModal
+          title="رفع العقوبة"
+          subtitle={`${displayUser(penaltyPicker.user)} · ${PENALTY_LABELS[penaltyPicker.penalty_type]}`}
+          description="اختر سببًا جاهزًا لرفع العقوبة — سيُسجَّل السبب في سجل التدقيق ويُبلَّغ المستخدم."
+          options={revokePenaltyReasons}
+          confirmLabel="رفع العقوبة"
+          tone="warning"
+          showNote
+          noteLabel="ملاحظة داخلية إضافية (اختياري)"
+          processing={busy}
+          onClose={() => {
+            if (busy) return;
+            setPenaltyPicker(null);
+          }}
+          onSubmit={(reason, note) => {
+            const penalty = penaltyPicker;
+            setPenaltyPicker(null);
+            const fullReason = note ? `${reason} — ${note}` : reason;
+            void run('revoke_penalty', { penalty_id: penalty.id, reason: fullReason }, 'رُفعت العقوبة');
+          }}
+        />
+      )}
+
+      {appealPicker && (
+        <ReasonPickerModal
+          title={appealPicker.decision === 'approved' ? 'قبول الاعتراض' : 'رفض الاعتراض'}
+          subtitle={displayUser(appealPicker.appeal.user)}
+          description={
+            appealPicker.decision === 'approved'
+              ? 'قبول الاعتراض يرفع العقوبة عن المستخدم. اختر ملاحظة جاهزة أو اتركها بدون ملاحظة.'
+              : 'رفض الاعتراض يُبقي العقوبة كما هي. اختر سببًا جاهزًا ليُسجَّل في سجل الإدارة.'
+          }
+          options={appealPicker.decision === 'approved' ? approveAppealNotes : rejectAppealReasons}
+          confirmLabel={appealPicker.decision === 'approved' ? 'قبول ورفع العقوبة' : 'تأكيد الرفض'}
+          tone={appealPicker.decision === 'approved' ? 'info' : 'danger'}
+          showNote
+          noteLabel="ملاحظة إضافية (اختياري)"
+          processing={busy}
+          onClose={() => {
+            if (busy) return;
+            setAppealPicker(null);
+          }}
+          onSubmit={(reason, note) => {
+            const picker = appealPicker;
+            setAppealPicker(null);
+            const base = reason === 'بدون ملاحظة' ? '' : reason;
+            const finalNote = [base, note].filter(Boolean).join(' — ');
+            void run(
+              'review_appeal',
+              {
+                appeal_id: picker.appeal.id,
+                decision: picker.decision,
+                note: finalNote || undefined,
+              },
+              picker.decision === 'approved' ? 'قُبل الاعتراض ورُفعت العقوبة' : 'رُفض الاعتراض',
+            );
+          }}
+        />
       )}
     </div>
   );

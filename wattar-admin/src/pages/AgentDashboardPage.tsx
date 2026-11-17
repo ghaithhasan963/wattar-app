@@ -3,6 +3,22 @@ import { Check, ExternalLink, Loader2, RefreshCw, Upload, Users, Wallet, X } fro
 import { toast } from 'sonner';
 import { callFunction, supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
+import { ReasonPickerModal } from '@/components/ReasonPicker';
+
+const depositRejectReasons = [
+  'لم يصل المبلغ إلى محفظة الوكيل',
+  'صورة الإثبات غير واضحة',
+  'رقم العملية غير صحيح أو مكرر',
+  'المبلغ لا يطابق المطلوب',
+  'بيانات المرسل غير مطابقة',
+];
+
+const withdrawalRejectReasons = [
+  'بيانات الاستلام غير صحيحة',
+  'المستخدم غير مؤهل للسحب النقدي',
+  'تجاوز الحد اليومي',
+  'طلب مكرر أو مشبوه',
+];
 
 interface AgentAccess {
   id: string;
@@ -74,6 +90,7 @@ export function AgentDashboardPage() {
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const [rejectPicker, setRejectPicker] = useState<{ kind: 'deposit' | 'withdrawal'; id: string; subtitle: string } | null>(null);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -244,9 +261,16 @@ export function AgentDashboardPage() {
     void loadDashboard();
   }, [loadDashboard]);
 
-  const reviewDeposit = async (deposit: DepositRequest, action: 'approve' | 'reject') => {
-    const reason = action === 'reject' ? window.prompt('اكتب سبب رفض طلب الشحن:') : undefined;
-    if (action === 'reject' && !reason?.trim()) return;
+  const reviewDeposit = async (deposit: DepositRequest, action: 'approve' | 'reject', providedReason?: string) => {
+    if (action === 'reject' && !providedReason) {
+      setRejectPicker({
+        kind: 'deposit',
+        id: deposit.id,
+        subtitle: `طلب شحن $${Number(deposit.amount_usd).toFixed(2)} · ${deposit.external_ref}`,
+      });
+      return;
+    }
+    const reason = action === 'reject' ? providedReason : undefined;
     if (action === 'approve' && !window.confirm('هل تأكدت من استلام المبلغ؟')) return;
 
     setProcessingId(deposit.id);
@@ -265,9 +289,16 @@ export function AgentDashboardPage() {
     }
   };
 
-  const reviewWithdrawal = async (withdrawal: WithdrawalRequest, action: 'approve' | 'reject') => {
-    const reason = action === 'reject' ? window.prompt('اكتب سبب رفض طلب السحب:') : undefined;
-    if (action === 'reject' && !reason?.trim()) return;
+  const reviewWithdrawal = async (withdrawal: WithdrawalRequest, action: 'approve' | 'reject', providedReason?: string) => {
+    if (action === 'reject' && !providedReason) {
+      setRejectPicker({
+        kind: 'withdrawal',
+        id: withdrawal.id,
+        subtitle: `طلب سحب صافي $${Number(withdrawal.net_usd).toFixed(2)} · ${methodLabel(withdrawal.method)}`,
+      });
+      return;
+    }
+    const reason = action === 'reject' ? providedReason : undefined;
 
     let uploadedPath: string | null = null;
     setProcessingId(withdrawal.id);
@@ -518,6 +549,35 @@ export function AgentDashboardPage() {
             </div>
           )}
         </section>
+      )}
+
+      {rejectPicker && (
+        <ReasonPickerModal
+          title={rejectPicker.kind === 'deposit' ? 'رفض طلب الشحن' : 'رفض طلب السحب'}
+          subtitle={rejectPicker.subtitle}
+          description={rejectPicker.kind === 'deposit'
+            ? 'اختر سببًا جاهزًا ليظهر للمستخدم في إشعاره ويُسجَّل في سجل الإدارة.'
+            : 'سيُعاد رصيد Diamond إلى المستخدم عند الرفض. اختر السبب المناسب.'}
+          options={rejectPicker.kind === 'deposit' ? depositRejectReasons : withdrawalRejectReasons}
+          confirmLabel="تأكيد الرفض"
+          tone="danger"
+          processing={processingId === rejectPicker.id}
+          onClose={() => {
+            if (processingId) return;
+            setRejectPicker(null);
+          }}
+          onSubmit={(reason) => {
+            const picker = rejectPicker;
+            setRejectPicker(null);
+            if (picker.kind === 'deposit') {
+              const deposit = deposits.find((item) => item.id === picker.id);
+              if (deposit) void reviewDeposit(deposit, 'reject', reason);
+            } else {
+              const withdrawal = withdrawals.find((item) => item.id === picker.id);
+              if (withdrawal) void reviewWithdrawal(withdrawal, 'reject', reason);
+            }
+          }}
+        />
       )}
     </div>
   );

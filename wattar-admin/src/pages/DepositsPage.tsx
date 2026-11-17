@@ -4,8 +4,26 @@
  */
 import { useEffect, useState } from 'react';
 import { supabase, callFunction } from '@/lib/supabase';
-import { Check, X, Eye, Loader2, Filter, Search, MessageCircleQuestion } from 'lucide-react';
+import { Check, X, Eye, Loader2, Search, MessageCircleQuestion, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
+import { PageHeader, SelectField } from '@/components/ui';
+
+const rejectReasons = [
+  'لم تصل الحوالة إلى حسابنا',
+  'المبلغ المُحوَّل لا يطابق المبلغ المطلوب',
+  'صورة الإثبات غير واضحة أو غير مقروءة',
+  'رقم العملية مستخدم سابقًا في طلب آخر',
+  'بيانات المرسل غير مطابقة',
+  'وسيلة الدفع غير مدعومة',
+];
+
+const infoRequests = [
+  'أرسل صورة إثبات أوضح تتضمن رقم العملية والمبلغ',
+  'أرسل رقم العملية الصحيح من تطبيق الدفع',
+  'أرسل اسم المرسل ورقم هاتفه كما في الحوالة',
+  'أرسل لقطة شاشة لتفاصيل الحوالة من المحفظة',
+  'أرسل المبلغ المتبقي لإكمال قيمة الطلب',
+];
 
 interface Deposit {
   id: string;
@@ -31,13 +49,16 @@ type DepositAction = 'approve' | 'reject' | 'review' | 'request_info' | 'fail';
 export function DepositsPage() {
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'pending' | 'reviewing' | 'all' | 'completed'>('pending');
+  const [filter, setFilter] = useState<string>('pending');
+  const [search, setSearch] = useState('');
   const [selectedDeposit, setSelectedDeposit] = useState<Deposit | null>(null);
+  const [reasonModal, setReasonModal] = useState<{ deposit: Deposit; mode: 'reject' | 'request_info' } | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
 
   useEffect(() => {
     loadDeposits();
-  }, [filter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, search]);
 
   const loadDeposits = async () => {
     setLoading(true);
@@ -54,6 +75,10 @@ export function DepositsPage() {
         .limit(50);
 
       if (filter !== 'all') query = query.eq('status', filter);
+      const trimmed = search.trim();
+      if (trimmed) {
+        query = query.or(`external_ref.ilike.%${trimmed}%,sender_phone.ilike.%${trimmed}%,sender_name.ilike.%${trimmed}%`);
+      }
       const { data, error } = await query;
       if (error) throw error;
 
@@ -105,23 +130,43 @@ export function DepositsPage() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">طلبات الشحن</h1>
-          <p className="text-gray-400 mt-1">مراجعة وموافقة على طلبات شحن المستخدمين</p>
-        </div>
-        <div className="flex items-center gap-2 bg-dark-surface rounded-lg p-1 border border-wattar-900">
-          {(['pending', 'reviewing', 'all', 'completed'] as const).map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                filter === f ? 'bg-wattar-600 text-white' : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              {f === 'pending' ? 'معلّقة' : f === 'reviewing' ? 'قيد المراجعة' : f === 'completed' ? 'مكتملة' : 'الكل'}
-            </button>
-          ))}
+      <PageHeader
+        title="طلبات الشحن"
+        subtitle="مراجعة وموافقة على طلبات شحن المستخدمين — اختر الحالة أو ابحث برقم العملية."
+        actions={(
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-gray-300">
+            {loading ? 'جارٍ التحميل…' : `${deposits.length.toLocaleString()} طلب ظاهر`}
+          </span>
+        )}
+      />
+
+      <div className="rounded-2xl border border-white/[0.07] bg-[#171a2c] p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="w-full sm:w-52">
+            <SelectField
+              label="حالة الطلب"
+              value={filter}
+              onChange={setFilter}
+              options={[
+                { value: 'pending', label: 'معلّقة (تحتاج إجراء)' },
+                { value: 'reviewing', label: 'قيد المراجعة' },
+                { value: 'completed', label: 'مكتملة' },
+                { value: 'rejected', label: 'مرفوضة' },
+                { value: 'failed', label: 'فاشلة' },
+                { value: 'all', label: 'كل الطلبات' },
+              ]}
+            />
+          </div>
+          <label className="relative block min-w-[240px] flex-1">
+            <span className="mb-1.5 block text-sm font-medium text-gray-200">بحث</span>
+            <Search className="absolute right-3 top-[2.55rem] -translate-y-1/2 text-gray-500" size={17} />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="رقم العملية أو هاتف المرسل أو الاسم…"
+              className="w-full rounded-xl border border-white/[0.08] bg-[#111424] py-2.5 pr-10 pl-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-wattar-400/60"
+            />
+          </label>
         </div>
       </div>
 
@@ -188,10 +233,7 @@ export function DepositsPage() {
                           {processing === dep.id ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
                         </button>
                         <button
-                          onClick={() => {
-                            const message = prompt('ما المعلومات المطلوبة من المستخدم؟');
-                            if (message) handleAction(dep.id, 'request_info', undefined, message);
-                          }}
+                          onClick={() => setReasonModal({ deposit: dep, mode: 'request_info' })}
                           disabled={processing === dep.id}
                           className="rounded-lg p-2 text-amber-400 hover:bg-amber-500/10 disabled:opacity-50"
                           title="طلب معلومات إضافية"
@@ -199,10 +241,7 @@ export function DepositsPage() {
                           <MessageCircleQuestion size={16} />
                         </button>
                         <button
-                          onClick={() => {
-                            const reason = prompt('سبب الرفض:');
-                            if (reason) handleAction(dep.id, 'reject', reason);
-                          }}
+                          onClick={() => setReasonModal({ deposit: dep, mode: 'reject' })}
                           disabled={processing === dep.id}
                           className="rounded-lg p-2 text-red-400 hover:bg-red-500/10 disabled:opacity-50"
                           title="رفض"
@@ -225,8 +264,35 @@ export function DepositsPage() {
           deposit={selectedDeposit}
           onClose={() => setSelectedDeposit(null)}
           onApprove={() => handleAction(selectedDeposit.id, 'approve')}
-          onReject={(reason) => handleAction(selectedDeposit.id, 'reject', reason)}
+          onReject={() => {
+            const deposit = selectedDeposit;
+            setSelectedDeposit(null);
+            setReasonModal({ deposit, mode: 'reject' });
+          }}
+          onInfoRequest={() => {
+            const deposit = selectedDeposit;
+            setSelectedDeposit(null);
+            setReasonModal({ deposit, mode: 'request_info' });
+          }}
           processing={processing === selectedDeposit.id}
+        />
+      )}
+
+      {reasonModal && (
+        <ActionReasonModal
+          mode={reasonModal.mode}
+          deposit={reasonModal.deposit}
+          processing={processing === reasonModal.deposit.id}
+          onClose={() => {
+            if (processing) return;
+            setReasonModal(null);
+          }}
+          onSubmit={(reason, note) => {
+            const { deposit, mode } = reasonModal;
+            setReasonModal(null);
+            if (mode === 'reject') void handleAction(deposit.id, 'reject', reason, note);
+            else void handleAction(deposit.id, 'request_info', undefined, note || reason);
+          }}
         />
       )}
     </div>
@@ -238,12 +304,14 @@ function DepositModal({
   onClose,
   onApprove,
   onReject,
+  onInfoRequest,
   processing,
 }: {
   deposit: Deposit;
   onClose: () => void;
   onApprove: () => void;
-  onReject: (reason: string) => void;
+  onReject: () => void;
+  onInfoRequest: () => void;
   processing: boolean;
 }) {
   return (
@@ -320,26 +388,172 @@ function DepositModal({
           </div>
 
           {(deposit.status === 'pending' || deposit.status === 'reviewing') && (
-            <div className="grid grid-cols-2 gap-3 pt-4">
+            <div className="space-y-3 pt-4">
               <button
                 onClick={onApprove}
                 disabled={processing}
-                className="rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 py-2.5 font-medium text-white"
+                className="w-full rounded-lg bg-green-600 hover:bg-green-700 disabled:opacity-50 py-2.5 font-medium text-white"
               >
                 {processing ? 'جاري المعالجة...' : 'موافقة وإضافة الرصيد'}
               </button>
-              <button
-                onClick={() => {
-                  const reason = prompt('سبب الرفض:');
-                  if (reason) onReject(reason);
-                }}
-                disabled={processing}
-                className="rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 py-2.5 font-medium text-white"
-              >
-                رفض
-              </button>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={onInfoRequest}
+                  disabled={processing}
+                  className="rounded-lg border border-amber-500/30 bg-amber-500/10 py-2.5 font-medium text-amber-200 hover:bg-amber-500/15 disabled:opacity-50"
+                >
+                  طلب معلومات إضافية
+                </button>
+                <button
+                  onClick={onReject}
+                  disabled={processing}
+                  className="rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 py-2.5 font-medium text-white"
+                >
+                  رفض الطلب
+                </button>
+              </div>
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActionReasonModal({
+  mode,
+  deposit,
+  processing,
+  onClose,
+  onSubmit,
+}: {
+  mode: 'reject' | 'request_info';
+  deposit: Deposit;
+  processing: boolean;
+  onClose: () => void;
+  onSubmit: (reason: string, note: string) => void;
+}) {
+  const options = mode === 'reject' ? rejectReasons : infoRequests;
+  const [choice, setChoice] = useState(options[0]);
+  const [custom, setCustom] = useState('');
+  const [useCustom, setUseCustom] = useState(false);
+  const [note, setNote] = useState('');
+  const reason = useCustom ? custom.trim() : choice;
+  const canSubmit = Boolean(reason) && reason.length <= 500 && note.length <= 500 && !processing;
+  const title = mode === 'reject' ? 'رفض طلب الشحن' : 'طلب معلومات إضافية';
+  const tone = mode === 'reject'
+    ? 'border-red-500/30 bg-red-500/10 text-red-200'
+    : 'border-amber-500/30 bg-amber-500/10 text-amber-200';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-[#171a2c]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-white/[0.07] p-5">
+          <div>
+            <h2 className="text-lg font-semibold text-white">{title}</h2>
+            <p className="mt-1 text-xs text-gray-400">
+              {deposit.user?.display_name ?? deposit.user?.username ?? 'مستخدم'} · ${Number(deposit.amount_usd).toFixed(2)} · {getMethodLabel(deposit.method)}
+            </p>
+          </div>
+          <button onClick={onClose} disabled={processing} className="text-gray-400 hover:text-white disabled:opacity-50" aria-label="إغلاق">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="space-y-4 p-5">
+          <div className={`flex items-start gap-2 rounded-xl border p-3 text-xs leading-6 ${tone}`}>
+            <ShieldAlert size={16} className="mt-1 shrink-0" />
+            {mode === 'reject'
+              ? 'اختر سببًا جاهزًا — سيظهر للمستخدم في إشعاره ويُسجَّل في سجل الإدارة.'
+              : 'اختر الرسالة الجاهزة — سيصل المستخدم إشعار يوضح ما ينقص طلبه.'}
+          </div>
+
+          <div className="space-y-2">
+            {options.map((option) => {
+              const active = !useCustom && choice === option;
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => {
+                    setChoice(option);
+                    setUseCustom(false);
+                  }}
+                  className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-right text-sm transition ${
+                    active
+                      ? 'border-wattar-400/50 bg-wattar-600/20 font-semibold text-white'
+                      : 'border-white/[0.07] bg-white/[0.02] text-gray-300 hover:border-white/15'
+                  }`}
+                >
+                  <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${active ? 'border-wattar-300 bg-wattar-500' : 'border-gray-600'}`}>
+                    {active ? <Check size={10} className="text-white" /> : null}
+                  </span>
+                  {option}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setUseCustom(true)}
+              className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-right text-sm transition ${
+                useCustom
+                  ? 'border-wattar-400/50 bg-wattar-600/20 font-semibold text-white'
+                  : 'border-dashed border-white/[0.12] bg-transparent text-gray-400 hover:border-white/20'
+              }`}
+            >
+              <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${useCustom ? 'border-wattar-300 bg-wattar-500' : 'border-gray-600'}`}>
+                {useCustom ? <Check size={10} className="text-white" /> : null}
+              </span>
+              سبب آخر (كتابة يدوية)
+            </button>
+          </div>
+
+          {useCustom ? (
+            <textarea
+              value={custom}
+              onChange={(event) => setCustom(event.target.value)}
+              rows={3}
+              maxLength={500}
+              placeholder={mode === 'reject' ? 'اكتب سبب الرفض…' : 'اكتب المطلوب من المستخدم…'}
+              className="w-full resize-y rounded-xl border border-white/[0.08] bg-[#111424] px-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:border-wattar-400/60 focus:outline-none"
+            />
+          ) : null}
+
+          <label className="block">
+            <span className="mb-1.5 block text-xs text-gray-400">ملاحظة إضافية داخلية (اختياري)</span>
+            <input
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              maxLength={500}
+              placeholder="تظهر في سجل الإدارة فقط"
+              className="w-full rounded-xl border border-white/[0.08] bg-[#111424] px-3 py-2.5 text-sm text-white placeholder:text-gray-600 focus:border-wattar-400/60 focus:outline-none"
+            />
+          </label>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              onClick={onClose}
+              disabled={processing}
+              className="rounded-xl border border-white/[0.08] px-4 py-2 text-sm text-gray-300 hover:bg-white/[0.04] disabled:opacity-50"
+            >
+              إلغاء
+            </button>
+            <button
+              onClick={() => onSubmit(reason, note.trim())}
+              disabled={!canSubmit}
+              className={`flex min-w-32 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 ${
+                mode === 'reject' ? 'bg-red-700 hover:bg-red-600' : 'bg-amber-700 hover:bg-amber-600'
+              }`}
+            >
+              {processing ? <Loader2 size={16} className="animate-spin" /> : null}
+              {mode === 'reject' ? 'تأكيد الرفض' : 'إرسال الطلب'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

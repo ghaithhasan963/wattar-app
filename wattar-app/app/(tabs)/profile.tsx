@@ -10,7 +10,26 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { BadgeCheck, ChevronLeft, Coins, Crown, Gem, Gift, ImagePlus, LockKeyhole, LogOut, Mic, Pencil, Settings, Star, User, Users, Wallet } from 'lucide-react-native';
+import {
+  BadgeCheck,
+  ChevronLeft,
+  Coins,
+  Crown,
+  Gem,
+  Gift,
+  Headset,
+  ImagePlus,
+  LockKeyhole,
+  LogOut,
+  Pencil,
+  Settings,
+  ShieldBan,
+  Sparkles,
+  Star,
+  User,
+  Users,
+  Wallet,
+} from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -74,12 +93,25 @@ export default function ProfileScreen() {
   };
 
   const handleSignOut = async () => {
-    try {
-      await signOut();
-      router.replace('/(auth)/login');
-    } catch (error: unknown) {
-      Alert.alert('تعذر تسجيل الخروج', error instanceof Error ? error.message : 'حاول مرة أخرى.');
-    }
+    Alert.alert(
+      'تسجيل الخروج',
+      'هل تريد تسجيل الخروج من حسابك؟',
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        {
+          text: 'خروج',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut();
+              router.replace('/(auth)/login');
+            } catch (error: unknown) {
+              Alert.alert('تعذر تسجيل الخروج', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+            }
+          },
+        },
+      ],
+    );
   };
 
   const toggleProfileVisibility = async () => {
@@ -101,11 +133,18 @@ export default function ProfileScreen() {
   const levelStart = (level - 1) ** 2 * 100;
   const nextLevelAt = level ** 2 * 100;
   const levelProgress = Math.max(0, Math.min(1, (experience - levelStart) / (nextLevelAt - levelStart)));
+  const displayName = profile?.display_name || profile?.username || 'مستخدم Wattar';
+  const isPrivate = profile?.profile_visibility === 'friends';
+  const giftsSent = Number(profile?.total_gifts_sent ?? 0);
+  const giftsReceived = Number(profile?.total_gifts_received ?? 0);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.topBar}>
-        <Text style={styles.pageTitle}>ملفي الشخصي</Text>
+        <View>
+          <Text style={styles.pageTitle}>ملفي الشخصي</Text>
+          <Text style={styles.pageSubtitle}>هويتك ومكانتك داخل Wattar</Text>
+        </View>
         <View style={styles.topActions}>
           <NotificationBell />
           <TouchableOpacity style={styles.settingsButton} onPress={() => router.push('/settings')} accessibilityRole="button">
@@ -116,6 +155,19 @@ export default function ProfileScreen() {
 
       <View style={styles.profileCard}>
         <View style={styles.profileGlow} />
+        <View style={styles.profileTopRow}>
+          <View style={styles.visibilityPill}>
+            {isPrivate ? <LockKeyhole size={11} color={palette.gold} /> : <Users size={11} color={palette.teal} />}
+            <Text style={[styles.visibilityText, isPrivate && styles.visibilityTextPrivate]}>
+              {isPrivate ? 'خاص بالأصدقاء' : 'ملف عام'}
+            </Text>
+          </View>
+          <TouchableOpacity style={styles.editChip} onPress={() => router.push('/profile/edit')} accessibilityRole="button">
+            <Pencil size={13} color="#FFFFFF" />
+            <Text style={styles.editChipText}>تعديل</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.avatarOuter}>
           <View style={styles.avatar}>
             {profile?.avatar_url ? (
@@ -124,130 +176,143 @@ export default function ProfileScreen() {
               <User size={34} color={palette.gold} />
             )}
           </View>
-          <View style={[styles.levelBadge, { backgroundColor: levelBadgeColor }]}><Star size={12} color="#1B1026" fill="#1B1026" /></View>
+          <View style={[styles.levelBadge, { backgroundColor: levelBadgeColor }]}>
+            <Star size={12} color="#1B1026" fill="#1B1026" />
+          </View>
         </View>
-        <Text style={styles.displayName}>{profile?.display_name || profile?.username || 'مستخدم Wattar'}</Text>
+
+        <Text style={styles.displayName}>{displayName}</Text>
         <Text style={styles.username}>@{profile?.username}</Text>
         {profile?.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
-        {profile?.gender ? (
-          <Text style={styles.profileMeta}>
-            {profile.gender === 'female' ? 'أنثى' : profile.gender === 'male' ? 'ذكر' : 'أفضل وصفًا آخر'}
-          </Text>
-        ) : null}
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => router.push('/profile/edit')}
-          accessibilityRole="button"
-        >
-          <Pencil size={15} color="#FFFFFF" />
-          <Text style={styles.editButtonText}>تعديل الملف</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.postsButton}
-          onPress={() => profile?.id && router.push(`/user/${profile.id}`)}
-          accessibilityRole="button"
-        >
-          <ImagePlus size={15} color={palette.primary} />
-          <Text style={styles.postsButtonText}>ملفي ومنشوراتي</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.hostProgramButton}
-          onPress={() => router.push('/host-application')}
-          accessibilityRole="button"
-        >
-          <BadgeCheck size={15} color={palette.gold} />
-          <Text style={styles.hostProgramButtonText}>طلب توثيق الحساب</Text>
-          <BadgeCheck size={14} color={palette.gold} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.privacyButton}
-          onPress={toggleProfileVisibility}
-          disabled={privacyBusy}
-          accessibilityRole="button"
-          accessibilityLabel="تغيير خصوصية الملف الشخصي"
-        >
-          <LockKeyhole size={14} color={palette.gold} />
-          <Text style={styles.privacyButtonText}>
-            {privacyBusy ? 'جارٍ الحفظ...' : profile?.profile_visibility === 'friends' ? 'الملف للأصدقاء فقط' : 'الملف عام'}
-          </Text>
-        </TouchableOpacity>
-        {profile?.referral_code ? (
-          <TouchableOpacity style={styles.referral} onPress={handleShare} accessibilityRole="button">
-            <Gift size={14} color={palette.gold} />
-            <Text style={styles.referralText}>كود الدعوة: {profile.referral_code}</Text>
+
+        <View style={styles.chipsRow}>
+          <View style={styles.chip}>
+            <Star size={11} color={palette.gold} />
+            <Text style={styles.chipText}>المستوى {level}</Text>
+          </View>
+          {profile?.gender ? (
+            <View style={styles.chip}>
+              <User size={11} color={palette.muted} />
+              <Text style={styles.chipText}>
+                {profile.gender === 'female' ? 'أنثى' : profile.gender === 'male' ? 'ذكر' : 'آخر'}
+              </Text>
+            </View>
+          ) : null}
+          <TouchableOpacity style={[styles.chip, styles.chipInteractive]} onPress={toggleProfileVisibility} disabled={privacyBusy}>
+            <LockKeyhole size={11} color={palette.gold} />
+            <Text style={styles.chipText}>{privacyBusy ? 'جارٍ الحفظ…' : isPrivate ? 'أصدقاء' : 'عام'}</Text>
           </TouchableOpacity>
-        ) : null}
+        </View>
+      </View>
+
+      <View style={styles.statsRow}>
+        <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/friends')} activeOpacity={0.8}>
+          <Text style={styles.statValue}>{(progress?.follower_count ?? 0).toLocaleString()}</Text>
+          <Text style={styles.statLabel}>متابعون</Text>
+        </TouchableOpacity>
+        <View style={styles.statDivider} />
+        <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/friends')} activeOpacity={0.8}>
+          <Text style={styles.statValue}>{(progress?.following_count ?? 0).toLocaleString()}</Text>
+          <Text style={styles.statLabel}>أتابع</Text>
+        </TouchableOpacity>
+        <View style={styles.statDivider} />
+        <View style={styles.statCard}>
+          <Text style={[styles.statValue, { color: palette.gold }]}>{giftsSent.toLocaleString()}</Text>
+          <Text style={styles.statLabel}>هدايا أرسلت</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statCard}>
+          <Text style={[styles.statValue, { color: palette.teal }]}>{giftsReceived.toLocaleString()}</Text>
+          <Text style={styles.statLabel}>هدايا وصلت</Text>
+        </View>
       </View>
 
       <View style={styles.levelCard}>
         <View style={styles.levelTop}>
-          <View style={styles.levelIcon}><Star size={17} color={palette.gold} /></View>
+          <View style={styles.levelIcon}><Sparkles size={17} color={palette.gold} /></View>
           <View style={styles.levelCopy}>
-            <Text style={styles.levelTitle}>المستوى {level}</Text>
-            <Text style={styles.levelCaption}>المستويات تُكتسب بالنشاط ولا تُشترى</Text>
+            <Text style={styles.levelTitle}>التقدم إلى المستوى {level + 1}</Text>
+            <Text style={styles.levelCaption}>المستويات تُكتسب بالنشاط والمشاركة ولا تُشترى</Text>
           </View>
           <Text style={styles.xpValue}>{experience.toLocaleString()} XP</Text>
         </View>
         <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${levelProgress * 100}%` }]} />
+          <View style={[styles.progressFill, { width: `${Math.round(levelProgress * 100)}%` }]} />
         </View>
         <Text style={styles.nextLevelText}>
-          {Math.max(0, nextLevelAt - experience).toLocaleString()} XP للمستوى التالي
+          {Math.max(0, nextLevelAt - experience).toLocaleString()} XP متبقية للمستوى التالي
         </Text>
         {progressError ? <Text style={styles.progressError}>{progressError}</Text> : null}
-      </View>
-
-      <View style={styles.socialStats}>
-        <StatCard
-          icon={Users}
-          label="المتابعون"
-          value={progress?.follower_count ?? 0}
-          color={palette.primary}
-          onPress={() => router.push('/(tabs)/friends')}
-        />
-        <StatCard
-          icon={Users}
-          label="أتابع"
-          value={progress?.following_count ?? 0}
-          color={palette.gold}
-          onPress={() => router.push('/(tabs)/friends')}
-        />
       </View>
 
       <View style={styles.walletCard}>
         <View style={styles.walletHeading}>
           <Text style={styles.sectionTitle}>أرصدتي</Text>
           <TouchableOpacity onPress={() => router.push('/(tabs)/wallet')} style={styles.walletLink}>
-            <Text style={styles.walletLinkText}>المحفظة</Text>
+            <Text style={styles.walletLinkText}>فتح المحفظة</Text>
             <ChevronLeft size={15} color={palette.gold} />
           </TouchableOpacity>
         </View>
         <View style={styles.balanceRow}>
           <View style={styles.balanceItem}>
-            <View style={styles.coinsIcon}><Coins size={16} color={palette.gold} /></View>
+            <View style={styles.coinsIcon}><Coins size={18} color={palette.gold} /></View>
             <View>
-              <Text style={styles.balanceValue}>{(profile?.balance_gold ?? 0).toLocaleString()}</Text>
-              <Text style={styles.balanceLabel}>Coins مدفوعة</Text>
+              <Text style={styles.balanceValue}>{Number(profile?.balance_gold ?? 0).toLocaleString()}</Text>
+              <Text style={styles.balanceLabel}>Coin للاستخدام داخل التطبيق</Text>
             </View>
           </View>
           <View style={styles.balanceDivider} />
           <View style={styles.balanceItem}>
-            <View style={styles.gemsIcon}><Gem size={16} color={palette.teal} /></View>
+            <View style={styles.gemsIcon}><Gem size={18} color={palette.teal} /></View>
             <View>
-              <Text style={styles.balanceValue}>{(profile?.balance_diamond ?? 0).toLocaleString()}</Text>
-              <Text style={styles.balanceLabel}>Diamonds</Text>
+              <Text style={styles.balanceValue}>{Number(profile?.balance_diamond ?? 0).toLocaleString()}</Text>
+              <Text style={styles.balanceLabel}>Diamond قابل للتحويل أو السحب</Text>
             </View>
           </View>
         </View>
-        <Text style={styles.walletFootnote}>Diamonds القابلة للسحب تأتي من الهدايا الممولة بـCoins مدفوعة.</Text>
+        <View style={styles.walletActions}>
+          <TouchableOpacity style={styles.walletAction} onPress={() => router.push('/(tabs)/wallet')}>
+            <Wallet size={14} color={palette.gold} />
+            <Text style={styles.walletActionText}>شحن / تحويل</Text>
+          </TouchableOpacity>
+          {profile?.referral_code ? (
+            <TouchableOpacity style={styles.walletAction} onPress={handleShare}>
+              <Gift size={14} color={palette.teal} />
+              <Text style={styles.walletActionText}>دعوة صديق</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
 
-      <View style={styles.menuCard}>
-        <MenuItem icon={Users} label="المجتمع والمتابعة" onPress={() => router.push('/(tabs)/friends')} />
-        <MenuItem icon={Wallet} label="المحفظة وسجل المعاملات" onPress={() => router.push('/(tabs)/wallet')} />
-        <MenuItem icon={Crown} label="عضوية VIP" onPress={() => router.push('/membership')} />
-        <MenuItem icon={Settings} label="إعدادات الحساب والأمان" onPress={() => router.push('/settings')} />
+      <View style={styles.quickGrid}>
+        <QuickAction icon={ImagePlus} label="ملفي والمنشورات" color={palette.primary} onPress={() => profile?.id && router.push(`/user/${profile.id}`)} />
+        <QuickAction icon={BadgeCheck} label="توثيق الحساب" color={palette.gold} onPress={() => router.push('/host-application')} />
+        <QuickAction icon={LockKeyhole} label={isPrivate ? 'الملف للأصدقاء' : 'الملف عام'} color={palette.teal} onPress={toggleProfileVisibility} />
+        <QuickAction icon={Crown} label="عضوية VIP" color="#FFB86B" onPress={() => router.push('/membership')} />
       </View>
+
+      {profile?.referral_code ? (
+        <TouchableOpacity style={styles.referralCard} onPress={handleShare} activeOpacity={0.85}>
+          <View style={styles.referralIcon}><Gift size={17} color={palette.gold} /></View>
+          <View style={styles.referralCopy}>
+            <Text style={styles.referralTitle}>كود الدعوة الخاص بك</Text>
+            <Text style={styles.referralCode}>{profile.referral_code}</Text>
+          </View>
+          <View style={styles.referralShare}><Text style={styles.referralShareText}>مشاركة</Text></View>
+        </TouchableOpacity>
+      ) : null}
+
+      <MenuSection title="الحساب والأمان">
+        <MenuItem icon={Settings} label="إعدادات الحساب" hint="التفضيلات والإشعارات" onPress={() => router.push('/settings')} />
+        <MenuItem icon={LockKeyhole} label="الخصوصية" hint={isPrivate ? 'الأصدقاء فقط' : 'عام'} onPress={() => router.push('/privacy-settings')} />
+        <MenuItem icon={ShieldBan} label="المستخدمون المحظورون" onPress={() => router.push('/blocked-users')} />
+      </MenuSection>
+
+      <MenuSection title="المجتمع">
+        <MenuItem icon={Users} label="الأصدقاء والمتابعة" onPress={() => router.push('/(tabs)/friends')} />
+        <MenuItem icon={Wallet} label="المحفظة وسجل المعاملات" onPress={() => router.push('/(tabs)/wallet')} />
+        <MenuItem icon={Headset} label="الدعم والمساعدة" onPress={() => router.push('/support')} />
+      </MenuSection>
 
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
         <LogOut size={17} color={palette.danger} />
@@ -258,33 +323,54 @@ export default function ProfileScreen() {
   );
 }
 
-function StatCard({
+function QuickAction({
   icon: Icon,
   label,
-  value,
   color,
   onPress,
 }: {
   icon: typeof Users;
   label: string;
-  value: number;
   color: string;
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity style={styles.statCard} onPress={onPress} accessibilityRole="button">
-      <View style={[styles.statIcon, { backgroundColor: `${color}24` }]}><Icon size={16} color={color} /></View>
-      <Text style={styles.statValue}>{value.toLocaleString()}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+    <TouchableOpacity style={styles.quickCard} onPress={onPress} activeOpacity={0.8}>
+      <View style={[styles.quickIcon, { backgroundColor: `${color}1F` }]}>
+        <Icon size={18} color={color} />
+      </View>
+      <Text style={styles.quickLabel} numberOfLines={2}>{label}</Text>
     </TouchableOpacity>
   );
 }
 
-function MenuItem({ icon: Icon, label, onPress }: { icon: typeof Settings; label: string; onPress: () => void }) {
+function MenuSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.menuSection}>
+      <Text style={styles.menuSectionTitle}>{title}</Text>
+      <View style={styles.menuCard}>{children}</View>
+    </View>
+  );
+}
+
+function MenuItem({
+  icon: Icon,
+  label,
+  hint,
+  onPress,
+}: {
+  icon: typeof Settings;
+  label: string;
+  hint?: string;
+  onPress: () => void;
+}) {
   return (
     <TouchableOpacity style={styles.menuItem} onPress={onPress} accessibilityRole="button">
       <View style={styles.menuIcon}><Icon size={17} color={palette.gold} /></View>
-      <Text style={styles.menuText}>{label}</Text>
+      <View style={styles.menuCopy}>
+        <Text style={styles.menuText}>{label}</Text>
+        {hint ? <Text style={styles.menuHint}>{hint}</Text> : null}
+      </View>
       <ChevronLeft size={17} color={palette.muted} />
     </TouchableOpacity>
   );
@@ -295,62 +381,79 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 54, paddingBottom: 112 },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   topActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  pageTitle: { color: palette.text, fontSize: 22, fontWeight: '800' },
+  pageTitle: { color: palette.text, fontSize: 23, fontWeight: '900', textAlign: 'right' },
+  pageSubtitle: { color: palette.muted, fontSize: 11, marginTop: 4, textAlign: 'right' },
   settingsButton: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
-  profileCard: { alignItems: 'center', overflow: 'hidden', padding: 20, borderRadius: 23, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
-  profileGlow: { position: 'absolute', top: -90, width: 250, height: 150, borderRadius: 100, backgroundColor: '#48215F', opacity: 0.35 },
-  avatarOuter: { width: 94, height: 94, borderRadius: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: palette.gold, backgroundColor: '#302312' },
-  avatar: { width: 82, height: 82, borderRadius: 27, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.elevated, overflow: 'hidden' },
+  profileCard: { alignItems: 'center', overflow: 'hidden', padding: 18, borderRadius: 24, backgroundColor: palette.surface, borderWidth: 1, borderColor: '#4A2C63' },
+  profileGlow: { position: 'absolute', top: -95, width: 270, height: 170, borderRadius: 110, backgroundColor: '#6B2BC4', opacity: 0.32 },
+  profileTopRow: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  visibilityPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, backgroundColor: '#211B2C', borderWidth: 1, borderColor: palette.border },
+  visibilityText: { color: palette.teal, fontSize: 9, fontWeight: '800' },
+  visibilityTextPrivate: { color: palette.gold },
+  editChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: palette.primary },
+  editChipText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
+  avatarOuter: { width: 96, height: 96, borderRadius: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: palette.gold, backgroundColor: '#302312', marginTop: 4 },
+  avatar: { width: 84, height: 84, borderRadius: 27, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.elevated, overflow: 'hidden' },
   avatarImage: { width: '100%', height: '100%' },
-  levelBadge: { position: 'absolute', bottom: -3, right: -3, width: 25, height: 25, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.gold, borderWidth: 2, borderColor: palette.surface },
-  displayName: { color: palette.text, fontSize: 20, fontWeight: '800', marginTop: 13 },
+  levelBadge: { position: 'absolute', bottom: -3, right: -3, width: 26, height: 26, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: palette.surface },
+  displayName: { color: palette.text, fontSize: 20, fontWeight: '900', marginTop: 12 },
   username: { color: palette.muted, fontSize: 12, marginTop: 4 },
-  bio: { color: palette.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 9, maxWidth: 280 },
-  profileMeta: { color: palette.muted, fontSize: 11, marginTop: 8 },
-  editButton: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 15, paddingVertical: 10, borderRadius: 12, backgroundColor: palette.primary, marginTop: 14 },
-  editButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
-  postsButton: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 13, paddingVertical: 9, borderRadius: 12, backgroundColor: palette.elevated, borderWidth: 1, borderColor: palette.border, marginTop: 8 },
-  postsButtonText: { color: palette.text, fontSize: 11, fontWeight: '700' },
-  hostProgramButton: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 13, paddingVertical: 9, borderRadius: 12, backgroundColor: '#F4BD5518', borderWidth: 1, borderColor: '#F4BD5533', marginTop: 8 },
-  hostProgramButtonText: { color: palette.gold, fontSize: 11, fontWeight: '700' },
-  privacyButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, minHeight: 34, paddingHorizontal: 12, marginTop: 8, borderRadius: 12, backgroundColor: '#211B2C', borderWidth: 1, borderColor: palette.border },
-  privacyButtonText: { color: palette.gold, fontSize: 11, fontWeight: '700' },
-  referral: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 13, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 10, backgroundColor: '#302312' },
-  referralText: { color: palette.gold, fontSize: 11, fontWeight: '600' },
-  levelCard: { padding: 15, marginTop: 13, borderRadius: 19, backgroundColor: palette.surface, borderWidth: 1, borderColor: '#5B4324' },
+  bio: { color: palette.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 9, maxWidth: 290 },
+  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 11 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, backgroundColor: '#211B2C', borderWidth: 1, borderColor: palette.border },
+  chipInteractive: { backgroundColor: '#302312', borderColor: '#5B4324' },
+  chipText: { color: palette.text, fontSize: 9.5, fontWeight: '700' },
+  statsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 11, paddingVertical: 13, borderRadius: 18, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
+  statCard: { flex: 1, alignItems: 'center' },
+  statValue: { color: palette.text, fontSize: 16, fontWeight: '900' },
+  statLabel: { color: palette.muted, fontSize: 8.5, marginTop: 4 },
+  statDivider: { width: 1, height: 26, backgroundColor: palette.border },
+  levelCard: { padding: 15, marginTop: 12, borderRadius: 19, backgroundColor: palette.surface, borderWidth: 1, borderColor: '#5B4324' },
   levelTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   levelIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#382A14' },
   levelCopy: { flex: 1 },
-  levelTitle: { color: palette.gold, fontSize: 14, fontWeight: '800', textAlign: 'right' },
-  levelCaption: { color: palette.muted, fontSize: 10, marginTop: 3, textAlign: 'right' },
-  xpValue: { color: palette.text, fontSize: 11, fontWeight: '700' },
-  progressTrack: { height: 8, overflow: 'hidden', borderRadius: 8, backgroundColor: palette.elevated, marginTop: 14 },
+  levelTitle: { color: palette.gold, fontSize: 13, fontWeight: '800', textAlign: 'right' },
+  levelCaption: { color: palette.muted, fontSize: 9.5, marginTop: 3, textAlign: 'right' },
+  xpValue: { color: palette.text, fontSize: 10.5, fontWeight: '700' },
+  progressTrack: { height: 8, overflow: 'hidden', borderRadius: 8, backgroundColor: palette.elevated, marginTop: 13 },
   progressFill: { height: '100%', borderRadius: 8, backgroundColor: palette.gold },
-  nextLevelText: { color: palette.muted, fontSize: 10, marginTop: 7, textAlign: 'right' },
+  nextLevelText: { color: palette.muted, fontSize: 9.5, marginTop: 7, textAlign: 'right' },
   progressError: { color: palette.danger, fontSize: 10, marginTop: 8, textAlign: 'right' },
-  socialStats: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  statCard: { flex: 1, alignItems: 'center', padding: 12, borderRadius: 17, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
-  statIcon: { width: 31, height: 31, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  statValue: { color: palette.text, fontSize: 19, fontWeight: '800', marginTop: 7 },
-  statLabel: { color: palette.muted, fontSize: 10, marginTop: 3 },
-  walletCard: { padding: 15, marginTop: 12, borderRadius: 18, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
+  walletCard: { padding: 15, marginTop: 12, borderRadius: 19, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
   walletHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { color: palette.text, fontSize: 14, fontWeight: '800' },
   walletLink: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  walletLinkText: { color: palette.gold, fontSize: 11, fontWeight: '700' },
-  balanceRow: { flexDirection: 'row', alignItems: 'center', marginTop: 15 },
+  walletLinkText: { color: palette.gold, fontSize: 10.5, fontWeight: '700' },
+  balanceRow: { flexDirection: 'row', alignItems: 'center', marginTop: 14 },
   balanceItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  coinsIcon: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#382A14' },
-  gemsIcon: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#153832' },
-  balanceValue: { color: palette.text, fontSize: 14, fontWeight: '800' },
-  balanceLabel: { color: palette.muted, fontSize: 10, marginTop: 2 },
-  balanceDivider: { width: 1, height: 32, backgroundColor: palette.border, marginHorizontal: 12 },
-  walletFootnote: { color: palette.muted, fontSize: 10, lineHeight: 15, marginTop: 12, textAlign: 'right' },
-  menuCard: { marginTop: 13, paddingHorizontal: 12, borderRadius: 18, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
-  menuItem: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: palette.border },
+  coinsIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#382A14' },
+  gemsIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#153832' },
+  balanceValue: { color: palette.text, fontSize: 14, fontWeight: '900' },
+  balanceLabel: { color: palette.muted, fontSize: 8.5, marginTop: 3, maxWidth: 120 },
+  balanceDivider: { width: 1, height: 32, backgroundColor: palette.border, marginHorizontal: 10 },
+  walletActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  walletAction: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 38, borderRadius: 12, backgroundColor: palette.elevated, borderWidth: 1, borderColor: palette.border },
+  walletActionText: { color: palette.text, fontSize: 10.5, fontWeight: '700' },
+  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  quickCard: { width: '48.5%', flexDirection: 'row', alignItems: 'center', gap: 9, padding: 12, borderRadius: 16, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
+  quickIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  quickLabel: { flex: 1, color: palette.text, fontSize: 10.5, fontWeight: '700', textAlign: 'right' },
+  referralCard: { flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 12, padding: 13, borderRadius: 17, backgroundColor: '#1E1628', borderWidth: 1, borderColor: '#5B4324' },
+  referralIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: '#302312' },
+  referralCopy: { flex: 1 },
+  referralTitle: { color: palette.muted, fontSize: 9, textAlign: 'right' },
+  referralCode: { color: palette.gold, fontSize: 15, fontWeight: '900', marginTop: 3, textAlign: 'right', letterSpacing: 1.5 },
+  referralShare: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10, backgroundColor: '#382A14' },
+  referralShareText: { color: palette.gold, fontSize: 10, fontWeight: '800' },
+  menuSection: { marginTop: 15 },
+  menuSectionTitle: { color: palette.muted, fontSize: 10, fontWeight: '800', textAlign: 'right', marginBottom: 7, paddingHorizontal: 4 },
+  menuCard: { paddingHorizontal: 12, borderRadius: 18, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
+  menuItem: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: palette.border },
   menuIcon: { width: 32, height: 32, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.elevated },
-  menuText: { flex: 1, color: palette.text, fontSize: 12, textAlign: 'right' },
-  signOutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 46, marginTop: 14, borderRadius: 14, backgroundColor: '#351727', borderWidth: 1, borderColor: '#5A2940' },
+  menuCopy: { flex: 1, alignItems: 'flex-end' },
+  menuText: { color: palette.text, fontSize: 12, textAlign: 'right' },
+  menuHint: { color: palette.muted, fontSize: 9, marginTop: 2, textAlign: 'right' },
+  signOutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 46, marginTop: 16, borderRadius: 14, backgroundColor: '#351727', borderWidth: 1, borderColor: '#5A2940' },
   signOutText: { color: palette.danger, fontSize: 12, fontWeight: '700' },
   version: { color: palette.muted, fontSize: 10, textAlign: 'center', marginTop: 15 },
 });

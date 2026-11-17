@@ -3,9 +3,9 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Platform,
-  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ChevronRight, Send, Smile } from 'lucide-react-native';
+import { ChevronRight, Send, Smile, UserRound } from 'lucide-react-native';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
@@ -46,11 +46,15 @@ interface PrivateMessage {
 const socialPalette = {
   background: '#090611',
   surface: '#171128',
+  elevated: '#1F1630',
   border: '#352449',
   text: '#F8F3FF',
   muted: '#B2A6C3',
+  primary: '#B44BFF',
   primaryDeep: '#7624D7',
   gold: '#F4BD55',
+  teal: '#72DCCA',
+  success: '#43D69A',
 } as const;
 const CHAT_EMOJIS = ['😀', '😂', '🥰', '😍', '🤩', '😎', '🥳', '😭', '👏', '🔥', '❤️', '🌹', '🎉', '✨', '💎', '🎁'];
 
@@ -251,15 +255,21 @@ export default function PrivateMessageScreen() {
     }
   };
 
+  const ownAvatar = profile?.avatar_url;
+  const ownLetter = (profile?.display_name || profile?.username || 'أ').slice(0, 1);
+
   return (
     <KeyboardAvoidingView
       style={styles.screen}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={0}
     >
+      <View style={styles.backgroundGlowTop} />
+      <View style={styles.backgroundGlowBottom} />
+
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="رجوع">
-          <ChevronRight size={22} color={colors.textSecondary} />
+          <ChevronRight size={22} color={socialPalette.text} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.partnerHeaderAction}
@@ -268,20 +278,34 @@ export default function PrivateMessageScreen() {
           accessibilityRole="button"
           accessibilityLabel="فتح الملف الشخصي"
         >
-          <View style={styles.partnerAvatar}>
-            {partnerAvatar
-              ? <Image source={{ uri: partnerAvatar }} style={styles.partnerAvatarImage} />
-              : <Text style={styles.partnerAvatarText}>{title.slice(0, 1).toUpperCase()}</Text>}
-            {partnerOnline && <View style={styles.onlineDot} />}
+          <View style={styles.avatarRing}>
+            <View style={styles.partnerAvatar}>
+              {partnerAvatar
+                ? <Image source={{ uri: partnerAvatar }} style={styles.partnerAvatarImage} />
+                : <Text style={styles.partnerAvatarText}>{title.slice(0, 1).toUpperCase()}</Text>}
+            </View>
+            {partnerOnline ? <View style={styles.onlineDot} /> : null}
           </View>
           <View style={styles.headerCopy}>
-            <Text style={styles.title} numberOfLines={1}>{title}</Text>
+            <View style={styles.titleRow}>
+              <Text style={styles.title} numberOfLines={1}>{title}</Text>
+              <View style={styles.chatBadge}><Text style={styles.chatBadgeText}>خاص</Text></View>
+            </View>
             <Text style={[styles.subtitle, partnerTyping && styles.typingText]} numberOfLines={1}>
-              {partnerTyping ? 'يكتب الآن...' : partnerOnline ? 'متصل الآن' : getConversationSubtitle(quote)}
+              {partnerTyping ? 'يكتب الآن…' : partnerOnline ? 'متصل الآن' : getConversationSubtitle(quote)}
             </Text>
           </View>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.headerAction}
+          onPress={() => partnerUserId && router.push(`/user/${partnerUserId}`)}
+          disabled={!partnerUserId}
+          accessibilityLabel="معلومات الحساب"
+        >
+          <UserRound size={19} color={socialPalette.muted} />
+        </TouchableOpacity>
       </View>
+
       {loading && messages.length === 0 ? (
         <View style={styles.loading}><ActivityIndicator size="large" color={socialPalette.gold} /></View>
       ) : loadError && messages.length === 0 ? (
@@ -301,64 +325,82 @@ export default function PrivateMessageScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+          ListFooterComponent={partnerTyping ? (
+            <View style={styles.typingBubbleRow}>
+              <View style={styles.typingBubble}>
+                <View style={styles.typingDot} />
+                <View style={[styles.typingDot, styles.typingDotMid]} />
+                <View style={styles.typingDot} />
+              </View>
+            </View>
+          ) : null}
           renderItem={({ item, index }) => {
             const previous = messages[index - 1];
             const showDay = !previous || dayKey(previous.created_at) !== dayKey(item.created_at);
             const sameSender = Boolean(previous) && !showDay && previous.sender_id === item.sender_id;
             const ownMessage = item.sender_id === user?.id;
             const senderLabel = item.display_name || item.username || 'عضو';
+            const avatar = ownMessage ? ownAvatar : item.avatar_url;
+            const avatarLetter = ownMessage ? ownLetter : senderLabel.slice(0, 1);
             return (
               <React.Fragment key={item.message_id}>
                 {showDay && (
                   <View style={styles.dayDivider}>
-                    <View style={styles.dayLine} />
-                    <Text style={styles.dayLabel}>{formatDayLabel(item.created_at)}</Text>
-                    <View style={styles.dayLine} />
+                    <View style={styles.dayPill}>
+                      <Text style={styles.dayLabel}>{formatDayLabel(item.created_at)}</Text>
+                    </View>
                   </View>
                 )}
-                <View style={[styles.messageRow, ownMessage && styles.ownMessageRow, sameSender && styles.messageRowTight]}>
-                  {!ownMessage && (sameSender ? <View style={styles.avatarSpacer} /> : (
-                    <View style={styles.messageAvatar}>
-                      {item.avatar_url
-                        ? <Image source={{ uri: item.avatar_url }} style={styles.messageAvatarImage} />
-                        : <Text style={styles.messageAvatarText}>{senderLabel.slice(0, 1)}</Text>}
-                    </View>
-                  ))}
+                <View style={[styles.messageRow, ownMessage ? styles.ownMessageRow : styles.otherMessageRow, sameSender && styles.messageRowTight]}>
+                  {!ownMessage && (
+                    sameSender ? <View style={styles.avatarSpacer} /> : (
+                      <View style={styles.messageAvatar}>
+                        {avatar
+                          ? <Image source={{ uri: avatar }} style={styles.messageAvatarImage} />
+                          : <Text style={styles.messageAvatarText}>{avatarLetter}</Text>}
+                      </View>
+                    )
+                  )}
                   <View style={[styles.messageBubble, ownMessage ? styles.ownBubble : styles.otherBubble]}>
                     {!ownMessage && !sameSender && <Text style={styles.senderName}>{senderLabel}</Text>}
                     <Text style={styles.messageText}>{item.body}</Text>
                     {item.charged_coins > 0 && (
-                      <Text style={[styles.billingNote, ownMessage && styles.ownMessageTime]}>
-                        {item.charged_coins.toLocaleString()} Coin
-                        {item.host_commission_diamonds > 0
-                          ? ` · ${item.host_commission_diamonds.toLocaleString()} Diamond للمضيفة`
-                          : ''}
-                      </Text>
+                      <View style={styles.billingChip}>
+                        <Text style={[styles.billingNote, ownMessage && styles.ownBillingNote]}>
+                          {item.charged_coins.toLocaleString()} Coin
+                          {item.host_commission_diamonds > 0
+                            ? ` · ${item.host_commission_diamonds.toLocaleString()} Diamond للمضيفة`
+                            : ''}
+                        </Text>
+                      </View>
                     )}
                     <View style={styles.messageMeta}>
                       <Text style={[styles.messageTime, ownMessage && styles.ownMessageTime]}>
                         {new Date(item.created_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}
                       </Text>
                       {ownMessage && (
-                        <Text style={[styles.messageTime, styles.ownMessageTime]}>
+                        <Text style={[styles.messageTime, styles.ownMessageTime, item.pending && styles.pendingMark]}>
                           {item.pending ? '···' : item.read_at ? '✓✓' : '✓'}
                         </Text>
                       )}
                     </View>
                   </View>
-                  {ownMessage && (sameSender ? <View style={styles.avatarSpacer} /> : (
-                    <View style={[styles.messageAvatar, styles.ownMessageAvatar]}>
-                      {profile?.avatar_url
-                        ? <Image source={{ uri: profile.avatar_url }} style={styles.messageAvatarImage} />
-                        : <Text style={styles.messageAvatarText}>{(profile?.display_name || profile?.username || 'أ').slice(0, 1)}</Text>}
-                    </View>
-                  ))}
+                  {ownMessage && (
+                    sameSender ? <View style={styles.avatarSpacer} /> : (
+                      <View style={[styles.messageAvatar, styles.ownMessageAvatar]}>
+                        {avatar
+                          ? <Image source={{ uri: avatar }} style={styles.messageAvatarImage} />
+                          : <Text style={styles.messageAvatarText}>{avatarLetter}</Text>}
+                      </View>
+                    )
+                  )}
                 </View>
               </React.Fragment>
             );
           }}
           ListEmptyComponent={(
             <View style={styles.emptyState}>
+              <View style={styles.emptyIcon}><Send size={22} color={socialPalette.gold} /></View>
               <Text style={styles.emptyTitle}>لا رسائل بعد</Text>
               <Text style={styles.emptyText}>اكتب أول رسالة وابدأ المحادثة.</Text>
             </View>
@@ -368,6 +410,7 @@ export default function PrivateMessageScreen() {
           ) : null}
         />
       )}
+
       {showEmojiPicker && (
         <View style={styles.emojiTray}>
           <Text style={styles.emojiTrayTitle}>أضف تعبيرًا</Text>
@@ -386,22 +429,15 @@ export default function PrivateMessageScreen() {
           </View>
         </View>
       )}
+
       {quote && (
         <View style={styles.pricingNotice}>
-          <Text style={styles.pricingText}>
-            {getPricingNotice(quote)}
-          </Text>
+          <View style={styles.pricingDot} />
+          <Text style={styles.pricingText}>{getPricingNotice(quote)}</Text>
         </View>
       )}
+
       <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-        <TouchableOpacity
-          style={[styles.emojiToggle, showEmojiPicker && styles.emojiToggleActive]}
-          onPress={() => setShowEmojiPicker((visible) => !visible)}
-          accessibilityRole="button"
-          accessibilityLabel={showEmojiPicker ? 'إغلاق لوحة الإيموجي' : 'فتح لوحة الإيموجي'}
-        >
-          <Smile size={20} color={showEmojiPicker ? socialPalette.gold : socialPalette.muted} />
-        </TouchableOpacity>
         <View style={styles.inputShell}>
           <TextInput
             style={styles.input}
@@ -414,6 +450,14 @@ export default function PrivateMessageScreen() {
             maxLength={2000}
             editable={!sending && quote !== null}
           />
+          <TouchableOpacity
+            style={[styles.emojiToggle, showEmojiPicker && styles.emojiToggleActive]}
+            onPress={() => setShowEmojiPicker((visible) => !visible)}
+            accessibilityRole="button"
+            accessibilityLabel={showEmojiPicker ? 'إغلاق لوحة الإيموجي' : 'فتح لوحة الإيموجي'}
+          >
+            <Smile size={20} color={showEmojiPicker ? socialPalette.gold : socialPalette.muted} />
+          </TouchableOpacity>
         </View>
         <TouchableOpacity
           style={[styles.sendButton, (!message.trim() || sending) && styles.sendDisabled]}
@@ -431,21 +475,29 @@ export default function PrivateMessageScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: socialPalette.background },
-  header: { minHeight: 82, flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 15, paddingTop: Platform.OS === 'android' ? 8 : 24, borderBottomWidth: 1, borderBottomColor: socialPalette.border },
-  backButton: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: socialPalette.surface },
-  partnerHeaderAction: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 11 },
-  partnerAvatar: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A1940', borderWidth: 1, borderColor: socialPalette.gold, overflow: 'hidden' },
+  backgroundGlowTop: { position: 'absolute', top: -120, right: -80, width: 260, height: 260, borderRadius: 130, backgroundColor: '#5B21A8', opacity: 0.16 },
+  backgroundGlowBottom: { position: 'absolute', bottom: 90, left: -100, width: 240, height: 240, borderRadius: 120, backgroundColor: '#0E5E55', opacity: 0.12 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 13, paddingBottom: 11, borderBottomWidth: 1, borderBottomColor: socialPalette.border, backgroundColor: 'rgba(17,12,26,0.85)' },
+  backButton: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: socialPalette.surface, borderWidth: 1, borderColor: socialPalette.border },
+  partnerHeaderAction: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  avatarRing: { padding: 2, borderRadius: 26, borderWidth: 1, borderColor: '#F4BD5566' },
+  partnerAvatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A1940', overflow: 'hidden' },
   partnerAvatarImage: { width: '100%', height: '100%' },
   partnerAvatarText: { color: socialPalette.gold, fontSize: 17, fontWeight: '800' },
   headerCopy: { flex: 1 },
-  title: { color: socialPalette.text, fontSize: 17, fontWeight: '800', textAlign: 'right' },
-  subtitle: { color: socialPalette.muted, fontSize: 11, marginTop: 4, textAlign: 'right' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'flex-end' },
+  title: { color: socialPalette.text, fontSize: 16, fontWeight: '800', textAlign: 'right', flexShrink: 1 },
+  chatBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 7, backgroundColor: '#302312' },
+  chatBadgeText: { color: socialPalette.gold, fontSize: 8, fontWeight: '800' },
+  subtitle: { color: socialPalette.muted, fontSize: 10.5, marginTop: 3, textAlign: 'right' },
   typingText: { color: socialPalette.gold },
-  onlineDot: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#3FCF8E', borderWidth: 2, borderColor: socialPalette.background },
-  messageList: { flexGrow: 1, justifyContent: 'flex-end', paddingHorizontal: 12, paddingVertical: 14, gap: 8 },
-  messageRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 7, maxWidth: '94%', alignSelf: 'flex-start' },
-  messageRowTight: { marginTop: -4 },
+  onlineDot: { position: 'absolute', bottom: 1, right: 1, width: 12, height: 12, borderRadius: 6, backgroundColor: socialPalette.success, borderWidth: 2, borderColor: socialPalette.background },
+  headerAction: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: socialPalette.surface, borderWidth: 1, borderColor: socialPalette.border },
+  messageList: { flexGrow: 1, justifyContent: 'flex-end', paddingHorizontal: 12, paddingVertical: 14 },
+  messageRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 7, maxWidth: '94%', marginBottom: 7 },
+  messageRowTight: { marginTop: -3, marginBottom: 3 },
   ownMessageRow: { alignSelf: 'flex-end' },
+  otherMessageRow: { alignSelf: 'flex-start' },
   messageAvatar: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A1940', borderWidth: 1, borderColor: socialPalette.border, overflow: 'hidden' },
   avatarSpacer: { width: 30 },
   ownMessageAvatar: { backgroundColor: '#55209A', borderColor: '#8E3FD1' },
@@ -454,18 +506,26 @@ const styles = StyleSheet.create({
   messageBubble: { maxWidth: '88%', paddingHorizontal: 13, paddingVertical: 9, borderRadius: 18, borderWidth: 1 },
   ownBubble: { alignSelf: 'flex-end', backgroundColor: '#55209A', borderColor: '#8E3FD1', borderBottomRightRadius: 6 },
   otherBubble: { alignSelf: 'flex-start', backgroundColor: socialPalette.surface, borderColor: socialPalette.border, borderBottomLeftRadius: 6 },
-  senderName: { color: socialPalette.gold, fontSize: 11, fontWeight: '700', marginBottom: 4 },
-  messageText: { color: socialPalette.text, fontSize: 15, lineHeight: 22, textAlign: 'right' },
-  billingNote: { color: socialPalette.gold, fontSize: 10, textAlign: 'right', marginTop: 5 },
-  messageMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5, marginTop: 5 },
-  messageTime: { color: socialPalette.muted, fontSize: 10, textAlign: 'right' },
-  ownMessageTime: { color: 'rgba(255,255,255,0.75)' },
-  dayDivider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 12, paddingHorizontal: 8 },
-  dayLine: { flex: 1, height: 1, backgroundColor: socialPalette.border },
-  dayLabel: { color: socialPalette.muted, fontSize: 11, fontWeight: '700' },
-  emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 44, gap: 6 },
+  senderName: { color: socialPalette.gold, fontSize: 10.5, fontWeight: '800', marginBottom: 4 },
+  messageText: { color: socialPalette.text, fontSize: 14.5, lineHeight: 22, textAlign: 'right' },
+  billingChip: { alignSelf: 'flex-end', marginTop: 6, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7, backgroundColor: 'rgba(244,189,85,0.12)' },
+  billingNote: { color: socialPalette.gold, fontSize: 9, textAlign: 'right' },
+  ownBillingNote: { color: '#FFE1A6' },
+  messageMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5, marginTop: 4 },
+  messageTime: { color: socialPalette.muted, fontSize: 9 },
+  ownMessageTime: { color: 'rgba(255,255,255,0.72)' },
+  pendingMark: { opacity: 0.7 },
+  dayDivider: { alignItems: 'center', marginVertical: 12 },
+  dayPill: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, backgroundColor: socialPalette.surface, borderWidth: 1, borderColor: socialPalette.border },
+  dayLabel: { color: socialPalette.muted, fontSize: 10, fontWeight: '700' },
+  typingBubbleRow: { alignSelf: 'flex-start', marginTop: 3, marginBottom: 7 },
+  typingBubble: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 13, paddingVertical: 10, borderRadius: 16, backgroundColor: socialPalette.surface, borderWidth: 1, borderColor: socialPalette.border },
+  typingDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: socialPalette.muted },
+  typingDotMid: { opacity: 0.65 },
+  emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 44, gap: 7 },
+  emptyIcon: { width: 54, height: 54, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: '#302312' },
   emptyTitle: { color: socialPalette.text, fontSize: 16, fontWeight: '800' },
-  emptyText: { color: socialPalette.muted, textAlign: 'center', marginVertical: 4, fontSize: 13 },
+  emptyText: { color: socialPalette.muted, textAlign: 'center', marginVertical: 3, fontSize: 12.5 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadError: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, gap: 12 },
   loadErrorTitle: { color: socialPalette.text, fontSize: 18, fontWeight: '800' },
@@ -473,18 +533,19 @@ const styles = StyleSheet.create({
   retryButton: { paddingHorizontal: 18, paddingVertical: 11, borderRadius: 13, backgroundColor: socialPalette.primaryDeep },
   retryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   refreshWarning: { color: '#FFC777', fontSize: 12, lineHeight: 18, marginBottom: 12, textAlign: 'center' },
-  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 9, paddingHorizontal: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: socialPalette.border, backgroundColor: socialPalette.background },
-  pricingNotice: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: socialPalette.surface, borderTopWidth: 1, borderTopColor: socialPalette.border },
-  pricingText: { color: socialPalette.gold, fontSize: 11, textAlign: 'right' },
-  inputShell: { flex: 1, borderRadius: 20, borderWidth: 1, borderColor: socialPalette.border, backgroundColor: socialPalette.surface },
-  input: { minHeight: 46, maxHeight: 120, color: socialPalette.text, fontSize: 14, paddingHorizontal: 14, paddingVertical: 11, textAlign: 'right', backgroundColor: 'transparent' },
+  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: 12, paddingTop: 9, borderTopWidth: 1, borderTopColor: socialPalette.border, backgroundColor: 'rgba(9,6,17,0.96)' },
+  pricingNotice: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, paddingVertical: 7, backgroundColor: socialPalette.surface, borderTopWidth: 1, borderTopColor: socialPalette.border },
+  pricingDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: socialPalette.gold },
+  pricingText: { flex: 1, color: socialPalette.gold, fontSize: 10.5, textAlign: 'right' },
+  inputShell: { flex: 1, flexDirection: 'row', alignItems: 'flex-end', borderRadius: 22, borderWidth: 1, borderColor: socialPalette.border, backgroundColor: socialPalette.surface, paddingLeft: 4 },
+  input: { flex: 1, minHeight: 46, maxHeight: 120, color: socialPalette.text, fontSize: 14, paddingHorizontal: 12, paddingVertical: 12, textAlign: 'right', backgroundColor: 'transparent' },
   sendButton: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 23, backgroundColor: socialPalette.primaryDeep },
-  sendDisabled: { opacity: 0.55 },
+  sendDisabled: { opacity: 0.5 },
+  emojiToggle: { width: 42, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 21 },
+  emojiToggleActive: { backgroundColor: '#3A2B48' },
   emojiTray: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 7, backgroundColor: socialPalette.surface, borderTopWidth: 1, borderTopColor: socialPalette.border },
   emojiTrayTitle: { color: socialPalette.muted, fontSize: 10, fontWeight: '700', marginBottom: 8, textAlign: 'right' },
   emojiGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 5 },
   emojiChoice: { minWidth: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: '#241B33' },
   emojiChoiceText: { fontSize: 21 },
-  emojiToggle: { width: 42, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 23, backgroundColor: socialPalette.surface },
-  emojiToggleActive: { backgroundColor: '#3A2B48' },
 });
