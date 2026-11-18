@@ -22,7 +22,7 @@ import { StatusBar } from 'expo-status-bar';
 import { joinVoice, leaveVoice, setMicEnabled } from '@/lib/livekit';
 import type { Room } from 'livekit-client';
 import {
-  Mic, MicOff, X, Send, Gift, Crown, Lock, LogOut, Users, Volume2, VolumeX, UserPlus, Smile, Search,
+  Mic, MicOff, X, Send, Gift, Crown, Lock, Shield, LogOut, Users, Volume2, VolumeX, UserPlus, Smile, Search,
 } from 'lucide-react-native';
 
 const VOICE_OFF = 'off' as const;
@@ -78,6 +78,28 @@ export default function RoomScreen() {
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [micLoading, setMicLoading] = useState(false);
   const [moderatingUserId, setModeratingUserId] = useState<string | null>(null);
+  // M6: صلاحيات إدارة الغرفة وبوابة كلمة المرور وطلبات الصعود
+  const [myRole, setMyRole] = useState<string | null>(null);
+  const [voiceGate, setVoiceGate] = useState<'unknown' | 'required' | 'open'>('unknown');
+  const [passwordPromptVisible, setPasswordPromptVisible] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordChecking, setPasswordChecking] = useState(false);
+  const [manageSheetVisible, setManageSheetVisible] = useState(false);
+  const [requestsSheetVisible, setRequestsSheetVisible] = useState(false);
+  const [auditSheetVisible, setAuditSheetVisible] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState<Array<{
+    id: string; user_id: string; requested_at: string;
+    user: { username: string; display_name: string | null; avatar_url: string | null } | null;
+  }>>([]);
+  const [myPendingRequest, setMyPendingRequest] = useState(false);
+  const [requestingSeat, setRequestingSeat] = useState(false);
+  const [moderatorIds, setModeratorIds] = useState<string[]>([]);
+  const [auditLog, setAuditLog] = useState<Array<{
+    action: string; actor_role: string; created_at: string; duration_minutes: number | null; reason: string | null;
+    actor: { username: string; display_name: string | null } | null;
+    target: { username: string; display_name: string | null } | null;
+  }>>([]);
+  const voicePasswordRef = useRef<string | null>(null);
   const chatListRef = useRef<FlatList>(null);
   const lkRoomRef = useRef<Room | null>(null);
   const seatsRef = useRef<Seat[]>([]);
@@ -86,6 +108,11 @@ export default function RoomScreen() {
   const giftCelebrationAnim = useRef(new Animated.Value(0)).current;
   const speakersCount = seats.filter(seat => seat.status === 'occupied' && seat.user_id).length;
   const isRoomOwner = room?.owner_id === profile?.id;
+  // الأدوار: المالك/المدير الثاني/مشرف/إدارة عليا لهم إدارة كاملة؛ الوكالة نطاقها محدود
+  const isFullManager = myRole === 'owner' || myRole === 'second_admin' || myRole === 'moderator' || myRole === 'admin';
+  const canManage = myRole !== null;
+  const canManageModerators = myRole === 'owner' || myRole === 'second_admin' || myRole === 'admin';
+  const canTransferOwnership = myRole === 'owner' || myRole === 'admin';
 
   useEffect(() => {
     if (room?.status !== 'closed' || closedRoomNoticeRef.current) return;
@@ -155,36 +182,6 @@ export default function RoomScreen() {
       void updatePresence('room-join');
     }, 30_000);
 
-    (async () => {
-      try {
-        setVoiceState(VOICE_CONNECTING);
-        setVoiceError(null);
-        const { room, configured } = await joinVoice(id);
-        if (cancelled) {
-          await leaveVoice(room);
-          return;
-        }
-        if (!configured || !room) {
-          await leaveVoice(room);
-          setVoiceError('خدمة الصوت الحي غير مهيأة على الخادم.');
-          setVoiceState(VOICE_UNAVAILABLE);
-          return;
-        }
-        lkRoomRef.current = room;
-        room.on('connected', () => setVoiceState(VOICE_ON));
-        room.on('disconnected', () => {
-          if (!cancelled) setVoiceState(VOICE_OFF);
-        });
-        setVoiceState(room.state === 'connected' ? VOICE_ON : VOICE_CONNECTING);
-      } catch (e) {
-        console.warn('[Wattar] voice join failed:', e);
-        if (!cancelled) {
-          setVoiceError(e instanceof Error ? e.message : 'تعذر الاتصال بخدمة الصوت.');
-          setVoiceState(VOICE_UNAVAILABLE);
-        }
-      }
-    })();
-
     return () => {
       cancelled = true;
       unsubscribe?.();
@@ -197,6 +194,86 @@ export default function RoomScreen() {
       });
     };
   }, [id]);
+
+  // M6: بوابة كلمة المرور — الغرفة المحمية تتطلب كلمة مرور قبل الاتصال الصوتي
+  // (الطاقم: المالك/المدير الثاني/المشرف/الإدارة/الوكالة المعنية يدخلون بلا كلمة مرور)
+  useEffect(() => {
+    if (!room || !profile) return;
+    if (room.status === 'closed') return;
+    const privileged = myRole !== null || room.owner_id === profile.id;
+    if (room.has_password && !privileged) {
+      setVoiceGate((current) => (current === 'open' ? current : 'required'));
+    } else {
+      setVoiceGate('open');
+    }
+  }, [room?.id, room?.has_password, room?.status, myRole, profile?.id]);
+
+  // الاتصال الصوتي بعد اجتياز البوابة (M6: كلمة المرور تُمرر للتحقق الخادمي)
+  useEffect(() => {
+    if (!id || voiceGate !== 'open') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setVoiceState(VOICE_CONNECTING);
+        setVoiceError(null);
+        const { room: lkRoom, configured } = await joinVoice(id, voicePasswordRef.current ?? undefined);
+        if (cancelled) {
+          await leaveVoice(lkRoom);
+          return;
+        }
+        if (!configured || !lkRoom) {
+          await leaveVoice(lkRoom);
+          setVoiceError('خدمة الصوت الحي غير مهيأة على الخادم.');
+          setVoiceState(VOICE_UNAVAILABLE);
+          return;
+        }
+        lkRoomRef.current = lkRoom;
+        lkRoom.on('connected', () => setVoiceState(VOICE_ON));
+        lkRoom.on('disconnected', () => {
+          if (!cancelled) setVoiceState(VOICE_OFF);
+        });
+        setVoiceState(lkRoom.state === 'connected' ? VOICE_ON : VOICE_CONNECTING);
+      } catch (e) {
+        console.warn('[Wattar] voice join failed:', e);
+        if (!cancelled) {
+          const message = e instanceof Error ? e.message : 'تعذر الاتصال بخدمة الصوت.';
+          if (message.includes('WRONG_ROOM_PASSWORD') || message.includes('ROOM_PASSWORD_REQUIRED')) {
+            setPasswordPromptVisible(true);
+            setVoiceGate('required');
+            setVoiceState(VOICE_OFF);
+            setVoiceError(null);
+            Alert.alert('كلمة المرور', message.includes('WRONG_ROOM_PASSWORD')
+              ? 'كلمة مرور الغرفة غير صحيحة. حاول مجدداً.'
+              : 'هذه الغرفة محمية بكلمة مرور.');
+            return;
+          }
+          if (message.includes('ROOM_PASSWORD_LOCKED')) {
+            setVoiceGate('required');
+            setVoiceState(VOICE_OFF);
+            setVoiceError(null);
+            Alert.alert('محاولات كثيرة', 'أُقفلت محاولات الدخول مؤقتاً بسبب كلمات مرور خاطئة متكررة. انتظر عشر دقائق ثم أعد المحاولة.');
+            return;
+          }
+          if (message.includes('ROOM_BANNED')) {
+            setVoiceState(VOICE_OFF);
+            setVoiceError('أنت محظور من هذه الغرفة.');
+            Alert.alert('محظور', 'لا يمكنك الانضمام إلى هذه الغرفة.', [
+              { text: 'موافق', onPress: () => router.back() },
+            ], { cancelable: false });
+            return;
+          }
+          setVoiceError(message);
+          setVoiceState(VOICE_UNAVAILABLE);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      const lk = lkRoomRef.current;
+      lkRoomRef.current = null;
+      leaveVoice(lk);
+    };
+  }, [id, voiceGate]);
 
   const loadParticipantProfiles = async () => {
     try {
@@ -234,6 +311,7 @@ export default function RoomScreen() {
       .from('rooms')
       .select(`
         id, name, owner_id, seat_count, status, speakers_count,
+        has_password, second_admin_id, seats_locked, audience_muted,
         owner:users!rooms_owner_id_fkey(username, display_name, avatar_url)
       `)
       .eq('id', id)
@@ -283,6 +361,71 @@ export default function RoomScreen() {
       user: item.user_id ? profiles[item.user_id] ?? (item as Message).user : (item as Message).user,
     })));
     setRoomLoading(false);
+    if (profile?.id) {
+      void loadMyRoomPermissions();
+    }
+  };
+
+  // M6: دوري في الغرفة + قائمة المشرفين + طلب الصعود الخاص بي
+  const loadMyRoomPermissions = async () => {
+    if (!profile?.id) return;
+    const [roleResult, modsResult, myRequestResult] = await Promise.all([
+      supabase.rpc('room_actor_role', { p_room_id: id, p_user_id: profile.id }),
+      supabase
+        .from('room_moderators')
+        .select('user_id')
+        .eq('room_id', id),
+      supabase
+        .from('room_seat_requests')
+        .select('id')
+        .eq('room_id', id)
+        .eq('user_id', profile.id)
+        .eq('status', 'pending')
+        .limit(1),
+    ]);
+    if (roleResult.error) throw roleResult.error;
+    setMyRole((roleResult.data as string | null) ?? null);
+    setModeratorIds((modsResult.data ?? []).map((row: { user_id: string }) => row.user_id));
+    setMyPendingRequest((myRequestResult.data ?? []).length > 0);
+  };
+
+  // M6: طلبات الصعود المعلقة (تظهر لإدارة الغرفة)
+  const loadPendingRequests = async () => {
+    const { data, error } = await supabase
+      .from('room_seat_requests')
+      .select(`
+        id, user_id, requested_at,
+        user:users(username, display_name, avatar_url)
+      `)
+      .eq('room_id', id)
+      .eq('status', 'pending')
+      .order('requested_at', { ascending: true })
+      .limit(50);
+    if (error) return;
+    setPendingRequests((data ?? []).map((row: any) => ({
+      ...row,
+      user: Array.isArray(row.user) ? row.user[0] ?? null : row.user,
+    })));
+  };
+
+  // M6: سجل تغييرات إدارة الغرفة (المدير الثاني/التسليم/كل الإجراءات)
+  const loadAuditLog = async () => {
+    const { data, error } = await supabase
+      .from('room_moderation_audit')
+      .select(`
+        action, actor_role, created_at, duration_minutes, reason,
+        actor:users!room_moderation_audit_actor_id_fkey(username, display_name),
+        target:users!room_moderation_audit_target_user_id_fkey(username, display_name)
+      `)
+      .eq('room_id', id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) return;
+    setAuditLog((data ?? []).map((row: any) => ({
+      ...row,
+      actor: Array.isArray(row.actor) ? row.actor[0] ?? null : row.actor,
+      target: Array.isArray(row.target) ? row.target[0] ?? null : row.target,
+    })));
   };
 
   const loadSeats = async () => {
@@ -393,6 +536,21 @@ export default function RoomScreen() {
           setRoom((current: typeof room) => current ? { ...current, ...updatedRoom } : current);
         }
       )
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'room_seat_requests', filter: `room_id=eq.${id}` },
+        async () => {
+          if (!canManage || !profile) return;
+          await loadPendingRequests();
+          const { data } = await supabase
+            .from('room_seat_requests')
+            .select('id')
+            .eq('room_id', id)
+            .eq('user_id', profile.id)
+            .eq('status', 'pending')
+            .limit(1);
+          setMyPendingRequest((data ?? []).length > 0);
+        }
+      )
       .subscribe();
 
     return () => {
@@ -455,22 +613,7 @@ export default function RoomScreen() {
     });
   };
 
-  const takeSeat = async (seatIndex: number) => {
-    if (!profile) return;
-    const seat = seats.find(s => s.seat_index === seatIndex);
-    if (!seat || seat.status !== 'empty') return;
 
-    const { error } = await supabase.rpc('claim_room_seat', {
-      p_room_id: id,
-      p_seat_index: seatIndex,
-    });
-
-    if (error) {
-      Alert.alert('خطأ', error.message || 'فشل احتلال المقعد');
-    } else {
-      setMySeat(seatIndex);
-    }
-  };
 
   const leaveSeat = async () => {
     if (!profile || mySeat === null) return;
@@ -483,6 +626,32 @@ export default function RoomScreen() {
       return;
     }
     setMySeat(null);
+  };
+
+  const requestMySeat = async () => {
+    if (!profile) return;
+    setRequestingSeat(true);
+    try {
+      await supabase.rpc('request_room_seat', { p_room_id: id });
+      setMyPendingRequest(true);
+    } catch (error: unknown) {
+      Alert.alert('تعذر إرسال طلب الصعود', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+    } finally {
+      setRequestingSeat(false);
+    }
+  };
+
+  const cancelMySeatRequest = async () => {
+    if (!profile) return;
+    setRequestingSeat(true);
+    try {
+      await supabase.rpc('cancel_room_seat_request', { p_room_id: id });
+      setMyPendingRequest(false);
+    } catch (error: unknown) {
+      Alert.alert('تعذر إلغاء الطلب', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+    } finally {
+      setRequestingSeat(false);
+    }
   };
 
   const toggleMic = async () => {
@@ -514,7 +683,6 @@ export default function RoomScreen() {
 
     setMicLoading(true);
     try {
-      // الكتم/التفعيل الفعلي على الصوت الحي
       await setMicEnabled(lkRoomRef.current, !newMute);
       const { error } = await supabase.rpc('set_room_mic', {
         p_room_id: id,
@@ -534,46 +702,98 @@ export default function RoomScreen() {
     router.back();
   };
 
-  const performOwnerAction = async (
-    action: 'close_room' | 'remove_seat' | 'mute_chat',
-    targetUserId?: string,
-    durationMinutes?: number,
-  ) => {
-    if (!profile || !room || room.owner_id !== profile.id) {
-      Alert.alert('غير مصرح', 'إدارة الغرفة متاحة لمالكها فقط.');
-      return;
+  const submitRoomPassword = async () => {
+    setPasswordChecking(true);
+    try {
+      await callFunction<{ url?: string; token?: string }>('livekit-token', {
+        room_id: id!,
+        password: passwordInput.trim(),
+      });
+      voicePasswordRef.current = passwordInput.trim();
+      setVoiceGate('open');
+      setPasswordPromptVisible(false);
+      setPasswordInput('');
+    } catch (error: unknown) {
+      const cause: any = (error as any)?.cause;
+      const code: string = cause?.error ?? (error as Error)?.message ?? '';
+      if (code === 'LIVEKIT_NOT_CONFIGURED' || String(code).includes('LIVEKIT_NOT_CONFIGURED')) {
+        voicePasswordRef.current = passwordInput.trim();
+        setVoiceGate('open');
+        setPasswordPromptVisible(false);
+        setPasswordInput('');
+        Alert.alert(
+          'تم التحقق من كلمة المرور',
+          'كلمة المرور صحيحة. خدمة الصوت الحي غير مضبوطة على الخادم، تعمل الغرفة بدون صوت.',
+        );
+        return;
+      }
+      if (code === 'WRONG_ROOM_PASSWORD') {
+        Alert.alert('كلمة مرور غير صحيحة', 'كلمة مرور الغرفة غير صحيحة. حاول مجدداً.');
+        return;
+      }
+      if (code === 'ROOM_PASSWORD_LOCKED') {
+        Alert.alert('محاولات كثيرة', 'أُقفلت محاولات الدخول مؤقتاً بسبب كلمات مرور خاطئة متكررة. انتظر عشر دقائق ثم أعد المحاولة.');
+        return;
+      }
+      Alert.alert('خطأ', code || 'تعذر التحقق من كلمة المرور. حاول مرة أخرى.');
+    } finally {
+      setPasswordChecking(false);
     }
+  };
+
+  const performManageAction = async (
+    action: string,
+    targetUserId?: string | null,
+    durationMinutes?: number,
+    password?: string,
+  ) => {
+    if (!profile || !room) return;
     if (targetUserId && targetUserId === profile.id) {
-      Alert.alert('إجراء غير صالح', 'لا يمكنك تطبيق إجراء على نفسك.');
+      Alert.alert('إجراء غير صالح', 'لا يمكنك تطبيق الإجراء على نفسك.');
       return;
     }
     setModeratingUserId(targetUserId ?? 'room');
     try {
       const response = await callFunction<{
-        audio_kick?: 'removed' | 'not_configured' | 'failed' | null;
-      }>('room-owner-action', {
+        audio_kick?: 'applied' | 'not_configured' | 'failed' | null;
+        audio_mute?: 'applied' | 'not_configured' | 'failed' | null;
+      }>('room-manage-action', {
         room_id: id,
         action,
         ...(targetUserId ? { target_user_id: targetUserId } : {}),
-        ...(durationMinutes ? { duration_minutes: durationMinutes } : {}),
+        ...(durationMinutes !== undefined ? { duration_minutes: durationMinutes } : {}),
+        ...(password !== undefined ? { password } : {}),
       });
-      if (action === 'close_room') {
-        setRoom((current: typeof room) => current ? { ...current, status: 'closed' } : current);
-      } else {
-        await loadSeats();
-        Alert.alert(
-          action === 'remove_seat' ? 'تمت إزالة المتحدث' : 'تم كتم المحادثة',
-          action === 'remove_seat'
-            ? response.audio_kick === 'removed'
-              ? 'أُخلي مقعد المستخدم وتم فصله من الصوت المباشر.'
-              : response.audio_kick === 'not_configured'
-                ? 'أُخلي المقعد، لكن خدمة الصوت غير مهيأة وقد يظل المستخدم متصلًا بالصوت.'
-                : response.audio_kick === 'failed'
-                  ? 'أُخلي المقعد، لكن تعذر فصله من الصوت. تحقق من اتصال LiveKit وحاول مجددًا.'
-                  : 'أُخلي مقعد المستخدم.'
-            : `لن يتمكن المستخدم من إرسال رسائل لمدة ${durationMinutes} دقيقة. لا يؤثر هذا الإجراء في الميكروفون.`,
-        );
-      }
+      if (action === 'close_room') setRoom((current: typeof room) => current ? { ...current, status: 'closed' } : current);
+      else if (action === 'reopen_room') setRoom((current: typeof room) => current ? { ...current, status: 'live' } : current);
+      else if (action === 'lock_seats') setRoom((current: typeof room) => current ? { ...current, seats_locked: true } : current);
+      else if (action === 'unlock_seats') setRoom((current: typeof room) => current ? { ...current, seats_locked: false } : current);
+      else if (action === 'mute_audience') setRoom((current: typeof room) => current ? { ...current, audience_muted: true } : current);
+      else if (action === 'unmute_audience') setRoom((current: typeof room) => current ? { ...current, audience_muted: false } : current);
+      else if (action === 'set_password') setRoom((current: typeof room) => current ? { ...current, has_password: true } : current);
+      else if (action === 'clear_password') setRoom((current: typeof room) => current ? { ...current, has_password: false } : current);
+      await loadRoom();
+
+      if (action === 'lower_user') Alert.alert('تمت الإزالة', 'تم إنزال المتحدث من المنصة.');
+      else if (action === 'kick_user') {
+        const kicked = response.audio_kick === 'applied' ? 'تم فصله من الصوت المباشر.'
+          : response.audio_kick === 'not_configured' ? 'تم إخلاء المقعد، لكن خدمة الصوت غير مهيأة.'
+          : response.audio_kick === 'failed' ? 'تم إخلاء المقعد، وتعذر فصله من الصوت.'
+          : '';
+        Alert.alert('تم طرد المستخدم', kicked ? kicked : 'تم طرد المستخدم من الغرفة.');
+      } else if (action === 'ban_user') Alert.alert('تم الحظر', 'تم حظر المستخدم من الغرفة.');
+      else if (action === 'unban_user') Alert.alert('تم الرفع', 'تم رفع الحظر عن المستخدم.');
+      else if (action === 'mute_mic') Alert.alert('تم الكتم', 'ميكروفون المتحدث مكتوم.');
+      else if (action === 'unmute_mic') Alert.alert('تم التفعيل', 'ميكروفون المتحدث مفعل.');
+      else if (action === 'mute_chat') Alert.alert('تم كتم المحادثة', `لن يتمكن المستخدم من إرسال الرسائل لمدة ${durationMinutes} دقيقة.`);
+      else if (action === 'unmute_chat') Alert.alert('تم الإلغاء', 'تم إلغاء كتم محادثة المستخدم.');
+      else if (action === 'appoint_moderator') Alert.alert('تم التعيين', 'تم تعيين المستخدم مشرفاً على الغرفة.');
+      else if (action === 'remove_moderator') Alert.alert('تم الإزالة', 'تمت إزالة المستخدم من إشراف الغرفة.');
+      else if (action === 'appoint_second_admin') Alert.alert('تم التعيين', 'تم تعيين مدير ثاني للغرفة.');
+      else if (action === 'remove_second_admin') Alert.alert('تم الإزالة', 'تمت إزالة صلاحيات المدير الثاني.');
+      else if (action === 'handover_owner') Alert.alert('تم التسليم', 'تم تسليم إدارة الغرفة للمستخدم الجديد.');
+      else if (action === 'accept_seat_request') Alert.alert('تم القبول', 'تم قبول طلب الصعود.');
+      else if (action === 'reject_seat_request') Alert.alert('تم الرفض', 'تم رفض طلب الصعود.');
     } catch (error: unknown) {
       Alert.alert('تعذر تنفيذ الإجراء', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     } finally {
@@ -581,36 +801,128 @@ export default function RoomScreen() {
     }
   };
 
-  const moderateSeat = (seat: Seat) => {
-    if (!isRoomOwner || !seat.user_id || seat.user_id === profile?.id || !room || room.status === 'closed') return;
-    const memberName = seat.user?.display_name ?? seat.user?.username ?? 'هذا المستخدم';
-    Alert.alert(`إدارة ${memberName}`, 'اختر إجراءً على المنصة أو محادثة الغرفة.', [
-      {
-        text: 'إزالة من المنصة',
-        style: 'destructive',
-        onPress: () => void performOwnerAction('remove_seat', seat.user_id!),
-      },
-      {
-        text: 'كتم المحادثة',
-        onPress: () => Alert.alert('مدة كتم المحادثة', 'الكتم يخص رسائل المحادثة فقط ولا يعطّل الميكروفون.', [
-          { text: '15 دقيقة', onPress: () => void performOwnerAction('mute_chat', seat.user_id!, 15) },
-          { text: 'ساعة واحدة', onPress: () => void performOwnerAction('mute_chat', seat.user_id!, 60) },
-          { text: 'إلغاء', style: 'cancel' },
-        ]),
-      },
+  const openKickConfirm = (userId: string | null, name: string) => {
+    Alert.alert('طرد من الغرفة؟', `سيتم طرد ${name} وإخلاء مقعده.`, [
+      { text: 'تأكيد الطرد', style: 'destructive', onPress: () => userId && performManageAction('kick_user', userId) },
       { text: 'إلغاء', style: 'cancel' },
     ]);
   };
 
-  const confirmCloseRoom = () => {
-    Alert.alert('إغلاق الغرفة؟', 'سيتم إنهاء الجلسة وإخلاء المقاعد. ستبقى الغرفة وسجلها محفوظين.', [
-      {
-        text: 'إغلاق الغرفة',
-        style: 'destructive',
-        onPress: () => void performOwnerAction('close_room'),
-      },
+  const openBanDialog = (userId: string | null, name: string) => {
+    Alert.alert('حظر من الغرفة؟', `اختر مدة الحظر لـ ${name}:`, [
+      { text: 'دائم', style: 'destructive', onPress: () => userId && performManageAction('ban_user', userId) },
+      { text: 'ساعة واحدة', onPress: () => userId && performManageAction('ban_user', userId, 60) },
+      { text: 'يوم واحد', onPress: () => userId && performManageAction('ban_user', userId, 1440) },
       { text: 'إلغاء', style: 'cancel' },
     ]);
+  };
+
+  const openMuteChatDialog = (userId: string | null, name: string) => {
+    Alert.alert('كتم المحادثة؟', `سيتم كتم محادثة ${name}. اختر المدة:`, [
+      { text: '15 دقيقة', onPress: () => userId && performManageAction('mute_chat', userId, 15) },
+      { text: 'ساعة واحدة', onPress: () => userId && performManageAction('mute_chat', userId, 60) },
+      { text: 'إلغاء', style: 'cancel' },
+    ]);
+  };
+
+  const openHandoverConfirm = (userId: string | null, name: string) => {
+    Alert.alert('تسليم الإدارة؟', `سيتم نقل إدارة الغرفة إلى ${name} وتصبح عضواً عادياً.`, [
+      { text: 'تأكيد التسليم', style: 'destructive', onPress: () => userId && performManageAction('handover_owner', userId) },
+      { text: 'إلغاء', style: 'cancel' },
+    ]);
+  };
+
+  const openMemberActions = (seat: Seat) => {
+    if (!seat.user_id || seat.user_id === profile?.id || !room || seat.is_owner_seat) return;
+    const memberName = seat.user?.display_name ?? seat.user?.username ?? 'هذا المستخدم';
+    const isMod = moderatorIds.includes(seat.user_id);
+    const options: Array<{ text: string; style?: 'destructive' | 'cancel'; onPress?: () => void }> = [];
+    options.push({ text: 'إنزال من المنصة', style: 'destructive', onPress: () => performManageAction('lower_user', seat.user_id) });
+    options.push({ text: 'طرد من الغرفة', style: 'destructive', onPress: () => openKickConfirm(seat.user_id, memberName) });
+    options.push({ text: 'حظر من الغرفة', onPress: () => openBanDialog(seat.user_id, memberName) });
+    if (canManageModerators) {
+      options.push(isMod ? { text: 'إزالة من الإشراف', onPress: () => performManageAction('remove_moderator', seat.user_id) }
+        : { text: 'تعيين مشرفاً', onPress: () => performManageAction('appoint_moderator', seat.user_id) });
+    }
+    options.push(seat.is_mic_on ? { text: 'كتم الميكروفون', onPress: () => performManageAction('mute_mic', seat.user_id) }
+      : { text: 'تشغيل الميكروفون', onPress: () => performManageAction('unmute_mic', seat.user_id) });
+    options.push({ text: 'كتم المحادثة', onPress: () => openMuteChatDialog(seat.user_id, memberName) });
+    if ((myRole === 'owner' || myRole === 'admin') && !isMod) {
+      if (room.second_admin_id === seat.user_id) {
+        options.push({ text: 'إزالة المدير الثاني', onPress: () => performManageAction('remove_second_admin', seat.user_id) });
+      } else {
+        options.push({ text: 'تعيين مدير ثاني', onPress: () => performManageAction('appoint_second_admin', seat.user_id) });
+      }
+      options.push({ text: 'تسليم الإدارة', onPress: () => openHandoverConfirm(seat.user_id, memberName) });
+    }
+    options.push({ text: 'إلغاء', style: 'cancel' });
+    Alert.alert(`إدارة ${memberName}`, 'اختر الإجراء المطلوب:',
+      options.map(o => ({ text: o.text, style: o.style, onPress: o.onPress })));
+  };
+
+  const closeRoom = () => {
+    if (!room) return;
+    Alert.alert('إغلاق الغرفة؟', 'سيتم إنهاء الجلسة وإخلاء المقاعد. ستبقى الغرفة وسجلها محفوظين.', [
+      { text: 'إغلاق الغرفة', style: 'destructive', onPress: () => performManageAction('close_room') },
+      { text: 'إلغاء', style: 'cancel' },
+    ]);
+  };
+
+  const reopenRoom = () => performManageAction('reopen_room');
+
+  const toggleSeatsLock = () => performManageAction(room.seats_locked ? 'unlock_seats' : 'lock_seats');
+  const toggleAudience = () => performManageAction(room.audience_muted ? 'unmute_audience' : 'mute_audience');
+
+  const openPasswordManager = () => {
+    setManageSheetVisible(false);
+    if (room.has_password) {
+      Alert.alert('كلمة مرور الغرفة', 'توجد كلمة مرور على الغرفة حالياً.', [
+        { text: 'إزالة كلمة المرور', style: 'destructive', onPress: () => performManageAction('clear_password') },
+        { text: 'تغيير كلمة المرور', onPress: () => setPasswordPromptVisible(true) },
+        { text: 'إلغاء', style: 'cancel' },
+      ]);
+    } else {
+      setPasswordPromptVisible(true);
+    }
+  };
+
+  const openRequestsSheet = () => { setManageSheetVisible(false); setRequestsSheetVisible(true); };
+  const openAuditSheet = () => { setManageSheetVisible(false); setAuditSheetVisible(true); };
+
+  // المودال المتعرّف automatisch lorsque la porte du mot de passe est requise
+  useEffect(() => {
+    setPasswordPromptVisible(voiceGate === 'required');
+  }, [voiceGate]);
+
+  const takeSeat = async (seatIndex: number) => {
+    if (!profile) return;
+    const seat = seats.find(s => s.seat_index === seatIndex);
+    if (!seat) return;
+    if (seat.status === 'locked') {
+      if (mySeat === null) {
+        Alert.alert('المقاعد مقفلة', 'المقاعد مقفلة حالياً؛ لا يمكن الانضمام مباشرة إلى المنصة.', [
+          myPendingRequest
+            ? { text: 'إلغاء طلبي', onPress: cancelMySeatRequest }
+            : { text: 'إرسال طلب صعود', onPress: requestMySeat },
+          { text: 'إلغاء', style: 'cancel' },
+        ]);
+      } else {
+        Alert.alert('المقاعد مقفلة', 'لا يمكنك تغيير المقاعد بينما المقاعد مقفلة.');
+      }
+      return;
+    }
+    if (seat.status !== 'empty') return;
+
+    const { error } = await supabase.rpc('claim_room_seat', {
+      p_room_id: id,
+      p_seat_index: seatIndex,
+    });
+
+    if (error) {
+      Alert.alert('خطأ', error.message || 'فشل احتلال المقعد');
+    } else {
+      setMySeat(seatIndex);
+    }
   };
 
   const openRoomInvites = async () => {
@@ -684,6 +996,11 @@ export default function RoomScreen() {
         <StatusBar style="light" />
         <Text style={styles.loadErrorTitle}>الغرفة مغلقة</Text>
         <Text style={styles.loadErrorMessage}>انتهت الجلسة. الغرفة وسجلها محفوظان ولا يمكن إرسال رسائل أو الانضمام إلى المقاعد.</Text>
+        {canManage && (
+          <TouchableOpacity style={styles.retryButton} onPress={reopenRoom}>
+            <Text style={styles.retryButtonText}>إعادة فتح الغرفة</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
           <Text style={styles.retryButtonText}>العودة</Text>
         </TouchableOpacity>
@@ -742,10 +1059,22 @@ export default function RoomScreen() {
         >
           <UserPlus size={20} color={colors.roomPrimary} />
         </TouchableOpacity>
-        {isRoomOwner && (
+        {isFullManager ? (
           <TouchableOpacity
             style={[styles.iconBtn, styles.ownerCloseBtn]}
-            onPress={confirmCloseRoom}
+            onPress={() => setManageSheetVisible(true)}
+            disabled={moderatingUserId === 'room'}
+            accessibilityRole="button"
+            accessibilityLabel="إدارة الغرفة"
+          >
+            {moderatingUserId === 'room'
+              ? <ActivityIndicator size="small" color={colors.roomPrimary} />
+              : <Shield size={20} color={colors.roomPrimary} />}
+          </TouchableOpacity>
+        ) : canManage ? (
+          <TouchableOpacity
+            style={[styles.iconBtn, styles.ownerCloseBtn]}
+            onPress={closeRoom}
             disabled={moderatingUserId === 'room'}
             accessibilityRole="button"
             accessibilityLabel="إغلاق الغرفة"
@@ -754,7 +1083,7 @@ export default function RoomScreen() {
               ? <ActivityIndicator size="small" color={colors.danger} />
               : <X size={20} color={colors.danger} />}
           </TouchableOpacity>
-        )}
+        ) : null}
       </View>
 
       {/* Seats Grid */}
@@ -773,12 +1102,14 @@ export default function RoomScreen() {
               seat={seat}
               mySeat={mySeat}
               isOwner={room.owner_id === profile?.id}
-              canModerate={!!isRoomOwner && seat.user_id !== profile?.id}
+              isFullManager={isFullManager}
+              seatsLocked={!!room.seats_locked}
+              canModerate={canManage && seat.user_id !== profile?.id && !seat.is_owner_seat}
               onTake={() => takeSeat(seat.seat_index)}
               onProfile={() => {
                 if (seat.user_id && seat.user_id !== profile?.id) router.push(`/user/${seat.user_id}`);
               }}
-              onModerate={() => moderateSeat(seat)}
+              onModerate={() => openMemberActions(seat)}
               moderationDisabled={moderatingUserId === seat.user_id}
             />
           ))}
@@ -1010,6 +1341,109 @@ export default function RoomScreen() {
           </View>
         </View>
       </Modal>
+      {/* M6: لوحة الإدارة السريعة */}
+      <Modal visible={manageSheetVisible} transparent animationType="slide" onRequestClose={() => setManageSheetVisible(false)}>
+        <View style={styles.manageModalOverlay}>
+          <View style={styles.manageModal}>
+            <Text style={styles.manageModalTitle}>إدارة الغرفة</Text>
+            <TouchableOpacity style={styles.manageRow} onPress={toggleSeatsLock} activeOpacity={0.8}>
+              <Lock size={18} color={room.seats_locked ? colors.gold : colors.roomMuted} />
+              <Text style={styles.manageRowText}>{room.seats_locked ? 'فتح المقاعد' : 'قفل المقاعد'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.manageRow} onPress={toggleAudience} activeOpacity={0.8}>
+              {room.audience_muted ? <Volume2 size={18} color={colors.roomMuted} /> : <VolumeX size={18} color={colors.roomPrimary} />}
+              <Text style={styles.manageRowText}>{room.audience_muted ? 'إلغاء كتم الجمهور' : 'كتم الجمهور'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.manageRow} onPress={openPasswordManager} activeOpacity={0.8}>
+              <Lock size={18} color={room.has_password ? colors.gold : colors.roomMuted} />
+              <Text style={styles.manageRowText}>{room.has_password ? 'إدارة كلمة المرور' : 'تعيين كلمة مرور'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.manageRow} onPress={openRequestsSheet} activeOpacity={0.8}>
+              <Users size={18} color={colors.roomPrimary} />
+              <Text style={styles.manageRowText}>طلبات الصعود{pendingRequests.length > 0 ? ` (${pendingRequests.length})` : ''}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.manageRow} onPress={openAuditSheet} activeOpacity={0.8}>
+              <Users size={18} color={colors.roomMuted} />
+              <Text style={styles.manageRowText}>سجل التغييرات</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.manageRow} onPress={room.status === 'closed' ? reopenRoom : closeRoom} activeOpacity={0.8}>
+              <X size={18} color={colors.danger} />
+              <Text style={styles.manageRowText}>{room.status === 'closed' ? 'إعادة فتح الغرفة' : 'إغلاق الغرفة'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.manageRow, styles.manageCloseRow]} onPress={() => setManageSheetVisible(false)} activeOpacity={0.8}>
+              <Text style={styles.manageRowText}>إغلاق القائمة</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      {/* مودال كلمة مرور الغرفة */}
+      <Modal visible={passwordPromptVisible} transparent animationType="fade" onRequestClose={() => setPasswordPromptVisible(false)}>
+        <View style={styles.passwordOverlay}>
+          <View style={styles.passwordModal}>
+            <Text style={styles.manageModalTitle}>{room.has_password ? 'تغيير كلمة مرور الغرفة' : 'تعيين كلمة مرور الغرفة'}</Text>
+            <TextInput
+              style={styles.passwordInput}
+              value={passwordInput}
+              onChangeText={setPasswordInput}
+              secureTextEntry
+              placeholder="كلمة المرور (من 4 إلى 50 حرف)"
+              placeholderTextColor={colors.roomMuted}
+            />
+            <View style={styles.passwordActions}>
+              <TouchableOpacity style={styles.passwordCancel} onPress={() => setPasswordPromptVisible(false)} activeOpacity={0.8}>
+                <Text style={styles.passwordCancelText}>إلغاء</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.passwordConfirm} onPress={submitRoomPassword} activeOpacity={0.8} disabled={passwordChecking}>
+                <Text style={styles.passwordConfirmText}>{passwordChecking ? 'جارٍ التحقق...' : 'تأكيد'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      {/* مودال طلبات الصعود */}
+      <Modal visible={requestsSheetVisible} transparent animationType="slide" onRequestClose={() => setRequestsSheetVisible(false)}>
+        <View style={styles.manageModalOverlay}>
+          <View style={styles.manageModal}>
+            <Text style={styles.manageModalTitle}>طلبات الصعود ({pendingRequests.length})</Text>
+            {pendingRequests.length === 0 ? (
+              <Text style={styles.manageRowText}>لا توجد طلبات قيد الانتظار.</Text>
+            ) : pendingRequests.map((req) => (
+              <React.Fragment key={req.id}>
+                <TouchableOpacity style={styles.requestRow} onPress={() => performManageAction('accept_seat_request', req.user_id)} activeOpacity={0.8}>
+                  <Text style={styles.requestRowName}>{req.user?.display_name ?? req.user?.username ?? 'مستخدم'}</Text>
+                  <Text style={styles.requestRowTime}>{new Date(req.requested_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.rejectBtn} onPress={() => performManageAction('reject_seat_request', req.user_id)} activeOpacity={0.8}>
+                  <Text style={styles.rejectText}>رفض</Text>
+                </TouchableOpacity>
+              </React.Fragment>
+            ))}
+            <TouchableOpacity style={[styles.manageRow, styles.manageCloseRow]} onPress={() => setRequestsSheetVisible(false)} activeOpacity={0.8}>
+              <Text style={styles.manageRowText}>إغلاق</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      {/* مودل سجل التغييرات */}
+      <Modal visible={auditSheetVisible} transparent animationType="slide" onRequestClose={() => setAuditSheetVisible(false)}>
+        <View style={styles.manageModalOverlay}>
+          <View style={styles.manageModal}>
+            <Text style={styles.manageModalTitle}>سجل تغييرات الغرفة</Text>
+            {auditLog.length === 0 ? (
+              <Text style={styles.manageRowText}>لا توجد تغييرات مسجلة.</Text>
+            ) : auditLog.map((entry) => (
+              <View key={`${entry.created_at}-${entry.action}-${entry.target?.username ?? ''}`} style={styles.auditRow}>
+                <Text style={styles.auditAction}>{entry.action}</Text>
+                <Text style={styles.auditActor}>{entry.actor?.display_name ?? entry.actor?.username ?? '—'}</Text>
+                <Text style={styles.auditTime}>{new Date(entry.created_at).toLocaleString('ar', { hour: '2-digit', minute: '2-digit' })}</Text>
+              </View>
+            ))}
+            <TouchableOpacity style={[styles.manageRow, styles.manageCloseRow]} onPress={() => setAuditSheetVisible(false)} activeOpacity={0.8}>
+              <Text style={styles.manageRowText}>إغلاق</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1018,6 +1452,8 @@ function SeatView({
   seat,
   mySeat,
   isOwner,
+  isFullManager,
+  seatsLocked,
   canModerate,
   onTake,
   onProfile,
@@ -1027,6 +1463,8 @@ function SeatView({
   seat: Seat;
   mySeat: number | null;
   isOwner: boolean;
+  isFullManager: boolean;
+  seatsLocked: boolean;
   canModerate: boolean;
   onTake: () => void;
   onProfile: () => void;
@@ -1037,7 +1475,7 @@ function SeatView({
   const pulse = useRef(new Animated.Value(0)).current;
   const isOccupied = seat.status === 'occupied' && seat.user_id;
   const isLocked = seat.status === 'locked';
-  const canTake = !isOccupied && !isLocked && (mySeat === null || mySeat === seat.seat_index);
+  const canTake = !isOccupied && (!isLocked || isFullManager) && (mySeat === null || mySeat === seat.seat_index);
 
   useEffect(() => {
     if (!seat.is_mic_on || reduceMotion) {
@@ -1109,7 +1547,7 @@ function SeatView({
             </View>
           </View>
           <Text style={styles.seatName} numberOfLines={1}>
-            {seat.user?.display_name ?? seat.user?.username}
+            {seat.user?.display_name ?? seat.user?.username ?? ''}
           </Text>
           <View style={[styles.micIcon, seat.is_mic_on ? styles.micOn : styles.micOff]}>
             {seat.is_mic_on ? <Mic size={10} color="#fff" /> : <MicOff size={10} color="#fff" />}
@@ -1814,4 +2252,27 @@ const styles = StyleSheet.create({
   inviteFriendName: { color: colors.roomText, fontSize: 14, fontWeight: '600' },
   inviteFriendUsername: { color: colors.roomMuted, fontSize: 11, marginTop: 3 },
   inviteEmpty: { color: colors.roomMuted, fontSize: 13, lineHeight: 20, textAlign: 'center', paddingVertical: 26 },
+  manageModalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
+  manageModal: { backgroundColor: colors.roomSurface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 16, maxHeight: '75%' },
+  manageModalTitle: { color: colors.roomText, fontSize: 17, fontWeight: '800', marginBottom: 14, textAlign: 'right' },
+  manageRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.roomElevated },
+  manageRowText: { color: colors.roomText, fontSize: 14, flex: 1 },
+  manageCloseRow: { borderBottomWidth: 0 },
+  passwordOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center' },
+  passwordModal: { backgroundColor: colors.roomSurface, borderRadius: 20, padding: 20, width: '88%', maxWidth: 420 },
+  passwordInput: { backgroundColor: colors.roomElevated, borderWidth: 1, borderColor: '#352644', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, color: colors.roomText, fontSize: 14, textAlign: 'right', marginBottom: 16 },
+  passwordActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
+  passwordCancel: { paddingHorizontal: 18, paddingVertical: 10 },
+  passwordCancelText: { color: colors.roomMuted, fontSize: 14 },
+  passwordConfirm: { backgroundColor: colors.roomPrimary, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 10 },
+  passwordConfirmText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  requestRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.roomElevated },
+  requestRowName: { color: colors.roomText, fontSize: 14 },
+  requestRowTime: { color: colors.roomMuted, fontSize: 11 },
+  rejectBtn: { backgroundColor: colors.roomElevated, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
+  rejectText: { color: colors.roomText, fontSize: 13, fontWeight: '800' },
+  auditRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.roomElevated },
+  auditAction: { color: colors.roomText, fontSize: 13, fontWeight: '700' },
+  auditActor: { color: colors.roomMuted, fontSize: 13 },
+  auditTime: { color: colors.roomMuted, fontSize: 11 },
 });

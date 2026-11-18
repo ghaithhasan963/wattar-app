@@ -22,7 +22,7 @@ $availableFunctions = @(
   'daily-bonus',
   'room-join',
   'room-leave',
-  'room-owner-action',
+  'room-manage-action',
   'livekit-token',
   'game-wheel',
   'game-dice',

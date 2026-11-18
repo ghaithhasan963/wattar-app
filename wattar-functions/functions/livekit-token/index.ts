@@ -15,7 +15,7 @@
  *   200 → { url, token, room, identity }
  *   501 → { error: "LIVEKIT_NOT_CONFIGURED" } إن لم تُضبط الأسرار (يعمل التطبيق بلا صوت)
  *
- * @version 1.0.1
+ * @version 1.0.2
  */
 import {
   authenticate,
@@ -100,31 +100,47 @@ Deno.serve(async (req: Request) => {
     const ctx = await authenticate(req);
     await rateLimitByUser(ctx, 'livekit_token', 10, 60_000);
 
-    const body = await parseBody<{ room_id: string }>(req);
+    const body = await parseBody<{ room_id: string; password?: string }>(req);
     validateBody(body, ['room_id']);
-
-    const LIVEKIT_URL = Deno.env.get('LIVEKIT_URL');
-    const LIVEKIT_API_KEY = Deno.env.get('LIVEKIT_API_KEY');
-    const LIVEKIT_API_SECRET = Deno.env.get('LIVEKIT_API_SECRET');
-
-    // الصوت غير مفعّل — التطبيق يستمر بدون صوت مع رسالة واضحة
-    if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-      return jsonResponse({ error: 'LIVEKIT_NOT_CONFIGURED' }, 501);
-    }
 
     const supabase = getSupabaseAdmin();
 
     // الغرفة يجب أن تكون موجودة ومفتوحة
     const { data: room, error: roomErr } = await supabase
       .from('rooms')
-      .select('id, status, is_private, owner_id')
+      .select('id, status, is_private, owner_id, second_admin_id, has_password')
       .eq('id', body.room_id)
       .single();
     if (roomErr || !room) throw new HttpError(404, 'ROOM_NOT_FOUND', 'الغرفة غير موجودة');
     if (room.status !== 'waiting' && room.status !== 'live') {
       throw new HttpError(403, 'ROOM_CLOSED', 'الغرفة مغلقة');
     }
-    if (room.is_private && room.owner_id !== ctx.user_id) {
+
+    // دور الفاعل: المالك/المدير الثاني/مشرف/إدارة/وكالة نطاقها هذه الغرفة
+    let actorRole: string | null = null;
+    const { data: roleResult, error: roleErr } = await supabase.rpc('room_actor_role', {
+      p_room_id: room.id,
+      p_user_id: ctx.user_id,
+    });
+    if (roleErr) throw roleErr;
+    actorRole = (roleResult as string | null) ?? null;
+
+    // المحظور من الغرفة لا يحصل على توكن صوت
+    const { data: banRows, error: banErr } = await supabase
+      .from('room_bans')
+      .select('expires_at')
+      .eq('room_id', room.id)
+      .eq('user_id', ctx.user_id)
+      .limit(1);
+    if (banErr) throw banErr;
+    const activeBan = (banRows ?? []).find(
+      (row: { expires_at: string | null }) => !row.expires_at || new Date(row.expires_at) > new Date(),
+    );
+    if (activeBan) {
+      throw new HttpError(403, 'ROOM_BANNED', 'أنت محظور من هذه الغرفة');
+    }
+
+    if (room.is_private && room.owner_id !== ctx.user_id && !actorRole) {
       const { data: invitation, error: invitationErr } = await supabase
         .from('room_invitations')
         .select('id')
@@ -134,6 +150,44 @@ Deno.serve(async (req: Request) => {
         .maybeSingle();
       if (invitationErr) throw invitationErr;
       if (!invitation) throw new HttpError(403, 'PRIVATE_ROOM', 'الغرفة خاصة');
+    }
+
+    // كلمة مرور الغرفة: يتحقق منها الخادم مع حد محاولات 5/10 دقائق (D4)
+    if (room.has_password && !actorRole && room.owner_id !== ctx.user_id) {
+      const supplied = (body.password ?? '').trim();
+      if (!supplied) {
+        throw new HttpError(401, 'ROOM_PASSWORD_REQUIRED', 'هذه الغرفة محمية بكلمة مرور');
+      }
+      const { data: check, error: checkErr } = await supabase.rpc('room_password_check', {
+        p_room_id: room.id,
+        p_user_id: ctx.user_id,
+        p_password: supplied,
+      });
+      if (checkErr) throw checkErr;
+      const result = (check ?? {}) as { ok?: boolean; locked?: boolean; retry_after_seconds?: number; attempts_left?: number };
+      if (result.locked) {
+        return jsonResponse({
+          error: 'ROOM_PASSWORD_LOCKED',
+          message: 'محاولات كثيرة خاطئة؛ انتظر قبل إعادة المحاولة',
+          retry_after_seconds: result.retry_after_seconds ?? 600,
+        }, 429);
+      }
+      if (!result.ok) {
+        return jsonResponse({
+          error: 'WRONG_ROOM_PASSWORD',
+          message: 'كلمة مرور الغرفة غير صحيحة',
+          attempts_left: result.attempts_left ?? null,
+        }, 403);
+      }
+    }
+
+    const LIVEKIT_URL = Deno.env.get('LIVEKIT_URL');
+    const LIVEKIT_API_KEY = Deno.env.get('LIVEKIT_API_KEY');
+    const LIVEKIT_API_SECRET = Deno.env.get('LIVEKIT_API_SECRET');
+
+    // الصوت غير مفعّل — التطبيق يستمر بدون صوت مع رسالة واضحة
+    if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
+      return jsonResponse({ error: 'LIVEKIT_NOT_CONFIGURED' }, 501);
     }
 
     // M1.7 + M1.6: الحظر وخصوصية الغرف تُفحص قبل إصدار التوكن،

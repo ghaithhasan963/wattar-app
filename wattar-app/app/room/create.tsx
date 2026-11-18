@@ -1,7 +1,7 @@
 /**
  * Wattar App — صفحة إنشاء غرفة صوتية جديدة
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView,
 } from 'react-native';
@@ -16,11 +16,35 @@ export default function CreateRoomScreen() {
   const { profile } = useAuthStore();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [seatCount, setSeatCount] = useState<4 | 8>(8);
+  const [seatOptions, setSeatOptions] = useState<number[]>([4, 8]);
+  const [seatCount, setSeatCount] = useState<number>(8);
   const [isPrivate, setIsPrivate] = useState(false);
   const [password, setPassword] = useState('');
   const [category, setCategory] = useState('chat');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // خيارات المقاعد يحددها الأدمن (M6.2) — القراءة من الإعدادات العامة
+    supabase
+      .from('admin_settings')
+      .select('value')
+      .eq('key', 'room_seat_options')
+      .eq('is_public', true)
+      .maybeSingle()
+      .then(({ data }: { data: { value: unknown } | null }) => {
+        const value = data?.value;
+        if (Array.isArray(value)) {
+          const options = value
+            .map(v => (typeof v === 'number' && Number.isInteger(v) ? v : Number(v)))
+            .filter((n, i, arr) => Number.isInteger(n) && n >= 2 && n <= 16 && arr.indexOf(n) === i)
+            .sort((a, b) => a - b);
+          if (options.length > 0) {
+            setSeatOptions(options);
+            setSeatCount(current => (options.includes(current) ? current : options[0]));
+          }
+        }
+      });
+  }, []);
 
   const handleCreate = async () => {
     if (loading) return;
@@ -39,28 +63,18 @@ export default function CreateRoomScreen() {
 
     setLoading(true);
     try {
-      // إنشاء غرفة LiveKit (هذا يتطلب LiveKit API server-side)
-      // للتبسيط ننشئ معرفًا عشوائيًا
-      const livekitRoomId = `wattar_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-      const { data, error } = await supabase
-        .from('rooms')
-        .insert({
-          name: name.trim(),
-          description: description.trim() || null,
-          owner_id: profile.id,
-          seat_count: seatCount,
-          is_private: isPrivate,
-          password: isPrivate ? password : null,
-          livekit_room_id: livekitRoomId,
-          status: 'waiting',
-          category,
-        })
-        .select()
-        .single();
+      // M6.6: الإنشاء عبر دالة خادمية — كلمة المرور تُخزَّن مشفرة ولا تُرسل نصاً صريحاً للقاعدة
+      const { data: roomId, error } = await supabase.rpc('create_wattar_room', {
+        p_name: name.trim(),
+        p_description: description.trim() || null,
+        p_seat_count: seatCount,
+        p_is_private: isPrivate,
+        p_password: isPrivate ? password : null,
+        p_category: category,
+      });
 
       if (error) throw error;
-      router.replace(`/room/${data.id}`);
+      router.replace(`/room/${roomId}`);
     } catch (err: any) {
       Alert.alert('خطأ', err.message);
     } finally {
@@ -108,11 +122,11 @@ export default function CreateRoomScreen() {
 
         <Text style={styles.label}>عدد المقاعد</Text>
         <View style={styles.seatsRow}>
-          {[4, 8].map(n => (
+          {seatOptions.map(n => (
             <TouchableOpacity
               key={n}
               style={[styles.seatBtn, seatCount === n && styles.seatBtnActive]}
-              onPress={() => setSeatCount(n as 4 | 8)}
+              onPress={() => setSeatCount(n)}
             >
               <Mic size={18} color={seatCount === n ? '#fff' : '#9CA3AF'} />
               <Text style={[styles.seatText, seatCount === n && styles.seatTextActive]}>{n} مقاعد</Text>

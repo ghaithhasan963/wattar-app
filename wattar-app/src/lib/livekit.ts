@@ -8,7 +8,7 @@
  * إذا كان LiveKit غير مفعّل على الخادم (501) تعيد joinVoice configured:false
  * ويستمر التطبيق بشكل طبيعي (شات + مقاعد) بدون صوت.
  *
- * @version 1.0.0
+ * @version 1.1.0
  */
 import { Platform } from 'react-native';
 import type { Room } from 'livekit-client';
@@ -50,13 +50,16 @@ export interface JoinResult {
   configured: boolean;
 }
 
-/** الاتصال بالصوت الخاص بغرفة Wattar */
-export async function joinVoice(roomId: string): Promise<JoinResult> {
+/** الاتصال بالصوت الخاص بغرفة Wattar (كلمة المرور تُتحقق خادمياً عند الحاجة) */
+export async function joinVoice(roomId: string, password?: string): Promise<JoinResult> {
   if (Platform.OS === 'web') return { room: null, configured: false };
 
   let res: LiveTokenResponse;
   try {
-    res = await callFunction<LiveTokenResponse>('livekit-token', { room_id: roomId });
+    res = await callFunction<LiveTokenResponse>(
+      'livekit-token',
+      password ? { room_id: roomId, password } : { room_id: roomId },
+    );
   } catch (e: unknown) {
     const msg = String((e as Error)?.message ?? e ?? '');
     if (msg.includes('LIVEKIT_NOT_CONFIGURED')) return { room: null, configured: false };
