@@ -1,25 +1,59 @@
 /**
  * Wattar Admin — صفحة تسجيل الدخول
+ * M7.1: خطوة تحقق بخطوتين بعد كلمة المرور عند تفعيل الإلزام
+ * (admin_totp_verify) قبل الدخول إلى اللوحة.
  */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
-import { Lock, Mail, Phone, Loader2 } from 'lucide-react';
+import { Lock, Mail, Phone, Loader2, ShieldCheck } from 'lucide-react';
 
 export function LoginPage() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [resetNotice, setResetNotice] = useState<string | null>(null);
-  const { signIn, requestPasswordReset, loading, error } = useAuthStore();
+  const [totpStep, setTotpStep] = useState(false);
+  const [totpCode, setTotpCode] = useState('');
+  const [totpBusy, setTotpBusy] = useState(false);
+  const [totpError, setTotpError] = useState<string | null>(null);
+  const { signIn, requestPasswordReset, verifyTotp, loading, error } = useAuthStore();
   const navigate = useNavigate();
+
+  const finishNavigation = () => {
+    navigate(useAuthStore.getState().profile?.role === 'agent' ? '/agent' : '/');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await signIn(identifier, password);
-      navigate(useAuthStore.getState().profile?.role === 'agent' ? '/agent' : '/');
+      const profile = useAuthStore.getState().profile;
+      if (profile?.totpRequired && profile.totp.enabled && !profile.totp.verified_recently) {
+        setTotpStep(true);
+        return;
+      }
+      finishNavigation();
     } catch {
       // خطأ موجود في store
+    }
+  };
+
+  const handleTotpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = totpCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setTotpError('أدخل رمزاً من 6 أرقام.');
+      return;
+    }
+    setTotpBusy(true);
+    setTotpError(null);
+    try {
+      await verifyTotp(code);
+      finishNavigation();
+    } catch {
+      setTotpError('رمز غير صالح أو مستخدم مسبقاً. انتظر رمزاً جديداً من التطبيق وحاول مجدداً.');
+    } finally {
+      setTotpBusy(false);
     }
   };
 
@@ -45,7 +79,50 @@ export function LoginPage() {
         </div>
 
         <div className="bg-dark-surface rounded-2xl border border-wattar-900 p-8">
-          <h2 className="text-xl font-semibold text-white mb-6">تسجيل الدخول</h2>
+          {totpStep ? (
+            <>
+              <h2 className="text-xl font-semibold text-white mb-2">التحقق بخطوتين</h2>
+              <p className="text-sm text-gray-400 mb-6">
+                الإلزام مفعّل لحسابات الإدارة. أدخل الرمز الحالي من تطبيق المصادقة لإكمال الدخول.
+              </p>
+              <form onSubmit={handleTotpSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-300 mb-2">رمز التحقق (6 أرقام)</label>
+                  <div className="relative">
+                    <ShieldCheck className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      dir="ltr"
+                      value={totpCode}
+                      onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      required
+                      placeholder="123456"
+                      className="w-full rounded-lg bg-dark-elevated border border-wattar-900 py-3 pr-10 pl-4 text-white placeholder-gray-500 focus:outline-none focus:border-wattar-500 tracking-[0.4em] text-center"
+                    />
+                  </div>
+                </div>
+
+                {totpError && (
+                  <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-3 text-sm text-red-400">
+                    {totpError}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={totpBusy || totpCode.length !== 6}
+                  className="w-full rounded-lg bg-wattar-600 hover:bg-wattar-700 disabled:opacity-50 py-3 font-medium text-white transition-colors flex items-center justify-center gap-2"
+                >
+                  {totpBusy ? <Loader2 size={18} className="animate-spin" /> : <ShieldCheck size={18} />}
+                  تأكيد الدخول
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <h2 className="text-xl font-semibold text-white mb-6">تسجيل الدخول</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -116,6 +193,8 @@ export function LoginPage() {
               دخول
             </button>
           </form>
+            </>
+          )}
         </div>
 
         <p className="text-center text-gray-500 text-xs mt-6">

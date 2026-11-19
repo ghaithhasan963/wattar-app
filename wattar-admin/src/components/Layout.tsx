@@ -20,12 +20,13 @@ import {
   Mic,
   Settings,
   ShieldAlert,
+  ShieldCheck,
   Target,
   UserCheck,
   Users,
   X,
 } from 'lucide-react';
-import { useAuthStore } from '@/store/auth';
+import { STAFF_ROLE_LABELS, canAccess, useAuthStore } from '@/store/auth';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 
@@ -33,54 +34,55 @@ interface NavItem {
   to: string;
   label: string;
   icon: typeof LayoutDashboard;
-  roles?: string[];
+  permission?: string;
 }
 
 const navGroups: Array<{ label: string; items: NavItem[] }> = [
   {
     label: 'الرئيسية',
-    items: [{ to: '/', label: 'نظرة عامة', icon: LayoutDashboard }],
+    items: [{ to: '/', label: 'نظرة عامة', icon: LayoutDashboard, permission: 'dashboard.view' }],
   },
   {
     label: 'الحسابات والمجتمع',
     items: [
-      { to: '/users', label: 'المستخدمون', icon: Users },
-      { to: '/reports', label: 'بلاغات المستخدمين', icon: ShieldAlert, roles: ['admin', 'super_admin'] },
-      { to: '/moderation', label: 'الإشراف والفلترة', icon: Gavel, roles: ['admin', 'super_admin'] },
-      { to: '/agents', label: 'الوكلاء', icon: UserCheck, roles: ['admin', 'super_admin'] },
-      { to: '/agencies', label: 'الوكالات', icon: Building2, roles: ['admin', 'super_admin'] },
-      { to: '/hosts', label: 'طلبات التوثيق', icon: Mic, roles: ['admin', 'super_admin'] },
-      { to: '/messaging', label: 'الرسائل وبرنامج المضيفات', icon: MessageCircle, roles: ['admin', 'super_admin'] },
+      { to: '/users', label: 'المستخدمون', icon: Users, permission: 'users.view' },
+      { to: '/reports', label: 'بلاغات المستخدمين', icon: ShieldAlert, permission: 'user_reports.view' },
+      { to: '/moderation', label: 'الإشراف والفلترة', icon: Gavel, permission: 'moderation.view' },
+      { to: '/agents', label: 'الوكلاء', icon: UserCheck, permission: 'agents.view' },
+      { to: '/agencies', label: 'الوكالات', icon: Building2, permission: 'agencies.view' },
+      { to: '/hosts', label: 'طلبات التوثيق', icon: Mic, permission: 'hosts.applications.view' },
+      { to: '/messaging', label: 'الرسائل وبرنامج المضيفات', icon: MessageCircle, permission: 'messaging.settings.view' },
     ],
   },
   {
     label: 'خدمة المستخدمين',
-    items: [{ to: '/support', label: 'طلبات الدعم', icon: Headset, roles: ['admin', 'super_admin', 'support'] }],
+    items: [{ to: '/support', label: 'طلبات الدعم', icon: Headset, permission: 'support.view' }],
   },
   {
     label: 'المعاملات',
     items: [
-      { to: '/deposits', label: 'طلبات الشحن', icon: ArrowDownToLine },
-      { to: '/withdrawals', label: 'طلبات السحب', icon: ArrowUpFromLine },
-      { to: '/transfers', label: 'التحويلات', icon: ArrowLeftRight },
+      { to: '/deposits', label: 'طلبات الشحن', icon: ArrowDownToLine, permission: 'deposits.view' },
+      { to: '/withdrawals', label: 'طلبات السحب', icon: ArrowUpFromLine, permission: 'withdrawals.view' },
+      { to: '/transfers', label: 'التحويلات', icon: ArrowLeftRight, permission: 'transfers.view' },
     ],
   },
   {
     label: 'إدارة المنصة',
     items: [
-      { to: '/rooms', label: 'الغرف الصوتية', icon: Mic },
-      { to: '/games', label: 'الألعاب', icon: Gamepad2, roles: ['admin', 'super_admin'] },
-      { to: '/missions', label: 'المهمات', icon: Target, roles: ['admin', 'super_admin'] },
-      { to: '/store', label: 'كتالوج الهدايا', icon: Gift, roles: ['admin', 'super_admin'] },
-      { to: '/memberships', label: 'عضويات VIP', icon: Crown, roles: ['admin', 'super_admin'] },
-      { to: '/settings', label: 'الإعدادات', icon: Settings, roles: ['admin', 'super_admin'] },
+      { to: '/rooms', label: 'الغرف الصوتية', icon: Mic, permission: 'rooms.view' },
+      { to: '/games', label: 'الألعاب', icon: Gamepad2, permission: 'games.view' },
+      { to: '/missions', label: 'المهمات', icon: Target, permission: 'missions.view' },
+      { to: '/store', label: 'كتالوج الهدايا', icon: Gift, permission: 'store.view' },
+      { to: '/memberships', label: 'عضويات VIP', icon: Crown, permission: 'memberships.view' },
+      { to: '/settings', label: 'الإعدادات', icon: Settings, permission: 'settings.view' },
     ],
   },
   {
     label: 'الرقابة',
     items: [
-      { to: '/audit', label: 'سجل الإدارة', icon: ClipboardList, roles: ['admin', 'super_admin'] },
-      { to: '/activity', label: 'حركة المنصة', icon: Activity, roles: ['admin', 'super_admin'] },
+      { to: '/audit', label: 'سجل الإدارة', icon: ClipboardList, permission: 'audit.view' },
+      { to: '/activity', label: 'حركة المنصة', icon: Activity, permission: 'reports.platform' },
+      { to: '/staff', label: 'الموظفون والصلاحيات', icon: ShieldCheck, permission: 'staff.view' },
     ],
   },
 ];
@@ -140,9 +142,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
         <nav className="scrollbar-thin flex-1 space-y-5 overflow-y-auto px-3 py-5">
           {navGroups.map((group) => {
-            const items = group.items.filter((item) => profile?.role === 'support'
-              ? item.to === '/support'
-              : !item.roles || item.roles.includes(profile?.role ?? ''));
+            const items = group.items.filter((item) => canAccess(profile, item.permission));
             if (items.length === 0) return null;
             const expanded = expandedGroup === group.label;
             return (
@@ -196,7 +196,11 @@ export function Layout({ children }: { children: ReactNode }) {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-gray-100">{profile?.display_name ?? profile?.username ?? 'المسؤول'}</p>
-              <p className="mt-0.5 text-xs text-gray-500">{getRoleLabel(profile?.role)}</p>
+              <p className="mt-0.5 text-xs text-gray-500">
+                {profile?.staffRole
+                  ? STAFF_ROLE_LABELS[profile.staffRole] ?? profile.staffRole
+                  : getRoleLabel(profile?.role)}
+              </p>
             </div>
           </div>
           <button

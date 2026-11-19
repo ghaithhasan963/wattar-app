@@ -1,5 +1,7 @@
 /**
  * Wattar Admin — متجر المصادقة (Zustand)
+ * M7.1: ملف الموظف يجمع الدور القديم (users.role) مع دور الموظف
+ * ومصفوفة صلاحيات RBAC وحالة التحقق بخطوتين (TOTP).
  */
 import { create } from 'zustand';
 import { Session, User } from '@supabase/supabase-js';
@@ -17,26 +19,73 @@ interface AuthState {
   requestPasswordReset: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   loadProfile: () => Promise<void>;
+  verifyTotp: (code: string) => Promise<void>;
 }
 
-export type StaffRole = 'admin' | 'super_admin' | 'agent' | 'agency_manager' | 'support';
+export type StaffRole = 'admin' | 'super_admin' | 'agent' | 'agency_manager' | 'support' | 'user';
 
-interface StaffProfile {
+export interface StaffTotpState {
+  enabled: boolean;
+  verified_recently: boolean;
+}
+
+export interface StaffProfile {
   id: string;
   username: string;
   display_name: string | null;
   avatar_url: string | null;
   role: StaffRole;
   status: string;
+  /** دور الموظف في نظام RBAC (null = حساب بلا تكليف موظف) */
+  staffRole: string | null;
+  /** صلاحيات الدور من المصفوفة (فارغة للإدارة العليا = كل شيء) */
+  permissions: Record<string, boolean>;
+  totp: StaffTotpState;
+  totpRequired: boolean;
 }
 
-async function loadStaffProfile(userId: string): Promise<StaffProfile> {
-  const { data: profile, error } = await supabase
-    .from('users')
-    .select('id, username, display_name, avatar_url, role, status')
-    .eq('id', userId)
-    .single();
+interface StaffProfileRpc {
+  staff_role: string;
+  permissions: Record<string, boolean>;
+  totp: { enabled: boolean; verified_recently: boolean };
+  totp_required: boolean;
+}
 
+/**
+ * بوابة صلاحية موحّدة للوحة:
+ * - الموظف المفعّل: من مصفوفة أدواره (الإدارة العليا = كل الصلاحيات).
+ * - حساب بلا تكليف: توافق المسار القديم (admin/super_admin كامل،
+ *   support يرى الدعم فقط).
+ */
+export function canAccess(profile: StaffProfile | null, permission?: string): boolean {
+  if (!permission) return true;
+  if (!profile) return false;
+  if (profile.staffRole) {
+    return profile.staffRole === 'super_admin' || Boolean(profile.permissions[permission]);
+  }
+  if (profile.role === 'support') return permission === 'support.view';
+  return ['admin', 'super_admin'].includes(profile.role);
+}
+
+export const STAFF_ROLE_LABELS: Record<string, string> = {
+  super_admin: 'الإدارة العليا',
+  finance: 'المالية',
+  moderator: 'الإشراف',
+  support: 'الدعم',
+  operations: 'العمليات',
+};
+
+async function loadStaffProfile(userId: string): Promise<StaffProfile> {
+  const [usersResult, staffResult] = await Promise.all([
+    supabase
+      .from('users')
+      .select('id, username, display_name, avatar_url, role, status')
+      .eq('id', userId)
+      .single(),
+    supabase.rpc('admin_my_staff_profile'),
+  ]);
+
+  const { data: profile, error } = usersResult;
   if (error) {
     throw new Error(
       error.code === 'PGRST116'
@@ -44,16 +93,27 @@ async function loadStaffProfile(userId: string): Promise<StaffProfile> {
         : `تعذر تحميل صلاحيات الحساب: ${error.message}`,
     );
   }
-  if (!profile || !['admin', 'super_admin', 'agent', 'agency_manager', 'support'].includes(profile.role)) {
+
+  const staff = (staffResult.error ? null : staffResult.data) as StaffProfileRpc | null;
+  const legacyAllowed = ['admin', 'super_admin', 'agent', 'agency_manager', 'support'].includes(profile.role);
+  if (!legacyAllowed && !staff?.staff_role) {
     throw new Error('هذا الحساب غير مخوّل بدخول لوحة الموظفين.');
   }
   if (profile.status !== 'active') {
     throw new Error('هذا الحساب موقوف.');
   }
-  return profile as StaffProfile;
+
+  return {
+    ...profile,
+    role: profile.role as StaffRole,
+    staffRole: staff?.staff_role ?? null,
+    permissions: staff?.permissions ?? {},
+    totp: staff?.totp ?? { enabled: false, verified_recently: false },
+    totpRequired: staff?.totp_required ?? false,
+  };
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   session: null,
   user: null,
   profile: null,
@@ -175,5 +235,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     const profile = await loadStaffProfile(session.user.id);
     set({ session, user: session.user, profile });
+  },
+
+  verifyTotp: async (code) => {
+    const { error } = await supabase.rpc('admin_totp_verify', { p_code: code.trim() });
+    if (error) throw new Error(error.message);
+    await get().loadProfile();
   },
 }));

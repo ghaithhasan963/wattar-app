@@ -5,7 +5,7 @@ import {
   HttpError,
   jsonResponse,
   parseBody,
-  requireRole,
+  requireStaffPermissionOr,
   validateBody,
 } from '../_shared/supabase.ts';
 
@@ -21,7 +21,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const admin = await authenticate(req, { allowStaffWithoutAdultConfirmation: true });
-    requireRole(admin, 'admin', 'super_admin');
+    await requireStaffPermissionOr(admin, 'users.manage', 'admin', 'super_admin');
 
     const body = validateBody<SetUserStatusBody>(
       await parseBody<SetUserStatusBody>(req),

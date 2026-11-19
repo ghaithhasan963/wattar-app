@@ -36,7 +36,7 @@ import {
   getSupabaseAdmin,
   HttpError,
   parseBody,
-  requireRole,
+  requireStaffPermissionOr,
   audit,
   validateBody,
 } from '../_shared/supabase.ts';
@@ -69,7 +69,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req, { allowStaffWithoutAdultConfirmation: true });
-    requireRole(ctx, 'admin', 'super_admin');
+    await requireStaffPermissionOr(ctx, 'agents.manage', 'admin', 'super_admin');
 
     const body = await parseBody<CreateAgentBody>(req);
     validateBody(body, ['username', 'password', 'email', 'phone', 'commission_rate', 'credit_limit_usd']);

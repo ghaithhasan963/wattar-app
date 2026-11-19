@@ -5,7 +5,7 @@ import {
   getSupabaseAdmin,
   HttpError,
   parseBody,
-  requireRole,
+  requireStaffPermissionOr,
   validateBody,
 } from '../_shared/supabase.ts';
 
@@ -27,7 +27,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req, { allowStaffWithoutAdultConfirmation: true });
-    requireRole(ctx, 'admin', 'super_admin', 'agent');
+    await requireStaffPermissionOr(ctx, 'withdrawals.manage', 'admin', 'super_admin', 'agent');
 
     const body = await parseBody<ApproveBody>(req);
     validateBody(body, ['withdrawal_id', 'action']);

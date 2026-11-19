@@ -16,7 +16,7 @@ import {
   HttpError,
   jsonResponse,
   parseBody,
-  requireRole,
+  requireStaffPermissionOr,
 } from '../_shared/supabase.ts';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -115,7 +115,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const admin = await authenticate(req, { allowStaffWithoutAdultConfirmation: true });
-    requireRole(admin, 'admin', 'super_admin');
+    await requireStaffPermissionOr(admin, 'agencies.manage', 'admin', 'super_admin');
 
     const body = await parseBody<AgencyActionBody>(req);
     if (!body?.action) throw new HttpError(400, 'INVALID_BODY', 'action is required');

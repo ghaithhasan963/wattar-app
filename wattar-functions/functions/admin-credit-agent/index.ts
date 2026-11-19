@@ -6,7 +6,7 @@ import {
   HttpError,
   parseBody,
   requireIdempotencyKey,
-  requireRole,
+  requireStaffPermissionOr,
   validateBody,
 } from '../_shared/supabase.ts';
 
@@ -22,7 +22,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req, { allowStaffWithoutAdultConfirmation: true });
-    requireRole(ctx, 'admin', 'super_admin');
+    await requireStaffPermissionOr(ctx, 'agents.manage', 'admin', 'super_admin');
 
     const body = await parseBody<CreditAgentBody>(req);
     validateBody(body, ['agent_id', 'amount_usd']);

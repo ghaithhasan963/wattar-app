@@ -4,8 +4,9 @@
  * - التحقق من JWT
  * - Rate limiting (قاعدي: rate_limit_buckets عبر check_rate_limit)
  * - مساعد التدقيق
+ * - بوابة صلاحيات موظفي الإدارة RBAC (M7.1)
  *
- * @version 2.1.0
+ * @version 2.2.0
  */
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
@@ -115,6 +116,43 @@ export async function authenticate(
 export function requireRole(ctx: AuthContext, ...roles: string[]): void {
   if (!roles.includes(ctx.role)) {
     throw new HttpError(403, 'FORBIDDEN', 'Insufficient permissions');
+  }
+}
+
+/**
+ * M7.1 (RBAC): بوابة صلاحيات موحّدة لدوال الإدارة.
+ * يُسمح بالمرور لأحد مسارين:
+ *   1) دور قديم من users.role مذكور في legacyRoles (توافق كامل)،
+ *      باستثناء أن الوكيل (agent) شريك مالي خارج حسابات الإدارة.
+ *   2) موظف مفعّل في نظام admin_staff_roles يملك الصلاحية المطلوبة.
+ * مع بوابة التحقق بخطوتين الصارمة (admin_2fa_gate_ok) لحسابات الإدارة —
+ * لا أثر لها ما دام مفتاح admin_2fa_required مطفأاً (الافتراضي).
+ */
+export async function requireStaffPermissionOr(
+  ctx: AuthContext,
+  permission: string,
+  ...legacyRoles: string[]
+): Promise<void> {
+  const supabase = getSupabaseAdmin();
+
+  if (!legacyRoles.includes(ctx.role)) {
+    const { data: can, error } = await supabase.rpc('admin_staff_can', {
+      p_user_id: ctx.user_id,
+      p_permission: permission,
+    });
+    if (error || !can) {
+      throw new HttpError(403, 'FORBIDDEN', 'Insufficient permissions');
+    }
+  }
+
+  if (ctx.role === 'agent') return;
+
+  const { data: twoFaOk, error: tErr } = await supabase.rpc('admin_2fa_gate_ok', {
+    p_user_id: ctx.user_id,
+    p_block_unenrolled_super: true,
+  });
+  if (tErr || !twoFaOk) {
+    throw new HttpError(403, 'TWO_FACTOR_REQUIRED', 'Two-factor verification is required for this action');
   }
 }
 

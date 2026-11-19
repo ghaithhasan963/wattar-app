@@ -6,7 +6,7 @@ import {
   jsonResponse,
   parseBody,
   rateLimitByUser,
-  requireRole,
+  requireStaffPermissionOr,
   validateBody,
 } from '../_shared/supabase.ts';
 
@@ -22,7 +22,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const admin = await authenticate(req, { allowStaffWithoutAdultConfirmation: true });
-    requireRole(admin, 'admin', 'super_admin');
+    await requireStaffPermissionOr(admin, 'hosts.applications.manage', 'admin', 'super_admin');
     await rateLimitByUser(admin, 'manage_verified_host', 20, 60_000);
 
     const body = validateBody<ManageHostBody>(

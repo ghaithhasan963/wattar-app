@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 
-import { StaffRole, useAuthStore } from '@/store/auth';
+import { StaffRole, canAccess, useAuthStore } from '@/store/auth';
 import { Layout } from '@/components/Layout';
 import { LoginPage } from '@/pages/LoginPage';
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
@@ -31,6 +31,7 @@ import { HostApplicationsPage } from '@/pages/HostApplicationsPage';
 import { MembershipsPage } from '@/pages/MembershipsPage';
 import { MessagingPage } from '@/pages/MessagingPage';
 import { SupportPage } from '@/pages/SupportPage';
+import { StaffPage } from '@/pages/StaffPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,13 +42,21 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * حماية المسار بمعيارين:
+ * - roles: للبوابات ذات الأدوار الخاصة خارج نظام الموظفين (الوكيل).
+ * - permission: سلوك RBAC افتراضي — يُسمح لمن يملك صلاحية الصفحة
+ *   من مصفوفة الدور، أو الإدارة العليا، أو الأدوار القديمة (توافق).
+ */
 function ProtectedRoute({
   children,
-  roles = ['admin', 'super_admin'],
+  roles,
+  permission,
   withLayout = true,
 }: {
   children: React.ReactNode;
   roles?: StaffRole[];
+  permission?: string;
   withLayout?: boolean;
 }) {
   const { session, profile, initialized } = useAuthStore();
@@ -62,7 +71,9 @@ function ProtectedRoute({
   if (!profile) {
     return <Navigate to="/login" replace />;
   }
-  if (!roles.includes(profile.role)) {
+  const roleOk = roles ? roles.includes(profile.role) : true;
+  const permissionOk = permission ? canAccess(profile, permission) : true;
+  if (!roleOk || !permissionOk) {
     return <Navigate to={profile.role === 'agent' || profile.role === 'agency_manager' ? '/agent' : '/'} replace />;
   }
 
@@ -78,9 +89,9 @@ function HomeRoute() {
   if (!session || !profile) return <Navigate to="/login" replace />;
   return profile.role === 'agent' || profile.role === 'agency_manager'
     ? <Navigate to="/agent" replace />
-    : profile.role === 'support'
+    : profile.role === 'support' && !profile.staffRole
       ? <Navigate to="/support" replace />
-    : <ProtectedRoute><DashboardPage /></ProtectedRoute>;
+    : <ProtectedRoute permission="dashboard.view"><DashboardPage /></ProtectedRoute>;
 }
 
 export default function App() {
@@ -111,7 +122,7 @@ export default function App() {
           <Route
             path="/support"
             element={
-              <ProtectedRoute roles={['admin', 'super_admin', 'support']}>
+              <ProtectedRoute permission="support.view">
                 <SupportPage />
               </ProtectedRoute>
             }
@@ -119,7 +130,7 @@ export default function App() {
           <Route
             path="/deposits"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="deposits.view">
                 <DepositsPage />
               </ProtectedRoute>
             }
@@ -127,7 +138,7 @@ export default function App() {
           <Route
             path="/withdrawals"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="withdrawals.view">
                 <WithdrawalsPage />
               </ProtectedRoute>
             }
@@ -135,7 +146,7 @@ export default function App() {
           <Route
             path="/users"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="users.view">
                 <UsersPage />
               </ProtectedRoute>
             }
@@ -143,7 +154,7 @@ export default function App() {
           <Route
             path="/agents"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="agents.view">
                 <AgentsPage />
               </ProtectedRoute>
             }
@@ -151,7 +162,7 @@ export default function App() {
           <Route
             path="/agencies"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="agencies.view">
                 <AgenciesPage />
               </ProtectedRoute>
             }
@@ -159,7 +170,7 @@ export default function App() {
           <Route
             path="/hosts"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="hosts.applications.view">
                 <HostApplicationsPage />
               </ProtectedRoute>
             }
@@ -167,7 +178,7 @@ export default function App() {
           <Route
             path="/games"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="games.view">
                 <GamesPage />
               </ProtectedRoute>
             }
@@ -175,7 +186,7 @@ export default function App() {
           <Route
             path="/transfers"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="transfers.view">
                 <TransfersPage />
               </ProtectedRoute>
             }
@@ -183,7 +194,7 @@ export default function App() {
           <Route
             path="/rooms"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="rooms.view">
                 <RoomsPage />
               </ProtectedRoute>
             }
@@ -191,7 +202,7 @@ export default function App() {
           <Route
             path="/settings"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="settings.view">
                 <SettingsPage />
               </ProtectedRoute>
             }
@@ -199,7 +210,7 @@ export default function App() {
           <Route
             path="/audit"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="audit.view">
                 <AuditLogPage />
               </ProtectedRoute>
             }
@@ -207,7 +218,7 @@ export default function App() {
           <Route
             path="/activity"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="reports.platform">
                 <PlatformActivityPage />
               </ProtectedRoute>
             }
@@ -215,7 +226,7 @@ export default function App() {
           <Route
             path="/reports"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="user_reports.view">
                 <UserReportsPage />
               </ProtectedRoute>
             }
@@ -223,7 +234,7 @@ export default function App() {
           <Route
             path="/moderation"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="moderation.view">
                 <ModerationPage />
               </ProtectedRoute>
             }
@@ -231,7 +242,7 @@ export default function App() {
           <Route
             path="/missions"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="missions.view">
                 <MissionsPage />
               </ProtectedRoute>
             }
@@ -239,7 +250,7 @@ export default function App() {
           <Route
             path="/store"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="store.view">
                 <StoreItemsPage />
               </ProtectedRoute>
             }
@@ -247,7 +258,7 @@ export default function App() {
           <Route
             path="/memberships"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="memberships.view">
                 <MembershipsPage />
               </ProtectedRoute>
             }
@@ -255,8 +266,16 @@ export default function App() {
           <Route
             path="/messaging"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission="messaging.settings.view">
                 <MessagingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/staff"
+            element={
+              <ProtectedRoute permission="staff.view">
+                <StaffPage />
               </ProtectedRoute>
             }
           />
