@@ -9,10 +9,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, FlatList, TextInput, ScrollView, Alert, Image, ActivityIndicator,
-  PermissionsAndroid, Platform, Modal, Animated, Easing,
+  PermissionsAndroid, Platform, Modal, Animated, Easing, AppState,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase, callFunction } from '@/lib/supabase';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { notifySocialEvent } from '@/lib/notifications';
 import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
@@ -105,7 +106,23 @@ export default function RoomScreen() {
   const seatsRef = useRef<Seat[]>([]);
   const participantProfilesRef = useRef<Record<string, { username: string; display_name: string | null; avatar_url: string | null }>>({});
   const closedRoomNoticeRef = useRef(false);
+  // إصلاحات الأداء والاتصال الفوري
+  const myRoleRef = useRef<string | null>(null);
+  const realtimeOkRef = useRef(false);
+  const lastMessageAtRef = useRef<string | null>(null);
+  const resubscribeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const channelsRef = useRef<RealtimeChannel[]>([]);
+  // كشف الحضور (مالك/طاقم الغرفة)
+  const [attendees, setAttendees] = useState<Array<{
+    user_id: string; username: string; display_name: string | null; avatar_url: string | null;
+    role: string; is_speaker: boolean; is_mic_on: boolean; is_owner: boolean; joined_at: string;
+  }>>([]);
+  const [attendanceVisible, setAttendanceVisible] = useState(false);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
   const giftCelebrationAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    myRoleRef.current = myRole;
+  }, [myRole]);
   const speakersCount = seats.filter(seat => seat.status === 'occupied' && seat.user_id).length;
   const isRoomOwner = room?.owner_id === profile?.id;
   // الأدوار: المالك/المدير الثاني/مشرف/إدارة عليا لهم إدارة كاملة؛ الوكالة نطاقها محدود
@@ -194,6 +211,25 @@ export default function RoomScreen() {
       });
     };
   }, [id]);
+
+  // شبكة أمان للرسائل: مزامنة دورية خفيفة + استئناف فوري عند العودة للتطبيق
+  useEffect(() => {
+    if (!id) return;
+    const poll = setInterval(() => {
+      void syncNewMessages();
+      if (attendanceVisible) void loadAttendance(false);
+    }, realtimeOkRef.current ? 15000 : 4000);
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      void syncNewMessages();
+      void loadSeats().catch(() => undefined);
+    });
+    return () => {
+      clearInterval(poll);
+      appStateSub.remove();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, attendanceVisible]);
 
   // M6: بوابة كلمة المرور — الغرفة المحمية تتطلب كلمة مرور قبل الاتصال الصوتي
   // (الطاقم: المالك/المدير الثاني/المشرف/الإدارة/الوكالة المعنية يدخلون بلا كلمة مرور)
@@ -356,10 +392,17 @@ export default function RoomScreen() {
       seat => seat.user_id === profile?.id && seat.status === 'occupied',
     );
     setMySeat(myOccupiedSeat?.seat_index ?? null);
-    setMessages((messagesResult.data ?? []).map((item) => ({
+    const loadedMessages = (messagesResult.data ?? []).map((item) => ({
       ...(item as Message),
       user: item.user_id ? profiles[item.user_id] ?? (item as Message).user : (item as Message).user,
-    })));
+    }));
+    setMessages(loadedMessages);
+    const latestAt = loadedMessages.length
+      ? loadedMessages[loadedMessages.length - 1].created_at
+      : null;
+    if (latestAt && (!lastMessageAtRef.current || latestAt > lastMessageAtRef.current)) {
+      lastMessageAtRef.current = latestAt;
+    }
     setRoomLoading(false);
     if (profile?.id) {
       void loadMyRoomPermissions();
@@ -387,25 +430,41 @@ export default function RoomScreen() {
     setMyRole((roleResult.data as string | null) ?? null);
     setModeratorIds((modsResult.data ?? []).map((row: { user_id: string }) => row.user_id));
     setMyPendingRequest((myRequestResult.data ?? []).length > 0);
+    if (roleResult.data) {
+      // طاقم الغرفة: حمّل طلبات الصعود فوراً (كانت لا تظهر إلا عبر حدث فوري)
+      void loadPendingRequests();
+    }
   };
 
-  // M6: طلبات الصعود المعلقة (تظهر لإدارة الغرفة)
+  // M6: طلبات الصعود المعلقة (تظهر لإدارة الغرفة) — عبر دالة خادمية سريعة
   const loadPendingRequests = async () => {
-    const { data, error } = await supabase
-      .from('room_seat_requests')
-      .select(`
-        id, user_id, requested_at,
-        user:users(username, display_name, avatar_url)
-      `)
-      .eq('room_id', id)
-      .eq('status', 'pending')
-      .order('requested_at', { ascending: true })
-      .limit(50);
-    if (error) return;
-    setPendingRequests((data ?? []).map((row: any) => ({
-      ...row,
-      user: Array.isArray(row.user) ? row.user[0] ?? null : row.user,
+    const { data, error } = await supabase.rpc('list_room_seat_requests', { p_room_id: id });
+    if (error || !data) return;
+    setPendingRequests((data as Array<{
+      request_id: string; user_id: string; username: string;
+      display_name: string | null; avatar_url: string | null; requested_at: string;
+    }>).map((row) => ({
+      id: row.request_id,
+      user_id: row.user_id,
+      requested_at: row.requested_at,
+      user: { username: row.username, display_name: row.display_name, avatar_url: row.avatar_url },
     })));
+  };
+
+  // كشف الحضور: من في الغرفة الآن (متحدثون + مستمعون)
+  const loadAttendance = async (showSpinner = true) => {
+    if (showSpinner) setAttendanceLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('list_room_attendees', { p_room_id: id });
+      if (error) throw error;
+      setAttendees((data ?? []) as typeof attendees);
+    } catch (error: unknown) {
+      if (showSpinner) {
+        Alert.alert('تعذر تحميل الحضور', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+      }
+    } finally {
+      if (showSpinner) setAttendanceLoading(false);
+    }
   };
 
   // M6: سجل تغييرات إدارة الغرفة (المدير الثاني/التسليم/كل الإجراءات)
@@ -471,91 +530,216 @@ export default function RoomScreen() {
   };
 
   const subscribeToRoom = () => {
-    const channel = supabase
-      .channel(`room:${id}`)
-      .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'room_messages', filter: `room_id=eq.${id}` },
-        (payload) => {
-          const incoming = payload.new as Message;
-          if (incoming.is_system && incoming.message === 'أغلق مالك الغرفة هذه الغرفة.') {
-            setRoom((current: typeof room) => current ? { ...current, status: 'closed' } : current);
-          }
-          setMessages(prev => {
-            const withoutPending = prev.filter(
-              message => !(message.pending && message.user_id === incoming.user_id && message.message === incoming.message),
-            );
-            const existingIndex = withoutPending.findIndex(message => message.id === incoming.id);
-            const savedMessage = {
-              ...incoming,
-              user: incoming.user_id === profile?.id
-                ? {
-                    username: profile.username,
-                    display_name: profile.display_name,
-                    avatar_url: profile.avatar_url,
-                  }
-                : participantProfilesRef.current[incoming.user_id],
-            };
-            if (existingIndex >= 0) {
-              return withoutPending.map((message, index) => index === existingIndex ? savedMessage : message);
-            }
-            return [...withoutPending, savedMessage];
-          });
-          setTimeout(() => chatListRef.current?.scrollToEnd(), 100);
-        }
-      )
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'room_seats', filter: `room_id=eq.${id}` },
-        (payload) => {
-          const nextSeat = payload.new as Seat;
-          const previousSeat = seatsRef.current.find(seat => seat.id === nextSeat.id);
-          const previousUserId = previousSeat?.user_id ?? null;
-          const nextUserId = nextSeat.user_id ?? null;
-          const changedUser = previousSeat && previousUserId !== nextUserId;
+    let disposed = false;
 
-          loadSeats().then(loadedSeats => {
-            if (!changedUser) return;
-            const eventId = `seat-event-${nextSeat.id}-${previousUserId ?? 'empty'}-${nextUserId ?? 'empty'}-${Date.now()}`;
-            if (previousUserId) {
-              const previousName = previousSeat.user?.display_name ?? previousSeat.user?.username ?? 'أحد المتحدثين';
-              addSeatSystemMessage(eventId, `غادر ${previousName} المنصة الصوتية.`);
+    const buildChannels = () => {
+      if (disposed) return;
+      // مفتاح الاتصال الفوري: بدون توكن يقيَّم RLS كزائر مجهول فلا تصل أي أحداث
+      void supabase.auth.getSession().then(({ data }) => {
+        const token = data.session?.access_token;
+        if (token) {
+          try { supabase.realtime.setAuth(token); } catch (error) {
+            console.warn('[Wattar] realtime setAuth failed:', error);
+          }
+        }
+      });
+
+      const onRealtimeStatus = (status: string) => {
+        const healthy = status === 'SUBSCRIBED';
+        realtimeOkRef.current = healthy;
+        if (!healthy && !disposed) {
+          console.warn('[Wattar] room realtime status:', status);
+          scheduleResubscribe();
+        }
+      };
+
+      const scheduleResubscribe = () => {
+        if (resubscribeTimerRef.current || disposed) return;
+        resubscribeTimerRef.current = setTimeout(() => {
+          resubscribeTimerRef.current = null;
+          if (disposed) return;
+          channelsRef.current.forEach((channel) => { try { supabase.removeChannel(channel); } catch { /* noop */ } });
+          channelsRef.current = [];
+          buildChannels();
+        }, 3000);
+      };
+
+      const mainChannel = supabase
+        .channel(`room:${id}`)
+        .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'room_messages', filter: `room_id=eq.${id}` },
+          (payload) => {
+            const incoming = payload.new as Message;
+            if (incoming.is_system && incoming.message === 'أغلق مالك الغرفة هذه الغرفة.') {
+              setRoom((current: typeof room) => current ? { ...current, status: 'closed' } : current);
             }
-            if (nextUserId) {
-              const joinedSeat = loadedSeats.find(seat => seat.id === nextSeat.id);
-              const joinedName = joinedSeat?.user?.display_name ?? joinedSeat?.user?.username ?? 'مستخدم جديد';
-              addSeatSystemMessage(`${eventId}-join`, `انضم ${joinedName} إلى المنصة الصوتية.`);
-            }
-          }).catch((error: unknown) => {
-            Alert.alert('تعذر تحديث المقاعد', error instanceof Error ? error.message : 'حاول تحديث الغرفة.');
-          });
-        }
-      )
-      .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${id}` },
-        (payload) => {
-          const updatedRoom = payload.new as typeof room;
-          setRoom((current: typeof room) => current ? { ...current, ...updatedRoom } : current);
-        }
-      )
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'room_seat_requests', filter: `room_id=eq.${id}` },
-        async () => {
-          if (!canManage || !profile) return;
-          await loadPendingRequests();
-          const { data } = await supabase
-            .from('room_seat_requests')
-            .select('id')
-            .eq('room_id', id)
-            .eq('user_id', profile.id)
-            .eq('status', 'pending')
-            .limit(1);
-          setMyPendingRequest((data ?? []).length > 0);
-        }
-      )
-      .subscribe();
+            mergeIncomingMessages([incoming]);
+          }
+        )
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'room_seats', filter: `room_id=eq.${id}` },
+          (payload) => {
+            applySeatPayload(payload.new as Seat);
+          }
+        )
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${id}` },
+          (payload) => {
+            const updatedRoom = payload.new as typeof room;
+            setRoom((current: typeof room) => current ? { ...current, ...updatedRoom } : current);
+          }
+        )
+        .subscribe((status) => { if (status !== 'SUBSCRIBED') onRealtimeStatus(status); else realtimeOkRef.current = true; });
+
+      // قناة مستقلة لطلبات الصعود كي لا يعطّل أي خلل فيها بقية أحداث الغرفة
+      const requestsChannel = supabase
+        .channel(`room-requests:${id}`)
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'room_seat_requests', filter: `room_id=eq.${id}` },
+          () => {
+            if (myRoleRef.current) void loadPendingRequests();
+            void refreshMyPendingRequest();
+          }
+        )
+        .subscribe();
+
+      channelsRef.current = [mainChannel, requestsChannel];
+    };
+
+    buildChannels();
 
     return () => {
-      supabase.removeChannel(channel);
+      disposed = true;
+      if (resubscribeTimerRef.current) {
+        clearTimeout(resubscribeTimerRef.current);
+        resubscribeTimerRef.current = null;
+      }
+      channelsRef.current.forEach((channel) => { try { supabase.removeChannel(channel); } catch { /* noop */ } });
+      channelsRef.current = [];
     };
+  };
+
+  // دمج رسائل واردة (اتصال فوري أو مزامنة دورية) بلا تكرار
+  const mergeIncomingMessages = (incoming: Message[]) => {
+    if (!incoming.length) return;
+    setMessages(prev => {
+      let next = prev;
+      for (const raw of incoming) {
+        const savedMessage: Message = {
+          ...raw,
+          user: raw.user_id === profile?.id
+            ? {
+                username: profile.username,
+                display_name: profile.display_name,
+                avatar_url: profile.avatar_url,
+              }
+            : (raw.user ?? participantProfilesRef.current[raw.user_id] ?? null),
+        };
+        const withoutPending = next.filter(
+          (message) => !(message.pending && message.user_id === savedMessage.user_id && message.message === savedMessage.message),
+        );
+        const existingIndex = withoutPending.findIndex((message) => message.id === savedMessage.id);
+        if (existingIndex >= 0) {
+          next = withoutPending.map((message, index) => index === existingIndex ? savedMessage : message);
+        } else {
+          next = [...withoutPending, savedMessage];
+        }
+      }
+      return next;
+    });
+    const latest = incoming[incoming.length - 1]?.created_at;
+    if (latest && (!lastMessageAtRef.current || latest > lastMessageAtRef.current)) {
+      lastMessageAtRef.current = latest;
+    }
+    setTimeout(() => chatListRef.current?.scrollToEnd(), 100);
+  };
+
+  // تطبيق تحديث مقعد واحد محلياً (بدل إعادة تحميل كل المقاعد والأسماء)
+  const applySeatPayload = (nextSeat: Seat) => {
+    const previousSeat = seatsRef.current.find(seat => seat.id === nextSeat.id);
+    const previousUserId = previousSeat?.user_id ?? null;
+    const nextUserId = nextSeat.user_id ?? null;
+    const userChanged = previousSeat && previousUserId !== nextUserId;
+
+    const normalized: Seat = {
+      ...nextSeat,
+      user: nextUserId
+        ? (participantProfilesRef.current[nextUserId] ?? previousSeat?.user ?? null)
+        : null,
+    };
+    const nextSeats = seatsRef.current.some(seat => seat.id === normalized.id)
+      ? seatsRef.current.map(seat => (seat.id === normalized.id ? normalized : seat))
+      : [...seatsRef.current, normalized].sort((a, b) => a.seat_index - b.seat_index);
+    seatsRef.current = nextSeats;
+    setSeats(nextSeats);
+    const myOccupied = nextSeats.find(
+      seat => seat.user_id === profile?.id && seat.status === 'occupied',
+    );
+    setMySeat(myOccupied?.seat_index ?? null);
+
+    if (userChanged) {
+      const eventId = `seat-event-${nextSeat.id}-${previousUserId ?? 'empty'}-${nextUserId ?? 'empty'}`;
+      if (previousUserId) {
+        const previousName = previousSeat.user?.display_name ?? previousSeat.user?.username ?? 'أحد المتحدثين';
+        addSeatSystemMessage(eventId, `غادر ${previousName} المنصة الصوتية.`);
+      }
+      if (nextUserId) {
+        const joinedName = normalized.user?.display_name ?? normalized.user?.username ?? 'متحدث جديد';
+        addSeatSystemMessage(`${eventId}-join`, `صعد ${joinedName} إلى المنصة الصوتية.`);
+        // اسم غير معروف بعد؟ نجلب ملفات المشاركين مرة واحدة
+        if (!participantProfilesRef.current[nextUserId]) {
+          void loadParticipantProfiles().then((profiles) => {
+            if (!profiles[nextUserId]) return;
+            seatsRef.current = seatsRef.current.map(seat =>
+              seat.user_id === nextUserId ? { ...seat, user: profiles[nextUserId] } : seat,
+            );
+            setSeats(seatsRef.current);
+          });
+        }
+      }
+    }
+  };
+
+  // مزامنة دورية خفيفة: تضمن وصول الرسائل حتى لو تعطل الاتصال الفوري
+  const syncNewMessages = async () => {
+    if (!id) return;
+    try {
+      let query = supabase
+        .from('room_messages')
+        .select(`
+          id, room_id, user_id, message, is_system, created_at,
+          user:users(username, display_name, avatar_url)
+        `)
+        .eq('room_id', id)
+        .order('created_at', { ascending: true })
+        .limit(200);
+      if (lastMessageAtRef.current) {
+        query = query.gt('created_at', lastMessageAtRef.current);
+      }
+      const { data, error } = await query;
+      if (error) return;
+      const rows = (data ?? []) as unknown as Array<Message & { user: Message['user'] }>;
+      if (!rows.length) return;
+      mergeIncomingMessages(rows.map((row) => ({
+        ...row,
+        user: Array.isArray(row.user) ? row.user[0] ?? null : row.user,
+      })));
+    } catch (error: unknown) {
+      console.warn('[Wattar] message sync failed:', error);
+    }
+  };
+
+  // طلب الصعود الخاص بي (مزامنة سريعة بعد أي تغيير)
+  const refreshMyPendingRequest = async () => {
+    if (!profile?.id) return;
+    const { data } = await supabase
+      .from('room_seat_requests')
+      .select('id')
+      .eq('room_id', id)
+      .eq('user_id', profile.id)
+      .eq('status', 'pending')
+      .limit(1);
+    setMyPendingRequest((data ?? []).length > 0);
   };
 
   const sendMessage = async () => {
@@ -632,8 +816,10 @@ export default function RoomScreen() {
     if (!profile) return;
     setRequestingSeat(true);
     try {
-      await supabase.rpc('request_room_seat', { p_room_id: id });
+      const { error } = await supabase.rpc('request_room_seat', { p_room_id: id });
+      if (error) throw new Error(error.message);
       setMyPendingRequest(true);
+      Alert.alert('أُرسل الطلب', 'أُبلغ طاقم الغرفة بطلبك للصعود إلى المنصة.');
     } catch (error: unknown) {
       Alert.alert('تعذر إرسال طلب الصعود', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     } finally {
@@ -645,7 +831,8 @@ export default function RoomScreen() {
     if (!profile) return;
     setRequestingSeat(true);
     try {
-      await supabase.rpc('cancel_room_seat_request', { p_room_id: id });
+      const { error } = await supabase.rpc('cancel_room_seat_request', { p_room_id: id });
+      if (error) throw new Error(error.message);
       setMyPendingRequest(false);
     } catch (error: unknown) {
       Alert.alert('تعذر إلغاء الطلب', error instanceof Error ? error.message : 'حاول مرة أخرى.');
@@ -772,7 +959,18 @@ export default function RoomScreen() {
       else if (action === 'unmute_audience') setRoom((current: typeof room) => current ? { ...current, audience_muted: false } : current);
       else if (action === 'set_password') setRoom((current: typeof room) => current ? { ...current, has_password: true } : current);
       else if (action === 'clear_password') setRoom((current: typeof room) => current ? { ...current, has_password: false } : current);
-      await loadRoom();
+      // تحديث موجه بعد الإجراء (بدل إعادة تحميل الغرفة كاملة — أسرع بكثير)
+      await Promise.all([
+        loadSeats().catch(() => undefined),
+        action === 'accept_seat_request' || action === 'reject_seat_request'
+          ? loadPendingRequests()
+          : Promise.resolve(),
+        attendanceVisible ? loadAttendance(false) : Promise.resolve(),
+      ]);
+      if (['appoint_moderator', 'remove_moderator', 'appoint_second_admin', 'remove_second_admin', 'handover_owner', 'kick_user', 'ban_user'].includes(action)) {
+        await loadMyRoomPermissions().catch(() => undefined);
+        await loadAttendance(false).catch(() => undefined);
+      }
 
       if (action === 'lower_user') Alert.alert('تمت الإزالة', 'تم إنزال المتحدث من المنصة.');
       else if (action === 'kick_user') {
@@ -886,8 +1084,55 @@ export default function RoomScreen() {
     }
   };
 
-  const openRequestsSheet = () => { setManageSheetVisible(false); setRequestsSheetVisible(true); };
-  const openAuditSheet = () => { setManageSheetVisible(false); setAuditSheetVisible(true); };
+  const openRequestsSheet = () => {
+    setManageSheetVisible(false);
+    setRequestsSheetVisible(true);
+    void loadPendingRequests();
+  };
+  const openAuditSheet = () => {
+    setManageSheetVisible(false);
+    setAuditSheetVisible(true);
+    void loadAuditLog();
+  };
+  const openAttendance = () => {
+    setManageSheetVisible(false);
+    setAttendanceVisible(true);
+    void loadAttendance();
+  };
+
+  // إجراءات على حاضر (متحدث أو مستمع) من قائمة الحضور
+  const openAttendeeActions = (attendee: typeof attendees[number]) => {
+    if (attendee.user_id === profile?.id || attendee.is_owner) return;
+    const memberName = attendee.display_name ?? attendee.username;
+    if (!canManage) {
+      router.push(`/user/${attendee.user_id}`);
+      return;
+    }
+    const options: Array<{ text: string; style?: 'destructive' | 'cancel'; onPress?: () => void }> = [];
+    if (attendee.is_speaker) {
+      options.push({ text: 'إنزال من المنصة', style: 'destructive', onPress: () => performManageAction('lower_user', attendee.user_id) });
+    }
+    options.push({ text: 'طرد من الغرفة', style: 'destructive', onPress: () => openKickConfirm(attendee.user_id, memberName) });
+    options.push({ text: 'حظر من الغرفة', onPress: () => openBanDialog(attendee.user_id, memberName) });
+    options.push({ text: 'كتم المحادثة', onPress: () => openMuteChatDialog(attendee.user_id, memberName) });
+    if (canManageModerators) {
+      const isMod = moderatorIds.includes(attendee.user_id);
+      options.push(isMod
+        ? { text: 'إزالة من الإشراف', onPress: () => performManageAction('remove_moderator', attendee.user_id) }
+        : { text: 'تعيين مشرفاً', onPress: () => performManageAction('appoint_moderator', attendee.user_id) });
+    }
+    if ((myRole === 'owner' || myRole === 'admin') && !moderatorIds.includes(attendee.user_id)) {
+      if (room?.second_admin_id === attendee.user_id) {
+        options.push({ text: 'إزالة المدير الثاني', onPress: () => performManageAction('remove_second_admin', attendee.user_id) });
+      } else {
+        options.push({ text: 'تعيين مدير ثاني', onPress: () => performManageAction('appoint_second_admin', attendee.user_id) });
+      }
+    }
+    options.push({ text: 'عرض الملف الشخصي', onPress: () => router.push(`/user/${attendee.user_id}`) });
+    options.push({ text: 'إلغاء', style: 'cancel' });
+    Alert.alert(`إدارة ${memberName}`, 'اختر الإجراء المطلوب:',
+      options.map(o => ({ text: o.text, style: o.style, onPress: o.onPress })));
+  };
 
   // المودال المتعرّف automatisch lorsque la porte du mot de passe est requise
   useEffect(() => {
@@ -1024,8 +1269,15 @@ export default function RoomScreen() {
         <View style={styles.roomInfo}>
           <Text style={styles.roomName} numberOfLines={1}>{room.name}</Text>
           <View style={styles.roomMeta}>
-            <Users size={12} color={colors.roomMuted} />
-            <Text style={styles.roomMetaText}>{listenersCount} مستمع · {speakersCount} متحدث</Text>
+            <TouchableOpacity
+              style={styles.listenersChip}
+              onPress={openAttendance}
+              accessibilityRole="button"
+              accessibilityLabel={`عرض الحضور: ${listenersCount} مستمع و${speakersCount} متحدث`}
+            >
+              <Users size={12} color={colors.roomMuted} />
+              <Text style={styles.roomMetaText}>{listenersCount} مستمع · {speakersCount} متحدث</Text>
+            </TouchableOpacity>
             {/* مؤشر حالة الصوت الحي */}
             {voiceState === VOICE_ON && (
               <View style={styles.voiceChipOn}>
@@ -1070,6 +1322,13 @@ export default function RoomScreen() {
             {moderatingUserId === 'room'
               ? <ActivityIndicator size="small" color={colors.roomPrimary} />
               : <Shield size={20} color={colors.roomPrimary} />}
+            {pendingRequests.length > 0 && moderatingUserId !== 'room' && (
+              <View style={styles.requestBadge}>
+                <Text style={styles.requestBadgeText}>
+                  {pendingRequests.length > 9 ? '9+' : pendingRequests.length}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         ) : canManage ? (
           <TouchableOpacity
@@ -1179,6 +1438,38 @@ export default function RoomScreen() {
           accessibilityLabel="رسائل محادثة الغرفة"
         />
       </View>
+
+      {/* M6: طلب الصعود — زر دائم لجمهور الغرفة */}
+      {mySeat === null && !canManage && (
+        <View style={styles.seatRequestBar}>
+          {myPendingRequest ? (
+            <>
+              <Text style={styles.seatRequestPending}>طلبك قيد مراجعة طاقم الغرفة</Text>
+              <TouchableOpacity
+                style={styles.seatRequestCancel}
+                onPress={cancelMySeatRequest}
+                disabled={requestingSeat}
+                accessibilityRole="button"
+                accessibilityLabel="إلغاء طلب الصعود"
+              >
+                <Text style={styles.seatRequestCancelText}>إلغاء</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity
+              style={styles.seatRequestBtn}
+              onPress={requestMySeat}
+              disabled={requestingSeat}
+              accessibilityRole="button"
+              accessibilityLabel="إرسال طلب صعود إلى المنصة"
+            >
+              {requestingSeat
+                ? <ActivityIndicator size="small" color="#25140A" />
+                : <Text style={styles.seatRequestBtnText}>رفع اليد للصعود إلى المنصة</Text>}
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* Input Bar */}
       {showEmojiPicker && (
@@ -1358,6 +1649,10 @@ export default function RoomScreen() {
               <Lock size={18} color={room.has_password ? colors.gold : colors.roomMuted} />
               <Text style={styles.manageRowText}>{room.has_password ? 'إدارة كلمة المرور' : 'تعيين كلمة مرور'}</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={styles.manageRow} onPress={openAttendance} activeOpacity={0.8}>
+              <Users size={18} color={colors.roomTeal} />
+              <Text style={styles.manageRowText}>الحضور في الغرفة</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.manageRow} onPress={openRequestsSheet} activeOpacity={0.8}>
               <Users size={18} color={colors.roomPrimary} />
               <Text style={styles.manageRowText}>طلبات الصعود{pendingRequests.length > 0 ? ` (${pendingRequests.length})` : ''}</Text>
@@ -1419,6 +1714,61 @@ export default function RoomScreen() {
               </React.Fragment>
             ))}
             <TouchableOpacity style={[styles.manageRow, styles.manageCloseRow]} onPress={() => setRequestsSheetVisible(false)} activeOpacity={0.8}>
+              <Text style={styles.manageRowText}>إغلاق</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      {/* مودال الحضور في الغرفة */}
+      <Modal visible={attendanceVisible} transparent animationType="slide" onRequestClose={() => setAttendanceVisible(false)}>
+        <View style={styles.manageModalOverlay}>
+          <View style={styles.manageModal}>
+            <Text style={styles.manageModalTitle}>الحضور في الغرفة ({attendees.length})</Text>
+            {attendanceLoading && attendees.length === 0 ? (
+              <ActivityIndicator color={colors.roomTeal} style={{ marginVertical: 18 }} />
+            ) : attendees.length === 0 ? (
+              <Text style={styles.manageRowText}>لا يوجد أحد في الغرفة حالياً.</Text>
+            ) : (
+              <ScrollView nestedScrollEnabled>
+                {attendees.map((attendee) => {
+                  const roleLabel = attendee.is_owner ? 'المالك'
+                    : attendee.role === 'second_admin' ? 'المدير الثاني'
+                    : attendee.role === 'moderator' ? 'مشرف'
+                    : attendee.role === 'admin' ? 'الإدارة'
+                    : attendee.role === 'agency_manager' || attendee.role === 'agency_agent' ? 'الوكالة'
+                    : attendee.is_speaker ? 'متحدث' : 'مستمع';
+                  return (
+                    <TouchableOpacity
+                      key={attendee.user_id}
+                      style={styles.attendeeRow}
+                      onPress={() => openAttendeeActions(attendee)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.inviteFriendAvatar}>
+                        {attendee.avatar_url ? (
+                          <Image source={{ uri: attendee.avatar_url }} style={styles.seatAvatarImg} />
+                        ) : (
+                          <Text style={styles.inviteFriendInitial}>
+                            {(attendee.display_name ?? attendee.username).slice(0, 1).toUpperCase()}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={styles.inviteFriendCopy}>
+                        <Text style={styles.inviteFriendName}>{attendee.display_name ?? attendee.username}</Text>
+                        <Text style={styles.attendeeRole}>
+                          {roleLabel}
+                          {attendee.is_speaker ? (attendee.is_mic_on ? ' · يتحدث' : ' · ميكروفون مقفل') : ''}
+                        </Text>
+                      </View>
+                      {attendee.user_id === profile?.id && (
+                        <Text style={styles.attendeeSelf}>أنت</Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
+            <TouchableOpacity style={[styles.manageRow, styles.manageCloseRow]} onPress={() => setAttendanceVisible(false)} activeOpacity={0.8}>
               <Text style={styles.manageRowText}>إغلاق</Text>
             </TouchableOpacity>
           </View>
@@ -2275,4 +2625,27 @@ const styles = StyleSheet.create({
   auditAction: { color: colors.roomText, fontSize: 13, fontWeight: '700' },
   auditActor: { color: colors.roomMuted, fontSize: 13 },
   auditTime: { color: colors.roomMuted, fontSize: 11 },
+  listenersChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.roomElevated, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
+  requestBadge: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  requestBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
+  seatRequestBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: colors.roomSurface },
+  seatRequestBtn: { backgroundColor: colors.gold, borderRadius: 14, paddingHorizontal: 20, paddingVertical: 10 },
+  seatRequestBtnText: { color: '#25140A', fontWeight: '800', fontSize: 13 },
+  seatRequestPending: { color: colors.roomMuted, fontSize: 12, flex: 1, textAlign: 'right' },
+  seatRequestCancel: { backgroundColor: colors.roomElevated, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8 },
+  seatRequestCancelText: { color: colors.roomText, fontSize: 12, fontWeight: '700' },
+  attendeeRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.roomElevated, gap: 10 },
+  attendeeRole: { color: colors.roomMuted, fontSize: 11 },
+  attendeeSelf: { color: colors.roomPrimary, fontSize: 11, fontWeight: '800' },
 });
