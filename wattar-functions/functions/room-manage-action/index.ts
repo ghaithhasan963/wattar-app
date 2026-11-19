@@ -8,6 +8,7 @@
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import {
+  requireNotMaintenance,
   authenticate,
   errorResponse,
   HttpError,
@@ -137,6 +138,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
+    await requireNotMaintenance(ctx);
     await rateLimitByUser(ctx, 'room_manage_action', 30, 60_000);
     const body = validateBody<RoomManageActionBody>(
       await parseBody(req),

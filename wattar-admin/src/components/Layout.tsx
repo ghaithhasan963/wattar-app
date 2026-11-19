@@ -5,6 +5,8 @@ import {
   ArrowLeftRight,
   ArrowUpFromLine,
   Activity,
+  Bell,
+  Loader2,
   Building2,
   ChevronDown,
   ClipboardList,
@@ -27,6 +29,7 @@ import {
   X,
 } from 'lucide-react';
 import { STAFF_ROLE_LABELS, canAccess, useAuthStore } from '@/store/auth';
+import { supabase } from '@/lib/supabase';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 
@@ -82,6 +85,7 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
     items: [
       { to: '/audit', label: 'سجل الإدارة', icon: ClipboardList, permission: 'audit.view' },
       { to: '/activity', label: 'حركة المنصة', icon: Activity, permission: 'reports.platform' },
+      { to: '/alerts', label: 'التنبيهات', icon: Bell, permission: 'dashboard.view' },
       { to: '/staff', label: 'الموظفون والصلاحيات', icon: ShieldCheck, permission: 'staff.view' },
     ],
   },
@@ -93,8 +97,10 @@ const pageTitles = navGroups.flatMap((group) => group.items).reduce<Record<strin
 }, {});
 
 export function Layout({ children }: { children: ReactNode }) {
+  const { session, profile, initialized, signOut } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { profile, signOut } = useAuthStore();
+  const [unreadAlerts, setUnreadAlerts] = useState<number | null>(null);
+  const [alertsLoading, setAlertsLoading] = useState(false);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const pageTitle = useMemo(() => pageTitles[pathname] ?? 'لوحة الإدارة', [pathname]);
@@ -104,6 +110,25 @@ export function Layout({ children }: { children: ReactNode }) {
     const activeGroup = navGroups.find((group) => group.items.some((item) => item.to === pathname));
     setExpandedGroup(activeGroup?.label ?? 'الرئيسية');
   }, [pathname]);
+
+  useEffect(() => {
+    if (!initialized || !profile) return;
+    void loadUnreadAlerts();
+  }, [initialized, profile]);
+
+  const loadUnreadAlerts = async () => {
+    setAlertsLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('admin_list_alerts');
+      if (error) throw error;
+      const rows = (data ?? []) as Array<{ is_read: boolean }>;
+      setUnreadAlerts(rows.filter((r) => !r.is_read).length);
+    } catch {
+      setUnreadAlerts(0);
+    } finally {
+      setAlertsLoading(false);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -241,6 +266,21 @@ export function Layout({ children }: { children: ReactNode }) {
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
             لوحة الإدارة
           </div>
+          <button
+            type="button"
+            onClick={() => navigate('/alerts')}
+            disabled={alertsLoading}
+            className={`rounded-xl border border-white/[0.08] p-2 text-gray-300 transition hover:bg-white/10 ${unreadAlerts !== null && unreadAlerts > 0 ? 'text-wattar-400 border-wattar-500/30 bg-wattar-500/10' : ''}`}
+            aria-label={unreadAlerts !== null ? `${unreadAlerts} تنبيه غير مقروء` : 'التنبيهات'}
+          >
+            <Bell size={18} />
+            {unreadAlerts !== null && unreadAlerts > 0 ? (
+              <span className="absolute top-1 right-1 h-5 w-5 rounded-full border border-[#171a2c] bg-red-500 text-[10px] font-bold text-white flex items-center justify-center">
+                {unreadAlerts > 9 ? '9+' : unreadAlerts}
+              </span>
+            ) : null}
+            {alertsLoading ? <Loader2 size={16} className="animate-spin ml-1" /> : null}
+          </button>
         </header>
 
         <main className="scrollbar-thin flex-1 overflow-y-auto p-4 sm:p-5 lg:p-7">

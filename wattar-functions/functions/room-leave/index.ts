@@ -9,6 +9,7 @@
  * @version 1.0.0
  */
 import {
+  requireNotMaintenance,
   authenticate,
   errorResponse,
   jsonResponse,
@@ -25,6 +26,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
+    await requireNotMaintenance(ctx);
     await rateLimitByUser(ctx, 'room_leave', 60, 60_000);
     const body = validateBody<{ room_id: string; session_id?: string }>(
       await parseBody(req),

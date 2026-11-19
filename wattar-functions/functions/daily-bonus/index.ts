@@ -1,4 +1,5 @@
 import {
+  requireNotMaintenance,
   authenticate,
   errorResponse,
   jsonResponse,
@@ -13,6 +14,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
+    await requireNotMaintenance(ctx);
     await rateLimitByUser(ctx, 'daily_bonus', 1, 60_000);
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase.rpc('claim_daily_game_points_for_user', {

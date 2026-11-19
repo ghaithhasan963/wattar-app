@@ -156,6 +156,25 @@ export async function requireStaffPermissionOr(
   }
 }
 
+/**
+ * M7.2 (أ): فحص وضع الصيانة للدوال المواجهة للمستخدمين.
+ * إذا كان وضع الصيانة مفعّلاً، يُمنع المستخدمون العاديون من الإجراءات،
+ * ويومَح للموظفين والإدارة بالاستمرار (لصيانة المنصة دون إغلاق اللوحة).
+ */
+export async function requireNotMaintenance(ctx: AuthContext): Promise<void> {
+  const staffRoles = ['admin', 'super_admin', 'agent', 'support'];
+  if (staffRoles.includes(ctx.role)) return;
+
+  const supabase = getSupabaseAdmin();
+  const { data: maintenance, error } = await supabase.rpc('is_maintenance_mode');
+  if (error) {
+    throw new HttpError(500, 'MAINTENANCE_CHECK_FAILED', 'تعذر التحقق من حالة الصيانة');
+  }
+  if (maintenance === true) {
+    throw new HttpError(503, 'MAINTENANCE_MODE', 'المنصة تحت الصيانة مؤقتًا. حاول مرة أخرى لاحقًا.');
+  }
+}
+
 // ============================================================================
 // الأخطاء
 // ============================================================================

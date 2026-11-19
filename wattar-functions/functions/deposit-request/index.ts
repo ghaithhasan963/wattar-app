@@ -1,4 +1,5 @@
 import {
+  requireNotMaintenance,
   authenticate,
   errorResponse,
   jsonResponse,
@@ -29,6 +30,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
+    await requireNotMaintenance(ctx);
     await rateLimitByUser(ctx, 'deposit_request', 3, 60_000);
 
     const body = await parseBody<DepositRequestBody>(req);

@@ -72,9 +72,9 @@ try {
     Write-Host "Deploying $functionName..."
     Push-Location $tempRoot
     try {
-      & npx --yes supabase@latest functions deploy $functionName --no-verify-jwt --use-api --remote=$ProjectRef @confirmationArgs
+      $deployOutput = & npx --yes supabase@latest functions deploy $functionName --no-verify-jwt --use-api --remote=$ProjectRef @confirmationArgs 2>&1
       if ($LASTEXITCODE -ne 0) {
-        throw "Supabase CLI failed while deploying $functionName (exit code $LASTEXITCODE)."
+        throw "Supabase CLI failed while deploying $functionName (exit code $LASTEXITCODE). Output: $deployOutput"
       }
     }
     finally {

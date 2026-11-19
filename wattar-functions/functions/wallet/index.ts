@@ -7,6 +7,7 @@
  * @version 1.0.0
  */
 import {
+  requireNotMaintenance,
   authenticate,
   errorResponse,
   jsonResponse,
@@ -19,6 +20,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
+    await requireNotMaintenance(ctx);
     const supabase = getSupabaseAdmin();
 
     const { data: user, error: userError } = await supabase

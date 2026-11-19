@@ -7,6 +7,7 @@ import {
   parseBody,
   rateLimitByUser,
   requireIdempotencyKey,
+  requireNotMaintenance,
   validateBody,
 } from '../_shared/supabase.ts';
 
@@ -24,6 +25,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
+    await requireNotMaintenance(ctx);
     await rateLimitByUser(ctx, 'diamond_withdrawal_request', 5, 60_000);
     const body = await parseBody<WithdrawalRequestBody>(req);
     validateBody(body, ['amount_diamond', 'method']);

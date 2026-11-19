@@ -31,6 +31,7 @@ import { HostApplicationsPage } from '@/pages/HostApplicationsPage';
 import { MembershipsPage } from '@/pages/MembershipsPage';
 import { MessagingPage } from '@/pages/MessagingPage';
 import { SupportPage } from '@/pages/SupportPage';
+import { AlertsPage } from '@/pages/AlertsPage';
 import { StaffPage } from '@/pages/StaffPage';
 
 const queryClient = new QueryClient({
@@ -276,6 +277,14 @@ export default function App() {
             element={
               <ProtectedRoute permission="staff.view">
                 <StaffPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/alerts"
+            element={
+              <ProtectedRoute permission="dashboard.view">
+                <AlertsPage />
               </ProtectedRoute>
             }
           />

@@ -1,4 +1,5 @@
 import {
+  requireNotMaintenance,
   authenticate,
   errorResponse,
   getSupabaseAdmin,
@@ -32,6 +33,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
+    await requireNotMaintenance(ctx);
     await rateLimitByUser(ctx, 'social_push', 20, 60_000);
     const body = validateBody<PushRequest>(
       await parseBody<PushRequest>(req),

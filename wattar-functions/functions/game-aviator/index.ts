@@ -24,6 +24,7 @@
  * @version 1.0.0
  */
 import {
+  requireNotMaintenance,
   authenticate,
   errorResponse,
   jsonResponse,
@@ -56,6 +57,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
+    await requireNotMaintenance(ctx);
     await rateLimitByUser(ctx, 'place_bet', 5, 1000);
     const idempotencyKey = requireIdempotencyKey(req);
 

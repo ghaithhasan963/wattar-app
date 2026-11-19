@@ -4,6 +4,7 @@
  * Records a room listener session and publishes its real join event.
  */
 import {
+  requireNotMaintenance,
   authenticate,
   errorResponse,
   getSupabaseAdmin,
@@ -20,6 +21,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
+    await requireNotMaintenance(ctx);
     await rateLimitByUser(ctx, 'room_join', 60, 60_000);
     const body = validateBody<{ room_id: string; session_id: string; password?: string }>(
       await parseBody(req),

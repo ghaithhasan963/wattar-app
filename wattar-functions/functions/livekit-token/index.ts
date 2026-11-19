@@ -18,6 +18,7 @@
  * @version 1.0.2
  */
 import {
+  requireNotMaintenance,
   authenticate,
   getSupabaseAdmin,
   jsonResponse,
@@ -98,6 +99,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
+    await requireNotMaintenance(ctx);
     await rateLimitByUser(ctx, 'livekit_token', 10, 60_000);
 
     const body = await parseBody<{ room_id: string; password?: string }>(req);

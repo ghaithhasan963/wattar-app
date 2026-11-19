@@ -1,4 +1,5 @@
 import {
+  requireNotMaintenance,
   authenticate,
   errorResponse,
   jsonResponse,
@@ -24,6 +25,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const ctx = await authenticate(req);
+    await requireNotMaintenance(ctx);
     await rateLimitByUser(ctx, 'send_gift', 2, 1000);
 
     const body = await parseBody<GiftSendBody>(req);
