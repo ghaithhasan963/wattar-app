@@ -4,6 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 import { supabase, callFunction } from '@/lib/supabase';
+import { buildIlikeOr } from '@/lib/search';
 import { Search, Settings, Shield, Archive, KeyRound, Trash2, X, Check, Loader2, AlertTriangle, Filter, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
@@ -70,7 +71,8 @@ export function UsersPage() {
       if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(search)) {
         query = query.eq('id', search);
       } else {
-        query = query.or(`username.ilike.%${search}%,display_name.ilike.%${search}%,phone.ilike.%${search}%`);
+        const filter = buildIlikeOr(['username', 'display_name', 'phone'], search);
+        if (filter) query = query.or(filter);
       }
     }
 
@@ -115,16 +117,13 @@ export function UsersPage() {
     if (!statusUser) return;
     setProcessing(true);
     try {
-      await callFunction('admin-delete-user', {
-        action: 'status',
+      await callFunction('admin-set-user-status', {
         user_id: statusUser.id,
         status: statusTarget,
         reason: statusReason.trim(),
       });
       toast.success(
-        statusTarget === 'suspended' && statusReason.trim().startsWith('أرشفة')
-          ? 'تم إيقاف/أرشفة الحساب مع الاحتفاظ بسجل معاملاته.'
-          : statusTarget === 'banned'
+        statusTarget === 'banned'
           ? 'تم الحظر الدائم وتسجيل الإجراء'
           : statusTarget === 'suspended'
             ? 'تم الإيقاف المؤقت وتسجيل الإجراء'
@@ -132,6 +131,7 @@ export function UsersPage() {
       );
       setStatusUser(null);
       setStatusReason('');
+      setStatusTarget('suspended');
       await load();
     } catch (err: any) {
       toast.error(err instanceof Error ? err.message : 'تعذر تحديث حالة الحساب');
@@ -385,6 +385,7 @@ export function UsersPage() {
       {/* Modal: إعدادات اللعب */}
       {selectedUser && (
         <UserGameSettingsModal
+          key={`game-${selectedUser.id}`}
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
           onSetRtp={(rtp) => handleSetRtp(selectedUser.id, rtp)}
@@ -394,6 +395,7 @@ export function UsersPage() {
       )}
       {statusUser && (
         <UserStatusModal
+          key={`status-${statusUser.id}-${statusUser.status}`}
           user={statusUser}
           status={statusTarget}
           reason={statusReason}
@@ -404,12 +406,14 @@ export function UsersPage() {
             if (processing) return;
             setStatusUser(null);
             setStatusReason('');
+            setStatusTarget('suspended');
           }}
           onSubmit={() => void handleSetUserStatus()}
         />
       )}
       {accountUser && (
         <AccountActionModal
+          key={`account-${accountUser.id}-${accountAction}`}
           user={accountUser}
           action={accountAction}
           processing={processing}

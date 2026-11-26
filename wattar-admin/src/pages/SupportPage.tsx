@@ -150,15 +150,20 @@ export function SupportPage() {
     }
   };
 
-  const updateTicket = async (status: TicketStatus, priority: TicketPriority) => {
+  const updateTicket = async (status: TicketStatus, priority: TicketPriority, assignedTo?: string | null) => {
     if (!selectedTicket || savingTicket) return;
     setSavingTicket(true);
     try {
+      // Preserve an existing assignment: changing status/priority must never
+      // silently reassign (or clear) a ticket that another agent owns.
+      const nextAssignee = assignedTo === undefined
+        ? selectedTicket.assigned_to ?? profile?.id ?? null
+        : assignedTo;
       const { error: updateError } = await supabase.rpc('update_support_ticket', {
         p_ticket_id: selectedTicket.ticket_id,
         p_status: status,
         p_priority: priority,
-        p_assigned_to: profile?.id ?? null,
+        p_assigned_to: nextAssignee,
       });
       if (updateError) throw updateError;
       await loadQueue(false);
@@ -297,6 +302,25 @@ export function SupportPage() {
                     <option value="normal">أولوية عادية</option>
                     <option value="high">أولوية عالية</option>
                   </select>
+                  {selectedTicket.assigned_to !== profile?.id ? (
+                    <button
+                      type="button"
+                      onClick={() => void updateTicket(selectedTicket.status, selectedTicket.priority, profile?.id ?? null)}
+                      disabled={savingTicket || !profile?.id}
+                      className="rounded-lg border border-wattar-500/30 bg-wattar-600/10 px-2.5 py-2 text-xs font-medium text-wattar-200 hover:bg-wattar-600/20 disabled:opacity-50"
+                    >
+                      تعيين لي
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => void updateTicket(selectedTicket.status, selectedTicket.priority, null)}
+                      disabled={savingTicket}
+                      className="rounded-lg border border-wattar-900 px-2.5 py-2 text-xs text-gray-300 hover:bg-white/5 disabled:opacity-50"
+                    >
+                      إلغاء التعيين
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="flex-1 space-y-3 overflow-y-auto p-4">

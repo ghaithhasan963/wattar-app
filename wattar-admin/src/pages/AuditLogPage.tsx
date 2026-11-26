@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Activity, ChevronDown, ChevronUp, RefreshCw, Search } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Activity, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, RefreshCw, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { buildIlikeOr } from '@/lib/search';
 
 interface AuditRow {
   id: string;
@@ -15,6 +16,9 @@ interface AuditRow {
   created_at: string;
   admin: { username: string; display_name: string | null } | null;
 }
+
+const PAGE_SIZE = 50;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const actionLabels: Record<string, string> = {
   create: 'إنشاء',
@@ -56,51 +60,85 @@ export function AuditLogPage() {
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [actionFilter, setActionFilter] = useState('');
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Debounce typing so pagination is not reset on every keystroke.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setExpandedId(null);
+  }, [page]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: queryError } = await supabase
+      let query = supabase
         .from('admin_audit_log')
-        .select('id, admin_id, action, target_type, target_id, reason, before, after, metadata, created_at, admin:users!admin_audit_log_admin_id_fkey(username, display_name)')
+        .select(
+          'id, admin_id, action, target_type, target_id, reason, before, after, metadata, created_at, admin:users!admin_audit_log_admin_id_fkey(username, display_name)',
+          { count: 'exact' },
+        );
+
+      if (actionFilter) query = query.eq('action', actionFilter);
+
+      const term = search.trim();
+      if (term) {
+        const clauses: string[] = [];
+        const textFilter = buildIlikeOr(['reason', 'target_type'], term);
+        if (textFilter) clauses.push(textFilter);
+        if (UUID_RE.test(term)) clauses.push(`target_id.eq.${term}`);
+
+        // Resolve admins by name, then include their ids in the same OR filter.
+        const nameFilter = buildIlikeOr(['username', 'display_name'], term);
+        if (nameFilter) {
+          const { data: admins } = await supabase.from('users').select('id').or(nameFilter).limit(20);
+          const ids = ((admins ?? []) as Array<{ id: string }>).map((admin) => admin.id).filter(Boolean);
+          if (ids.length) clauses.push(`admin_id.in.(${ids.join(',')})`);
+        }
+        if (clauses.length) query = query.or(clauses.join(','));
+      }
+
+      const from = page * PAGE_SIZE;
+      const { data, error: queryError, count } = await query
         .order('created_at', { ascending: false })
-        .limit(200);
+        .range(from, from + PAGE_SIZE - 1);
       if (queryError) throw queryError;
       setRows(((data ?? []) as Array<Omit<AuditRow, 'admin'> & { admin: AuditRow['admin'] | AuditRow['admin'][] }>).map((row) => ({
         ...row,
         admin: Array.isArray(row.admin) ? row.admin[0] ?? null : row.admin,
       })));
+      const nextTotal = count ?? 0;
+      setTotal(nextTotal);
+      // If the current page fell past the end (e.g. filters changed), move back.
+      if (page > 0 && page * PAGE_SIZE >= nextTotal) {
+        setPage(Math.max(0, Math.ceil(nextTotal / PAGE_SIZE) - 1));
+      }
     } catch (caught: unknown) {
       setError(caught instanceof Error ? caught.message : 'تعذر تحميل سجل الإدارة.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [actionFilter, page, search]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const visibleRows = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase();
-    return rows.filter((row) => {
-      if (actionFilter && row.action !== actionFilter) return false;
-      if (!term) return true;
-      const adminName = row.admin?.display_name || row.admin?.username || '';
-      return [
-        adminName,
-        row.admin_id,
-        row.action,
-        row.target_type,
-        row.target_id,
-        row.reason,
-      ].some((value) => value?.toLocaleLowerCase().includes(term));
-    });
-  }, [actionFilter, rows, search]);
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const rangeStart = total === 0 ? 0 : page * PAGE_SIZE + 1;
+  const rangeEnd = Math.min((page + 1) * PAGE_SIZE, total);
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -112,7 +150,7 @@ export function AuditLogPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">سجل الإدارة</h1>
-              <p className="mt-1 text-sm text-gray-400">آخر 200 إجراء إداري مسجل على المنصة</p>
+              <p className="mt-1 text-sm text-gray-400">كل الإجراءات الإدارية المسجلة على المنصة — مقسمة إلى صفحات</p>
             </div>
           </div>
         </div>
@@ -130,15 +168,18 @@ export function AuditLogPage() {
         <div className="relative">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500" size={17} />
           <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="بحث باسم المسؤول أو معرّف الحساب..."
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="بحث بالسبب أو نوع الهدف أو اسم المسؤول أو معرّف..."
             className="w-full rounded-lg border border-wattar-900 bg-dark-elevated py-2.5 pr-10 pl-4 text-sm text-white placeholder-gray-500 focus:border-wattar-500 focus:outline-none"
           />
         </div>
         <select
           value={actionFilter}
-          onChange={(event) => setActionFilter(event.target.value)}
+          onChange={(event) => {
+            setActionFilter(event.target.value);
+            setPage(0);
+          }}
           className="rounded-lg border border-wattar-900 bg-dark-elevated px-3 py-2.5 text-sm text-white focus:border-wattar-500 focus:outline-none"
         >
           <option value="">كل الإجراءات</option>
@@ -157,7 +198,7 @@ export function AuditLogPage() {
       <div className="overflow-hidden rounded-xl border border-wattar-900 bg-dark-surface">
         {loading ? (
           <div className="p-10 text-center text-sm text-gray-400">جاري تحميل سجل الإدارة...</div>
-        ) : visibleRows.length === 0 ? (
+        ) : rows.length === 0 ? (
           <div className="p-10 text-center">
             <Activity size={25} className="mx-auto mb-3 text-gray-500" />
             <p className="font-medium text-gray-300">لا توجد إجراءات مطابقة</p>
@@ -165,7 +206,7 @@ export function AuditLogPage() {
           </div>
         ) : (
           <div className="divide-y divide-wattar-900/70">
-            {visibleRows.map((row) => {
+            {rows.map((row) => {
               const expanded = expandedId === row.id;
               return (
                 <article key={row.id} className="p-4 md:p-5">
@@ -216,9 +257,38 @@ export function AuditLogPage() {
             })}
           </div>
         )}
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-wattar-900 p-4">
+          <p className="text-xs text-gray-500">
+            {total === 0 ? 'لا نتائج' : `عرض ${rangeStart}–${rangeEnd} من ${total} إجراء`}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.max(0, current - 1))}
+              disabled={page === 0 || loading}
+              className="flex items-center gap-1 rounded-lg border border-wattar-900 px-3 py-1.5 text-xs text-gray-300 hover:bg-dark-elevated disabled:opacity-40"
+            >
+              <ChevronRight size={14} />
+              السابق
+            </button>
+            <span className="text-xs text-gray-400">
+              صفحة {page + 1} / {pageCount}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((current) => (current + 1 < pageCount ? current + 1 : current))}
+              disabled={page + 1 >= pageCount || loading}
+              className="flex items-center gap-1 rounded-lg border border-wattar-900 px-3 py-1.5 text-xs text-gray-300 hover:bg-dark-elevated disabled:opacity-40"
+            >
+              التالي
+              <ChevronLeft size={14} />
+            </button>
+          </div>
+        </div>
       </div>
       <p className="text-xs leading-5 text-gray-500">
-        السجل يعرض أحدث 200 إجراء فقط. الوصول للبيانات يخضع لصلاحيات الإدارة، وتُحجب القيم ذات الأسماء الحساسة عند عرض التفاصيل.
+        تُجلب الصفحة من الخادم مع العدد الإجمالي، وتُحجب القيم ذات الأسماء الحساسة عند عرض التفاصيل.
       </p>
     </div>
   );

@@ -4,6 +4,7 @@
  * كل الأرقام حقيقية من القاعدة، وكل كتابة تمرّ عبر admin-agencies (مسجّلة في سجل التدقيق).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { buildIlikeOr } from '@/lib/search';
 import {
   BookOpen,
   Building2,
@@ -712,10 +713,16 @@ function CreateAgencyModal({
     const timer = setTimeout(async () => {
       setSearching(true);
       try {
+        const filter = buildIlikeOr(['username', 'display_name', 'phone'], term);
+        if (!filter) {
+          setOptions([]);
+          setSearching(false);
+          return;
+        }
         const { data, error } = await supabase
           .from('users')
           .select('id, username, display_name, phone, role')
-          .or(`username.ilike.%${term}%,display_name.ilike.%${term}%,phone.ilike.%${term}%`)
+          .or(filter)
           .eq('status', 'active')
           .limit(6);
         if (error) throw error;
@@ -881,10 +888,15 @@ function ManageAgencyModal({
     if (term.length < 2) { setManagerOptions([]); return; }
     const timer = setTimeout(async () => {
       try {
+        const filter = buildIlikeOr(['username', 'display_name', 'phone'], term);
+        if (!filter) {
+          setManagerOptions([]);
+          return;
+        }
         const { data } = await supabase
           .from('users')
           .select('id, username, display_name, phone, role')
-          .or(`username.ilike.%${term}%,display_name.ilike.%${term}%,phone.ilike.%${term}%`)
+          .or(filter)
           .eq('status', 'active')
           .limit(6);
         setManagerOptions((data ?? []) as UserOption[]);

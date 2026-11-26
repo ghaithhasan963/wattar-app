@@ -325,6 +325,32 @@ export function SettingsPage() {
       await persist(setting.key, numeric);
       return;
     }
+
+    // Preserve the stored JSONB type instead of guessing from the text. A
+    // heuristic conversion would corrupt values such as "1.0", "03" or
+    // "true " and change how the server reads the setting.
+    if (typeof setting.value === 'boolean') {
+      const normalized = raw.trim().toLowerCase();
+      if (normalized !== 'true' && normalized !== 'false') {
+        toast.error('أدخل true أو false فقط');
+        return;
+      }
+      await persist(setting.key, normalized === 'true');
+      return;
+    }
+    if (typeof setting.value === 'number') {
+      const numeric = Number(raw);
+      if (!Number.isFinite(numeric)) {
+        toast.error('أدخل قيمة رقمية صحيحة');
+        return;
+      }
+      await persist(setting.key, numeric);
+      return;
+    }
+    if (setting.value !== null && typeof setting.value === 'object') {
+      toast.error('هذا الإعداد كائن JSON ولا يمكن تعديله من حقل نصي');
+      return;
+    }
     await persist(setting.key, raw);
   };
 

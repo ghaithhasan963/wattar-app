@@ -4,6 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 import { supabase, callFunction } from '@/lib/supabase';
+import { buildIlikeOr } from '@/lib/search';
 import { Check, X, Eye, Loader2, Search, MessageCircleQuestion, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader, SelectField } from '@/components/ui';
@@ -77,7 +78,8 @@ export function DepositsPage() {
       if (filter !== 'all') query = query.eq('status', filter);
       const trimmed = search.trim();
       if (trimmed) {
-        query = query.or(`external_ref.ilike.%${trimmed}%,sender_phone.ilike.%${trimmed}%,sender_name.ilike.%${trimmed}%`);
+        const filter = buildIlikeOr(['external_ref', 'sender_phone', 'sender_name'], trimmed);
+        if (filter) query = query.or(filter);
       }
       const { data, error } = await query;
       if (error) throw error;

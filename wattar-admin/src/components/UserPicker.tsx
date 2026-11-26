@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2, Search, UserRound, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { buildIlikeOr } from '@/lib/search';
 
 export interface PickedUser {
   id: string;
@@ -50,10 +51,16 @@ export function UserPicker({
     setSearching(true);
     const timer = setTimeout(async () => {
       try {
+        const filter = buildIlikeOr(['username', 'display_name', 'phone'], term);
+        if (!filter) {
+          setOptions([]);
+          setSearching(false);
+          return;
+        }
         let query = supabase
           .from('users')
           .select('id, username, display_name, phone, role, status')
-          .or(`username.ilike.%${term}%,display_name.ilike.%${term}%,phone.ilike.%${term}%`)
+          .or(filter)
           .limit(7);
         if (activeOnly) query = query.eq('status', 'active');
         const { data, error } = await query;
