@@ -642,4 +642,13 @@
 - [x] `tsc --noEmit` نظيف · اختبارات اللوحة 11/11 · اختبارات التطبيق 90/90.
 - [ ] **عائق:** واجهة Supabase الإدارية تُعيد `451 Access from your region is restricted` — تعذّر تطبيق #73 ونشر `admin-set-user-status`. المطلوب استعادة الوصول ثم: تطبيق #73، تشغيل `diagnostics/12`، نشر الدالة.
 
-- [ ] **التالي:** M7.5 TanStack Query → M7.6 تصدير التدقيق CSV/PDF → M7.7 أرقام حقيقية.
+### 2026-11-26 — M7.5 TanStack Query (القسم 24) — مكتمل في الكود
+
+- [x] `src/lib/queryClient.ts`: `QueryClient` موحّد (`staleTime` 30ث · `gcTime` 5د · `retry` 1 · لا إعادة جلب عند تركيز النافذة) + `queryKey` + `queryErrorMessage` برسالة عربية موحّدة.
+- [x] `main.tsx`: لفّ التطبيق بـ`QueryClientProvider`.
+- [x] `DashboardPage`: استعلام واحد (`admin-dashboard`) يعيد المؤشرات + البلاغات + سجل الإدارة، وزر التحديث يستدعي `refetch`.
+- [x] `AuditLogPage`: `useQuery` بمفتاح `[page, search, actionFilter]` و`keepPreviousData`، فالصفحة السابقة تبقى ظاهرة أثناء جلب التالية، مع إعادة الضبط عند تجاوز آخر صفحة.
+- [x] `UsersPage`: `useQuery` بمفتاح لكل تركيبة فلاتر، وعرض خطأ التحميل داخل الجدول مع زر إعادة المحاولة؛ إجراءات الحالة/RTP/النتيجة تُحدّث عبر `refetch`.
+- [x] `queryClient.test.ts` 3/3 · `tsc --noEmit` نظيف · اختبارات اللوحة 14/14 · اختبارات التطبيق 90/90.
+
+- [ ] **التالي:** M7.6 تصدير التدقيق CSV/PDF → M7.7 أرقام حقيقية.

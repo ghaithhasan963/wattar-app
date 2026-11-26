@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Activity, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, RefreshCw, Search } from 'lucide-react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { buildIlikeOr } from '@/lib/search';
+import { queryErrorMessage, queryKey } from '@/lib/queryClient';
 
 interface AuditRow {
   id: string;
@@ -56,15 +58,59 @@ function formatJson(value: unknown): string {
   return JSON.stringify(redactSensitive(value), null, 2);
 }
 
+interface AuditPage {
+  rows: AuditRow[];
+  total: number;
+}
+
+async function fetchAuditPage(params: { page: number; search: string; actionFilter: string }): Promise<AuditPage> {
+  const { page, search, actionFilter } = params;
+  let query = supabase
+    .from('admin_audit_log')
+    .select(
+      'id, admin_id, action, target_type, target_id, reason, before, after, metadata, created_at, admin:users!admin_audit_log_admin_id_fkey(username, display_name)',
+      { count: 'exact' },
+    );
+
+  if (actionFilter) query = query.eq('action', actionFilter);
+
+  const term = search.trim();
+  if (term) {
+    const clauses: string[] = [];
+    const textFilter = buildIlikeOr(['reason', 'target_type'], term);
+    if (textFilter) clauses.push(textFilter);
+    if (UUID_RE.test(term)) clauses.push(`target_id.eq.${term}`);
+
+    // Resolve admins by name, then include their ids in the same OR filter.
+    const nameFilter = buildIlikeOr(['username', 'display_name'], term);
+    if (nameFilter) {
+      const { data: admins } = await supabase.from('users').select('id').or(nameFilter).limit(20);
+      const ids = ((admins ?? []) as Array<{ id: string }>).map((admin) => admin.id).filter(Boolean);
+      if (ids.length) clauses.push(`admin_id.in.(${ids.join(',')})`);
+    }
+    if (clauses.length) query = query.or(clauses.join(','));
+  }
+
+  const from = page * PAGE_SIZE;
+  const { data, error: queryError, count } = await query
+    .order('created_at', { ascending: false })
+    .range(from, from + PAGE_SIZE - 1);
+  if (queryError) throw queryError;
+
+  return {
+    rows: ((data ?? []) as Array<Omit<AuditRow, 'admin'> & { admin: AuditRow['admin'] | AuditRow['admin'][] }>).map((row) => ({
+      ...row,
+      admin: Array.isArray(row.admin) ? row.admin[0] ?? null : row.admin,
+    })),
+    total: count ?? 0,
+  };
+}
+
 export function AuditLogPage() {
-  const [rows, setRows] = useState<AuditRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [actionFilter, setActionFilter] = useState('');
   const [page, setPage] = useState(0);
-  const [total, setTotal] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Debounce typing so pagination is not reset on every keystroke.
@@ -80,61 +126,25 @@ export function AuditLogPage() {
     setExpandedId(null);
   }, [page]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      let query = supabase
-        .from('admin_audit_log')
-        .select(
-          'id, admin_id, action, target_type, target_id, reason, before, after, metadata, created_at, admin:users!admin_audit_log_admin_id_fkey(username, display_name)',
-          { count: 'exact' },
-        );
+  const { data, error: queryError, isFetching, refetch } = useQuery({
+    queryKey: queryKey('admin-audit-log', page, search, actionFilter),
+    queryFn: () => fetchAuditPage({ page, search, actionFilter }),
+    // Keep the previous page visible while the next one loads.
+    placeholderData: keepPreviousData,
+  });
 
-      if (actionFilter) query = query.eq('action', actionFilter);
+  const rows = data?.rows ?? [];
+  const total = data?.total ?? 0;
+  const loading = isFetching;
+  const error = queryError ? queryErrorMessage(queryError, 'تعذر تحميل سجل الإدارة.') : null;
+  const load = refetch;
 
-      const term = search.trim();
-      if (term) {
-        const clauses: string[] = [];
-        const textFilter = buildIlikeOr(['reason', 'target_type'], term);
-        if (textFilter) clauses.push(textFilter);
-        if (UUID_RE.test(term)) clauses.push(`target_id.eq.${term}`);
-
-        // Resolve admins by name, then include their ids in the same OR filter.
-        const nameFilter = buildIlikeOr(['username', 'display_name'], term);
-        if (nameFilter) {
-          const { data: admins } = await supabase.from('users').select('id').or(nameFilter).limit(20);
-          const ids = ((admins ?? []) as Array<{ id: string }>).map((admin) => admin.id).filter(Boolean);
-          if (ids.length) clauses.push(`admin_id.in.(${ids.join(',')})`);
-        }
-        if (clauses.length) query = query.or(clauses.join(','));
-      }
-
-      const from = page * PAGE_SIZE;
-      const { data, error: queryError, count } = await query
-        .order('created_at', { ascending: false })
-        .range(from, from + PAGE_SIZE - 1);
-      if (queryError) throw queryError;
-      setRows(((data ?? []) as Array<Omit<AuditRow, 'admin'> & { admin: AuditRow['admin'] | AuditRow['admin'][] }>).map((row) => ({
-        ...row,
-        admin: Array.isArray(row.admin) ? row.admin[0] ?? null : row.admin,
-      })));
-      const nextTotal = count ?? 0;
-      setTotal(nextTotal);
-      // If the current page fell past the end (e.g. filters changed), move back.
-      if (page > 0 && page * PAGE_SIZE >= nextTotal) {
-        setPage(Math.max(0, Math.ceil(nextTotal / PAGE_SIZE) - 1));
-      }
-    } catch (caught: unknown) {
-      setError(caught instanceof Error ? caught.message : 'تعذر تحميل سجل الإدارة.');
-    } finally {
-      setLoading(false);
-    }
-  }, [actionFilter, page, search]);
-
+  // If the current page fell past the end (e.g. filters changed), move back.
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (data && page > 0 && page * PAGE_SIZE >= data.total) {
+      setPage(Math.max(0, Math.ceil(data.total / PAGE_SIZE) - 1));
+    }
+  }, [data, page]);
 
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rangeStart = total === 0 ? 0 : page * PAGE_SIZE + 1;

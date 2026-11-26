@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Activity,
   ArrowDownToLine,
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { queryErrorMessage, queryKey } from '@/lib/queryClient';
 
 interface DashboardStats {
   totalUsers: number;
@@ -67,80 +68,84 @@ function formatDate(value: string) {
   return new Date(value).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
+interface DashboardData {
+  stats: DashboardStats;
+  activity: ActivityRow[];
+  reports: ReportRow[];
+  updatedAt: Date;
+}
+
+async function fetchDashboard(): Promise<DashboardData> {
+  const activeSince = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const results = await Promise.all([
+    supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'user'),
+    supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'user').gte('last_seen_at', activeSince),
+    supabase.from('agents').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+    supabase.from('deposits').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('diamond_withdrawals').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('rooms').select('id', { count: 'exact', head: true }).eq('status', 'live'),
+    supabase.from('user_reports').select('id', { count: 'exact', head: true }),
+    supabase.from('admin_audit_log')
+      .select('id, action, target_type, target_id, created_at, admin:users!admin_audit_log_admin_id_fkey(username, display_name)')
+      .order('created_at', { ascending: false })
+      .limit(6),
+    supabase.from('user_reports')
+      .select('id, reason, created_at, reporter:users!user_reports_reporter_id_fkey(username, display_name), reported:users!user_reports_reported_id_fkey(username, display_name)')
+      .order('created_at', { ascending: false })
+      .limit(5),
+  ]);
+
+  const [users, activeUsers, agents, deposits, withdrawals, rooms, reportsCount, auditRows, reportRows] = results;
+  assertQuery(users);
+  assertQuery(activeUsers);
+  assertQuery(agents);
+  assertQuery(deposits);
+  assertQuery(withdrawals);
+  assertQuery(rooms);
+  assertQuery(reportsCount);
+
+  const auditData = assertQuery(auditRows) ?? [];
+  const reportData = assertQuery(reportRows) ?? [];
+
+  return {
+    stats: {
+      totalUsers: users.count ?? 0,
+      activeUsers: activeUsers.count ?? 0,
+      activeAgents: agents.count ?? 0,
+      pendingDeposits: deposits.count ?? 0,
+      pendingWithdrawals: withdrawals.count ?? 0,
+      liveRooms: rooms.count ?? 0,
+      reportCount: reportsCount.count ?? 0,
+    },
+    activity: (auditData as Array<ActivityRow & { admin: ActivityRow['admin'] | ActivityRow['admin'][] }>).map((row) => ({
+      ...row,
+      admin: Array.isArray(row.admin) ? row.admin[0] ?? null : row.admin,
+    })),
+    reports: (reportData as Array<ReportRow & {
+      reporter: ReportRow['reporter'] | ReportRow['reporter'][];
+      reported: ReportRow['reported'] | ReportRow['reported'][];
+    }>).map((row) => ({
+      ...row,
+      reporter: Array.isArray(row.reporter) ? row.reporter[0] ?? null : row.reporter,
+      reported: Array.isArray(row.reported) ? row.reported[0] ?? null : row.reported,
+    })),
+    updatedAt: new Date(),
+  };
+}
+
 export function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [activity, setActivity] = useState<ActivityRow[]>([]);
-  const [reports, setReports] = useState<ReportRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const { data, error: queryError, isFetching, refetch } = useQuery({
+    queryKey: queryKey('admin-dashboard'),
+    queryFn: fetchDashboard,
+  });
 
-  const loadDashboard = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const activeSince = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    try {
-      const results = await Promise.all([
-        supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'user'),
-        supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'user').gte('last_seen_at', activeSince),
-        supabase.from('agents').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('deposits').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('diamond_withdrawals').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('rooms').select('id', { count: 'exact', head: true }).eq('status', 'live'),
-        supabase.from('user_reports').select('id', { count: 'exact', head: true }),
-        supabase.from('admin_audit_log')
-          .select('id, action, target_type, target_id, created_at, admin:users!admin_audit_log_admin_id_fkey(username, display_name)')
-          .order('created_at', { ascending: false })
-          .limit(6),
-        supabase.from('user_reports')
-          .select('id, reason, created_at, reporter:users!user_reports_reporter_id_fkey(username, display_name), reported:users!user_reports_reported_id_fkey(username, display_name)')
-          .order('created_at', { ascending: false })
-          .limit(5),
-      ]);
-
-      const [users, activeUsers, agents, deposits, withdrawals, rooms, reportsCount, auditRows, reportRows] = results;
-      assertQuery(users);
-      assertQuery(activeUsers);
-      assertQuery(agents);
-      assertQuery(deposits);
-      assertQuery(withdrawals);
-      assertQuery(rooms);
-      assertQuery(reportsCount);
-
-      const auditData = assertQuery(auditRows) ?? [];
-      const reportData = assertQuery(reportRows) ?? [];
-      setStats({
-        totalUsers: users.count ?? 0,
-        activeUsers: activeUsers.count ?? 0,
-        activeAgents: agents.count ?? 0,
-        pendingDeposits: deposits.count ?? 0,
-        pendingWithdrawals: withdrawals.count ?? 0,
-        liveRooms: rooms.count ?? 0,
-        reportCount: reportsCount.count ?? 0,
-      });
-      setActivity((auditData as Array<ActivityRow & { admin: ActivityRow['admin'] | ActivityRow['admin'][] }>).map((row) => ({
-        ...row,
-        admin: Array.isArray(row.admin) ? row.admin[0] ?? null : row.admin,
-      })));
-      setReports((reportData as Array<ReportRow & {
-        reporter: ReportRow['reporter'] | ReportRow['reporter'][];
-        reported: ReportRow['reported'] | ReportRow['reported'][];
-      }>).map((row) => ({
-        ...row,
-        reporter: Array.isArray(row.reporter) ? row.reporter[0] ?? null : row.reporter,
-        reported: Array.isArray(row.reported) ? row.reported[0] ?? null : row.reported,
-      })));
-      setUpdatedAt(new Date());
-    } catch (caught: unknown) {
-      setError(caught instanceof Error ? caught.message : 'تعذر تحميل بيانات لوحة الإدارة.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadDashboard();
-  }, [loadDashboard]);
+  const stats = data?.stats ?? null;
+  const activity = data?.activity ?? [];
+  const reports = data?.reports ?? [];
+  const updatedAt = data?.updatedAt ?? null;
+  const loading = isFetching;
+  const error = queryError ? queryErrorMessage(queryError, 'تعذر تحميل بيانات لوحة الإدارة.') : null;
+  const loadDashboard = refetch;
 
   const metricCards = [
     { label: 'المستخدمون', value: stats?.totalUsers, detail: `${stats ? stats.activeUsers.toLocaleString('ar') : '—'} نشط خلال 24 ساعة`, icon: Users, tone: 'violet', to: '/users' },

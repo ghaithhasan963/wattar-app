@@ -2,9 +2,11 @@
  * Wattar Admin — صفحة المستخدمين
  * قائمة + بحث + إجراءات (حظر، ضبط RTP، force outcome)
  */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase, callFunction } from '@/lib/supabase';
 import { buildIlikeOr } from '@/lib/search';
+import { queryErrorMessage, queryKey } from '@/lib/queryClient';
 import { Search, Settings, Shield, Archive, KeyRound, Trash2, X, Check, Loader2, AlertTriangle, Filter, RotateCcw, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
@@ -32,10 +34,40 @@ interface UserRow {
   last_seen_at: string | null;
 }
 
+async function fetchUsers(params: {
+  search: string;
+  statusFilter: string;
+  roleFilter: string;
+  ageFilter: string;
+}): Promise<UserRow[]> {
+  const { search, statusFilter, roleFilter, ageFilter } = params;
+  let query = supabase
+    .from('users')
+    .select('id, username, display_name, phone, balance_gold, balance_diamond, status, role, gender, profile_visibility, adult_confirmed_at, onboarding_completed_at, rtp_override, is_force_win, is_force_lose, created_at, last_seen_at')
+    .order('created_at', { ascending: false })
+    .limit(100);
+
+  if (statusFilter !== 'all') query = query.eq('status', statusFilter);
+  if (roleFilter !== 'all') query = query.eq('role', roleFilter);
+  if (ageFilter === 'confirmed') query = query.not('adult_confirmed_at', 'is', null);
+  if (ageFilter === 'pending') query = query.is('adult_confirmed_at', null);
+
+  if (search) {
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(search)) {
+      query = query.eq('id', search);
+    } else {
+      const filter = buildIlikeOr(['username', 'display_name', 'phone'], search);
+      if (filter) query = query.or(filter);
+    }
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as UserRow[];
+}
+
 export function UsersPage() {
   const [searchParams] = useSearchParams();
-  const [users, setUsers] = useState<UserRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(() => searchParams.get('search') ?? '');
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -50,42 +82,17 @@ export function UsersPage() {
   const [processing, setProcessing] = useState(false);
   const currentAdminId = useAuthStore((state) => state.user?.id);
 
-  useEffect(() => {
-    load();
-    // Filters are server-side so the admin sees exactly the chosen slice.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, statusFilter, roleFilter, ageFilter]);
+  // Filters are server-side so the admin sees exactly the chosen slice; each
+  // combination is cached separately by TanStack Query.
+  const { data: users = [], error: queryError, isFetching: loading, refetch } = useQuery({
+    queryKey: queryKey('admin-users', search, statusFilter, roleFilter, ageFilter),
+    queryFn: () => fetchUsers({ search, statusFilter, roleFilter, ageFilter }),
+  });
 
   const load = async () => {
-    setLoading(true);
-    let query = supabase
-      .from('users')
-      .select('id, username, display_name, phone, balance_gold, balance_diamond, status, role, gender, profile_visibility, adult_confirmed_at, onboarding_completed_at, rtp_override, is_force_win, is_force_lose, created_at, last_seen_at')
-      .order('created_at', { ascending: false })
-      .limit(100);
-
-    if (statusFilter !== 'all') query = query.eq('status', statusFilter);
-    if (roleFilter !== 'all') query = query.eq('role', roleFilter);
-    if (ageFilter === 'confirmed') query = query.not('adult_confirmed_at', 'is', null);
-    if (ageFilter === 'pending') query = query.is('adult_confirmed_at', null);
-
-    if (search) {
-      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(search)) {
-        query = query.eq('id', search);
-      } else {
-        const filter = buildIlikeOr(['username', 'display_name', 'phone'], search);
-        if (filter) query = query.or(filter);
-      }
-    }
-
-    try {
-      const { data, error } = await query;
-      if (error) throw error;
-      setUsers(data ?? []);
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : 'تعذر تحميل المستخدمين');
-    } finally {
-      setLoading(false);
+    const result = await refetch();
+    if (result.error) {
+      toast.error(queryErrorMessage(result.error, 'تعذر تحميل المستخدمين'));
     }
   };
 
@@ -273,6 +280,21 @@ export function UsersPage() {
           <tbody>
             {loading ? (
               <tr><td colSpan={7} className="text-center p-8 text-gray-400">جاري التحميل...</td></tr>
+            ) : queryError ? (
+              <tr>
+                <td colSpan={7} className="p-8 text-center">
+                  <p className="text-sm text-red-300">
+                    تعذر تحميل المستخدمين: {queryErrorMessage(queryError, 'خطأ غير معروف')}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void load()}
+                    className="mt-3 rounded-lg border border-wattar-900 px-3 py-1.5 text-xs text-gray-200 hover:bg-dark-elevated"
+                  >
+                    إعادة المحاولة
+                  </button>
+                </td>
+              </tr>
             ) : users.length === 0 ? (
               <tr><td colSpan={7} className="text-center p-8 text-gray-500">لا يوجد مستخدمون</td></tr>
             ) : users.map(u => (
