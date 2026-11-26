@@ -5,11 +5,12 @@
 import { useEffect, useState } from 'react';
 import { supabase, callFunction } from '@/lib/supabase';
 import { buildIlikeOr } from '@/lib/search';
-import { Search, Settings, Shield, Archive, KeyRound, Trash2, X, Check, Loader2, AlertTriangle, Filter, RotateCcw } from 'lucide-react';
+import { Search, Settings, Shield, Archive, KeyRound, Trash2, X, Check, Loader2, AlertTriangle, Filter, RotateCcw, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import { PageHeader, SelectField } from '@/components/ui';
+import { UserDetailDrawer } from '@/components/UserDetailDrawer';
 
 interface UserRow {
   id: string;
@@ -43,6 +44,7 @@ export function UsersPage() {
   const [statusUser, setStatusUser] = useState<UserRow | null>(null);
   const [statusTarget, setStatusTarget] = useState<'active' | 'suspended' | 'banned'>('suspended');
   const [statusReason, setStatusReason] = useState('');
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
   const [accountUser, setAccountUser] = useState<UserRow | null>(null);
   const [accountAction, setAccountAction] = useState<'archive' | 'delete' | 'reset'>('archive');
   const [processing, setProcessing] = useState(false);
@@ -323,6 +325,13 @@ export function UsersPage() {
                 <td className="p-4">
                   <div className="flex items-center gap-2">
                     <button
+                      onClick={() => setDetailUserId(u.id)}
+                      className="rounded-lg p-2 text-sky-300 hover:bg-sky-500/10"
+                      title="عرض تفاصيل الحساب الكاملة"
+                    >
+                      <Eye size={16} />
+                    </button>
+                    <button
                       onClick={() => setSelectedUser(u)}
                       className="rounded-lg p-2 text-wattar-400 hover:bg-wattar-500/10"
                       title="إعدادات اللعب"
@@ -382,6 +391,13 @@ export function UsersPage() {
         </table>
       </div>
 
+      {detailUserId && (
+        <UserDetailDrawer
+          key={`detail-${detailUserId}`}
+          userId={detailUserId}
+          onClose={() => setDetailUserId(null)}
+        />
+      )}
       {/* Modal: إعدادات اللعب */}
       {selectedUser && (
         <UserGameSettingsModal
