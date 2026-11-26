@@ -355,14 +355,28 @@ export function SettingsPage() {
   };
 
   const getValue = (key: string): any => settings.find((setting) => setting.key === key)?.value;
-  const coinRate = Number(getValue('paid_coins_per_usd') ?? 3000);
-  const diamondRate = Number(getValue('diamonds_per_usd') ?? 3000);
+
+  // لا نعرض أي رقم مختلق: إن كان الإعداد غير موجود في القاعدة تظهر «—»
+  // بدل قيمة افتراضية قد تكون مخالفة لما هو مضبوط فعلاً.
+  const getNumber = (key: string): number | null => {
+    const raw = getValue(key);
+    if (raw === null || raw === undefined || raw === '') return null;
+    const numeric = Number(raw);
+    return Number.isFinite(numeric) ? numeric : null;
+  };
+
+  const coinRate = getNumber('paid_coins_per_usd');
+  const diamondRate = getNumber('diamonds_per_usd');
   const depositsEnabled = getValue('deposits_enabled') === true;
   const withdrawalsEnabled = getValue('withdrawals_enabled') === true;
-  const withdrawalFee = Number(getValue('withdrawal_fee_percent') ?? 0);
-  const depositFee = Number(getValue('deposit_fee_percent') ?? 0);
-  const minWithdrawalDiamonds = Number(getValue('min_withdrawal_diamonds') ?? 30000);
-  const minWithdrawalUsd = diamondRate > 0 ? minWithdrawalDiamonds / diamondRate : 0;
+  const withdrawalFee = getNumber('withdrawal_fee_percent');
+  const depositFee = getNumber('deposit_fee_percent');
+  const minWithdrawalDiamonds = getNumber('min_withdrawal_diamonds');
+  const minWithdrawalUsd = diamondRate && diamondRate > 0 && minWithdrawalDiamonds !== null
+    ? minWithdrawalDiamonds / diamondRate
+    : null;
+  const formatRate = (rate: number | null) => (rate === null ? '—' : `1$ = ${rate.toLocaleString()} `);
+  const formatFee = (fee: number | null) => (fee === null ? 'العمولة غير مضبوطة' : `${fee}%`);
 
   const filteredByTab = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -471,22 +485,26 @@ export function SettingsPage() {
         <SummaryCard
           icon={Coins}
           label="سعر الشحن"
-          value={`1$ = ${coinRate.toLocaleString()} Coin`}
-          hint={`عمولة الشحن ${depositFee}%`}
+          value={`${formatRate(coinRate)}Coin`}
+          hint={`عمولة الشحن ${formatFee(depositFee)}`}
           tone="gold"
         />
         <SummaryCard
           icon={Gem}
           label="سعر السحب"
-          value={`1$ = ${diamondRate.toLocaleString()} Diamond`}
-          hint={`عمولة السحب ${withdrawalFee}%`}
+          value={`${formatRate(diamondRate)}Diamond`}
+          hint={`عمولة السحب ${formatFee(withdrawalFee)}`}
           tone="teal"
         />
         <SummaryCard
           icon={Percent}
           label="الحد الأدنى للسحب"
-          value={`${minWithdrawalDiamonds.toLocaleString()} Diamond`}
-          hint={`≈ $${minWithdrawalUsd.toFixed(0)} · عمولة ${withdrawalFee}%`}
+          value={minWithdrawalDiamonds === null ? '—' : `${minWithdrawalDiamonds.toLocaleString()} Diamond`}
+          hint={
+            minWithdrawalUsd === null
+              ? `عمولة ${formatFee(withdrawalFee)}`
+              : `≈ $${minWithdrawalUsd.toFixed(0)} · عمولة ${formatFee(withdrawalFee)}`
+          }
           tone="violet"
         />
         <SummaryCard

@@ -1,9 +1,29 @@
 import { useEffect, useState } from 'react';
-import { Activity, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, RefreshCw, Search } from 'lucide-react';
+import {
+  Activity,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Download,
+  FileText,
+  Loader2,
+  RefreshCw,
+  Search,
+} from 'lucide-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { buildIlikeOr } from '@/lib/search';
 import { queryErrorMessage, queryKey } from '@/lib/queryClient';
+import {
+  buildAuditCsv,
+  downloadTextFile,
+  formatRedactedJson,
+  openAuditPrint,
+  redactSensitive,
+  type AuditExportRow,
+} from '@/lib/auditExport';
 
 interface AuditRow {
   id: string;
@@ -15,12 +35,20 @@ interface AuditRow {
   before: unknown;
   after: unknown;
   metadata: Record<string, unknown> | null;
+  ip_address: string | null;
+  user_agent: string | null;
   created_at: string;
   admin: { username: string; display_name: string | null } | null;
 }
 
 const PAGE_SIZE = 50;
+/** سقف التصدير لحماية المتصفح والقاعدة من ملفات ضخمة بضغطة واحدة. */
+const EXPORT_LIMIT = 5000;
+const EXPORT_BATCH = 1000;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const AUDIT_COLUMNS =
+  'id, admin_id, action, target_type, target_id, reason, before, after, metadata, ip_address, user_agent, created_at, admin:users!admin_audit_log_admin_id_fkey(username, display_name)';
 
 const actionLabels: Record<string, string> = {
   create: 'إنشاء',
@@ -40,22 +68,40 @@ const actionLabels: Record<string, string> = {
   reset_password: 'إعادة تعيين كلمة مرور',
 };
 
-function redactSensitive(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(redactSensitive);
-  if (!value || typeof value !== 'object') return value;
-  return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>).map(([key, item]) => [
-      key,
-      /password|token|secret|authorization|document|proof|phone|email|address|payout/i.test(key)
-        ? '[محجوب]'
-        : redactSensitive(item),
-    ]),
-  );
-}
-
 function formatJson(value: unknown): string {
   if (value === null || value === undefined) return '—';
   return JSON.stringify(redactSensitive(value), null, 2);
+}
+
+function adminName(row: { admin: AuditRow['admin']; admin_id: string }): string {
+  return row.admin?.display_name || row.admin?.username || `مسؤول ${row.admin_id.slice(0, 8)}`;
+}
+
+/** يبني شرط OR للبحث، ويحلّ أسماء المسؤولين إلى معرّفات مرة واحدة. */
+async function buildAuditOrFilter(search: string): Promise<string | null> {
+  const term = search.trim();
+  if (!term) return null;
+
+  const clauses: string[] = [];
+  const textFilter = buildIlikeOr(['reason', 'target_type'], term);
+  if (textFilter) clauses.push(textFilter);
+  if (UUID_RE.test(term)) clauses.push(`target_id.eq.${term}`);
+
+  const nameFilter = buildIlikeOr(['username', 'display_name'], term);
+  if (nameFilter) {
+    const { data: admins } = await supabase.from('users').select('id').or(nameFilter).limit(20);
+    const ids = ((admins ?? []) as Array<{ id: string }>).map((admin) => admin.id).filter(Boolean);
+    if (ids.length) clauses.push(`admin_id.in.(${ids.join(',')})`);
+  }
+
+  return clauses.length ? clauses.join(',') : null;
+}
+
+function normalizeRow(row: Omit<AuditRow, 'admin'> & { admin: AuditRow['admin'] | AuditRow['admin'][] }): AuditRow {
+  return {
+    ...row,
+    admin: Array.isArray(row.admin) ? row.admin[0] ?? null : row.admin,
+  };
 }
 
 interface AuditPage {
@@ -65,31 +111,11 @@ interface AuditPage {
 
 async function fetchAuditPage(params: { page: number; search: string; actionFilter: string }): Promise<AuditPage> {
   const { page, search, actionFilter } = params;
-  let query = supabase
-    .from('admin_audit_log')
-    .select(
-      'id, admin_id, action, target_type, target_id, reason, before, after, metadata, created_at, admin:users!admin_audit_log_admin_id_fkey(username, display_name)',
-      { count: 'exact' },
-    );
+  const orFilter = await buildAuditOrFilter(search);
 
+  let query = supabase.from('admin_audit_log').select(AUDIT_COLUMNS, { count: 'exact' });
   if (actionFilter) query = query.eq('action', actionFilter);
-
-  const term = search.trim();
-  if (term) {
-    const clauses: string[] = [];
-    const textFilter = buildIlikeOr(['reason', 'target_type'], term);
-    if (textFilter) clauses.push(textFilter);
-    if (UUID_RE.test(term)) clauses.push(`target_id.eq.${term}`);
-
-    // Resolve admins by name, then include their ids in the same OR filter.
-    const nameFilter = buildIlikeOr(['username', 'display_name'], term);
-    if (nameFilter) {
-      const { data: admins } = await supabase.from('users').select('id').or(nameFilter).limit(20);
-      const ids = ((admins ?? []) as Array<{ id: string }>).map((admin) => admin.id).filter(Boolean);
-      if (ids.length) clauses.push(`admin_id.in.(${ids.join(',')})`);
-    }
-    if (clauses.length) query = query.or(clauses.join(','));
-  }
+  if (orFilter) query = query.or(orFilter);
 
   const from = page * PAGE_SIZE;
   const { data, error: queryError, count } = await query
@@ -98,12 +124,53 @@ async function fetchAuditPage(params: { page: number; search: string; actionFilt
   if (queryError) throw queryError;
 
   return {
-    rows: ((data ?? []) as Array<Omit<AuditRow, 'admin'> & { admin: AuditRow['admin'] | AuditRow['admin'][] }>).map((row) => ({
-      ...row,
-      admin: Array.isArray(row.admin) ? row.admin[0] ?? null : row.admin,
-    })),
+    rows: ((data ?? []) as Array<Omit<AuditRow, 'admin'> & { admin: AuditRow['admin'] | AuditRow['admin'][] }>).map(normalizeRow),
     total: count ?? 0,
   };
+}
+
+/** يجلب كل الصفوف المطابقة للفلاتر (حتى السقف) على دفعات للتصدير. */
+async function fetchAuditForExport(search: string, actionFilter: string): Promise<{ rows: AuditRow[]; truncated: boolean }> {
+  const orFilter = await buildAuditOrFilter(search);
+  const all: AuditRow[] = [];
+
+  for (let from = 0; from < EXPORT_LIMIT; from += EXPORT_BATCH) {
+    const to = Math.min(from + EXPORT_BATCH, EXPORT_LIMIT) - 1;
+    let query = supabase.from('admin_audit_log').select(AUDIT_COLUMNS);
+    if (actionFilter) query = query.eq('action', actionFilter);
+    if (orFilter) query = query.or(orFilter);
+
+    const { data, error: queryError } = await query
+      .order('created_at', { ascending: false })
+      .range(from, to);
+    if (queryError) throw queryError;
+
+    const batch = ((data ?? []) as Array<Omit<AuditRow, 'admin'> & { admin: AuditRow['admin'] | AuditRow['admin'][] }>).map(normalizeRow);
+    all.push(...batch);
+    if (batch.length < to - from + 1) {
+      return { rows: all, truncated: false };
+    }
+  }
+
+  return { rows: all, truncated: all.length >= EXPORT_LIMIT };
+}
+
+function toExportRows(rows: AuditRow[]): AuditExportRow[] {
+  return rows.map((row) => ({
+    id: row.id,
+    admin_name: adminName(row),
+    action: row.action,
+    action_label: actionLabels[row.action] ?? row.action,
+    target_type: row.target_type,
+    target_id: row.target_id,
+    reason: row.reason,
+    ip_address: row.ip_address,
+    user_agent: row.user_agent,
+    before: row.before,
+    after: row.after,
+    metadata: row.metadata,
+    created_at: row.created_at,
+  }));
 }
 
 export function AuditLogPage() {
@@ -112,6 +179,7 @@ export function AuditLogPage() {
   const [actionFilter, setActionFilter] = useState('');
   const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<'csv' | 'pdf' | null>(null);
 
   // Debounce typing so pagination is not reset on every keystroke.
   useEffect(() => {
@@ -146,6 +214,46 @@ export function AuditLogPage() {
     }
   }, [data, page]);
 
+  const filterDescription = [
+    search.trim() ? `بحث: ${search.trim()}` : 'كل السجلات',
+    actionFilter ? `الإجراء: ${actionLabels[actionFilter] ?? actionFilter}` : null,
+  ].filter(Boolean).join(' · ');
+
+  const runExport = async (kind: 'csv' | 'pdf') => {
+    if (exporting) return;
+    setExporting(kind);
+    try {
+      const { rows: exportRows, truncated } = await fetchAuditForExport(search, actionFilter);
+      if (exportRows.length === 0) {
+        toast.error('لا توجد سجلات مطابقة للتصدير.');
+        return;
+      }
+
+      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+      const payload = toExportRows(exportRows);
+
+      if (kind === 'csv') {
+        downloadTextFile(`wattar-audit-${stamp}.csv`, buildAuditCsv(payload), 'text/csv;charset=utf-8');
+        toast.success(`تم تصدير ${exportRows.length} سجلاً إلى CSV.`);
+      } else {
+        const opened = openAuditPrint(payload, { filters: filterDescription, generatedAt: new Date() });
+        if (!opened) {
+          toast.error('منع المتصفح فتح نافذة الطباعة. اسمح بالنوافذ المنبثقة ثم أعد المحاولة.');
+          return;
+        }
+        toast.success('فُتح مستند الطباعة — اختر «حفظ كـ PDF».');
+      }
+
+      if (truncated) {
+        toast.warning(`التصدير محدود بأحدث ${EXPORT_LIMIT} سجل. ضيّق البحث لتصدير بقية السجلات.`);
+      }
+    } catch (caught: unknown) {
+      toast.error(queryErrorMessage(caught, 'تعذر تصدير السجل.'));
+    } finally {
+      setExporting(null);
+    }
+  };
+
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const rangeStart = total === 0 ? 0 : page * PAGE_SIZE + 1;
   const rangeEnd = Math.min((page + 1) * PAGE_SIZE, total);
@@ -164,14 +272,34 @@ export function AuditLogPage() {
             </div>
           </div>
         </div>
-        <button
-          onClick={() => void load()}
-          disabled={loading}
-          className="flex items-center gap-2 rounded-lg border border-wattar-900 bg-dark-surface px-4 py-2 text-sm text-gray-200 hover:bg-dark-elevated disabled:opacity-50"
-        >
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-          تحديث السجل
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void runExport('csv')}
+            disabled={exporting !== null || loading}
+            className="flex items-center gap-2 rounded-lg border border-wattar-900 bg-dark-surface px-3 py-2 text-sm text-gray-200 hover:bg-dark-elevated disabled:opacity-50"
+          >
+            {exporting === 'csv' ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            تصدير CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => void runExport('pdf')}
+            disabled={exporting !== null || loading}
+            className="flex items-center gap-2 rounded-lg border border-wattar-900 bg-dark-surface px-3 py-2 text-sm text-gray-200 hover:bg-dark-elevated disabled:opacity-50"
+          >
+            {exporting === 'pdf' ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
+            تصدير PDF
+          </button>
+          <button
+            onClick={() => void load()}
+            disabled={loading}
+            className="flex items-center gap-2 rounded-lg border border-wattar-900 bg-dark-surface px-4 py-2 text-sm text-gray-200 hover:bg-dark-elevated disabled:opacity-50"
+          >
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            تحديث السجل
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-3 rounded-xl border border-wattar-900 bg-dark-surface p-4 md:grid-cols-[minmax(0,1fr)_220px]">
@@ -206,7 +334,7 @@ export function AuditLogPage() {
       ) : null}
 
       <div className="overflow-hidden rounded-xl border border-wattar-900 bg-dark-surface">
-        {loading ? (
+        {loading && rows.length === 0 ? (
           <div className="p-10 text-center text-sm text-gray-400">جاري تحميل سجل الإدارة...</div>
         ) : rows.length === 0 ? (
           <div className="p-10 text-center">
@@ -215,7 +343,7 @@ export function AuditLogPage() {
             <p className="mt-1 text-sm text-gray-500">ستظهر هنا التغييرات الإدارية المسجلة.</p>
           </div>
         ) : (
-          <div className="divide-y divide-wattar-900/70">
+          <div className={`divide-y divide-wattar-900/70 ${loading ? 'opacity-60' : ''}`}>
             {rows.map((row) => {
               const expanded = expandedId === row.id;
               return (
@@ -227,7 +355,7 @@ export function AuditLogPage() {
                           {actionLabels[row.action] ?? row.action}
                         </span>
                         <span className="text-sm font-semibold text-white">
-                          {row.admin?.display_name || row.admin?.username || `مسؤول ${row.admin_id.slice(0, 8)}`}
+                          {adminName(row)}
                         </span>
                       </div>
                       <p className="mt-2 break-all text-xs text-gray-400">
@@ -256,11 +384,23 @@ export function AuditLogPage() {
                     </div>
                   </div>
                   {expanded ? (
-                    <div className="mt-4 grid gap-3 lg:grid-cols-3">
-                      <JsonDetail title="قبل التغيير" value={row.before} />
-                      <JsonDetail title="بعد التغيير" value={row.after} />
-                      <JsonDetail title="تفاصيل الإجراء" value={row.metadata} />
-                    </div>
+                    <>
+                      <div className="mt-4 grid gap-2 rounded-lg border border-wattar-900 bg-dark-elevated p-3 text-[11px] text-gray-400 sm:grid-cols-3">
+                        <p className="break-all">
+                          <span className="text-gray-500">IP: </span>
+                          <span className="font-mono text-gray-200">{row.ip_address ?? '—'}</span>
+                        </p>
+                        <p className="break-all sm:col-span-2">
+                          <span className="text-gray-500">الجهاز/الجلسة: </span>
+                          {row.user_agent ?? '—'}
+                        </p>
+                      </div>
+                      <div className="mt-3 grid gap-3 lg:grid-cols-3">
+                        <JsonDetail title="قبل التغيير" value={row.before} />
+                        <JsonDetail title="بعد التغيير" value={row.after} />
+                        <JsonDetail title="تفاصيل الإجراء" value={row.metadata} />
+                      </div>
+                    </>
                   ) : null}
                 </article>
               );
@@ -298,7 +438,7 @@ export function AuditLogPage() {
         </div>
       </div>
       <p className="text-xs leading-5 text-gray-500">
-        تُجلب الصفحة من الخادم مع العدد الإجمالي، وتُحجب القيم ذات الأسماء الحساسة عند عرض التفاصيل.
+        تُجلب الصفحة من الخادم مع العدد الإجمالي، ويُسجَّل مع كل إجراء المسؤول والسبب وIP والجهاز. تُحجب القيم ذات الأسماء الحساسة عند العرض والتصدير.
       </p>
     </div>
   );
