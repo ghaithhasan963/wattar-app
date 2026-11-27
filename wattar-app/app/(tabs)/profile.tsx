@@ -24,6 +24,7 @@ import {
   Pencil,
   Settings,
   ShieldBan,
+  ShieldCheck,
   Sparkles,
   Star,
   User,
@@ -289,6 +290,7 @@ export default function ProfileScreen() {
         <QuickAction icon={BadgeCheck} label="توثيق الحساب" color={palette.gold} onPress={() => router.push('/host-application')} />
         <QuickAction icon={LockKeyhole} label={isPrivate ? 'الملف للأصدقاء' : 'الملف عام'} color={palette.teal} onPress={toggleProfileVisibility} />
         <QuickAction icon={Crown} label="عضوية VIP" color="#FFB86B" onPress={() => router.push('/membership')} />
+        <QuickAction icon={ShieldCheck} label="حمايات الغرف" color="#72DCCA" onPress={() => router.push('/protection')} />
       </View>
 
       {profile?.referral_code ? (

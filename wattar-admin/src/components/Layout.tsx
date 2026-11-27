@@ -78,6 +78,7 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
       { to: '/store', label: 'كتالوج الهدايا', icon: Gift, permission: 'store.view' },
       { to: '/memberships', label: 'عضويات VIP', icon: Crown, permission: 'memberships.view' },
       { to: '/vip', label: 'درجات VIP (١–١٠)', icon: Crown, permission: 'vip.view' },
+      { to: '/protection', label: 'الحمايات المدفوعة', icon: ShieldCheck, permission: 'protection.view' },
       { to: '/settings', label: 'الإعدادات', icon: Settings, permission: 'settings.view' },
     ],
   },

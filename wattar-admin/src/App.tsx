@@ -30,6 +30,7 @@ import { AgentDashboardPage } from '@/pages/AgentDashboardPage';
 import { HostApplicationsPage } from '@/pages/HostApplicationsPage';
 import { MembershipsPage } from '@/pages/MembershipsPage';
 import { VIPPage } from '@/pages/VIPPage';
+import { ProtectionProductsPage } from '@/pages/ProtectionProductsPage';
 import { MessagingPage } from '@/pages/MessagingPage';
 import { SupportPage } from '@/pages/SupportPage';
 import { AlertsPage } from '@/pages/AlertsPage';
@@ -270,6 +271,14 @@ export default function App() {
             element={
               <ProtectedRoute permission="vip.view">
                 <VIPPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/protection"
+            element={
+              <ProtectedRoute permission="protection.view">
+                <ProtectionProductsPage />
               </ProtectedRoute>
             }
           />
