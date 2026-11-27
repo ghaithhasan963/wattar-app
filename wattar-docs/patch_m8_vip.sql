@@ -27,21 +27,15 @@ CREATE TABLE IF NOT EXISTS public.vip_tiers (
   frame text CHECK (frame IS NULL OR char_length(btrim(frame)) BETWEEN 1 AND 60),
   badge text CHECK (badge IS NULL OR char_length(btrim(badge)) BETWEEN 1 AND 60),
   entry_effect text CHECK (entry_effect IS NULL OR char_length(btrim(entry_effect)) BETWEEN 1 AND 60),
-  perks jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(perks) = 'array'),
+  perks jsonb NOT NULL DEFAULT '[]'::jsonb
+    CHECK (jsonb_typeof(perks) = 'array' AND jsonb_array_length(perks) <= 12),
   room_kick_protection boolean NOT NULL DEFAULT false,
   offer_discount_percent numeric(5,2) NOT NULL DEFAULT 0 CHECK (offer_discount_percent BETWEEN 0 AND 90),
   offer_ends_at timestamptz,
   is_active boolean NOT NULL DEFAULT true,
   updated_by uuid REFERENCES public.users(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT vip_tiers_perks_shape CHECK (
-    jsonb_array_length(perks) <= 12
-    AND NOT EXISTS (
-      SELECT 1 FROM jsonb_array_elements(perks) p
-      WHERE jsonb_typeof(p) <> 'string' OR char_length(p #>> '{}') > 160
-    )
-  )
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 ALTER TABLE public.vip_tiers ENABLE ROW LEVEL SECURITY;
@@ -68,6 +62,30 @@ VALUES
   (10, 'VIP 10', 30, 30000, 'vip_frame_10', 'vip_badge_10', 'vip_entry_10')
 ON CONFLICT (tier) DO NOTHING;
 
+-- شكل عناصر المزايا: نصوص ≤160 حرفًا (CHECK لا يقبل استعلاماً فرعياً فنستخدم زناداً)
+CREATE OR REPLACE FUNCTION public.vip_tiers_perks_guard()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF NEW.perks IS NOT NULL AND jsonb_typeof(NEW.perks) = 'array' THEN
+    IF EXISTS (
+      SELECT 1 FROM jsonb_array_elements(NEW.perks) p
+      WHERE jsonb_typeof(p) <> 'string' OR char_length(p #>> '{}') > 160
+    ) THEN
+      RAISE EXCEPTION 'قائمة المزايا غير صالحة';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_vip_tiers_perks_guard ON public.vip_tiers;
+CREATE TRIGGER trg_vip_tiers_perks_guard
+  BEFORE INSERT OR UPDATE ON public.vip_tiers
+  FOR EACH ROW EXECUTE FUNCTION public.vip_tiers_perks_guard();
+
 -- ============================================================
 -- 2) جدول الاشتراكات (صف لكل عملية شراء/ترقية/تجديد)
 -- ============================================================
@@ -92,8 +110,15 @@ CREATE TABLE IF NOT EXISTS public.vip_subscriptions (
   CONSTRAINT vip_subscription_idempotency UNIQUE (user_id, idempotency_key),
   CONSTRAINT vip_subscription_paid_consistency CHECK (paid_coins <= price_coins_paid)
 );
+-- تسلسل أحادي لكل صف: يفصل ترتيب "الأحدث" داخل المعاملة الواحدة
+-- (اختبارات/دفعات سريعة) حيث تتساوى created_at عند now().
+ALTER TABLE public.vip_subscriptions
+  ADD COLUMN IF NOT EXISTS seq bigint GENERATED ALWAYS AS IDENTITY;
 CREATE INDEX IF NOT EXISTS vip_subscriptions_user_created
-  ON public.vip_subscriptions (user_id, created_at DESC);
+  ON public.vip_subscriptions (user_id, created_at DESC, seq DESC);
+-- ملاحظة: صف تجديد مؤجَّل واحد على الأكثر لكل مستخدم — القيد مفروض منطقياً
+-- في settle_vip_purchase (قفل استشاري لكل مستخدم + FOR UPDATE) لأن now()
+-- غير مسموح في مسند الفهارس الجزئية.
 
 ALTER TABLE public.vip_subscriptions ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.vip_subscriptions FROM PUBLIC, anon, authenticated;
@@ -106,11 +131,16 @@ CREATE POLICY vip_subscriptions_owner_admin_select ON public.vip_subscriptions
 
 -- ============================================================
 -- 3) إعدادات
+-- ملاحظة التشغيل عبر CLI: زناد التدقيق على admin_settings يشترط جلسة
+-- مسؤول؛ ننحّي الجلسة مؤقتاً إلى service_role (نفس نمط الاختبارات) ثم
+-- نعيدها، فلا يؤثر ذلك على أي مسار تشغيل عادي.
 -- ============================================================
+SELECT set_config('request.jwt.claims', '{"role":"service_role"}', true);
 INSERT INTO public.admin_settings (key, value, description, is_public)
 VALUES
   ('vip_purchase_enabled', 'true'::jsonb, 'السماح بشراء وترقية وتجديد درجات VIP', true)
 ON CONFLICT (key) DO NOTHING;
+SELECT set_config('request.jwt.claims', '', true);
 
 -- ============================================================
 -- 4) كتالوج الدرجات للعامة (بسعر العرض الفعّال)
@@ -247,6 +277,7 @@ DECLARE
   v_tier public.vip_tiers%ROWTYPE;
   v_user public.users%ROWTYPE;
   v_existing public.vip_subscriptions%ROWTYPE;
+  v_row public.vip_subscriptions%ROWTYPE;
   v_current public.vip_subscriptions%ROWTYPE;
   v_discount numeric(5,2) := 0;
   v_price bigint;
@@ -305,10 +336,11 @@ BEGIN
   v_price := v_tier.price_coins;
   v_paid := round(v_price * (1 - v_discount / 100.0));
 
-  -- أحدث اشتراك نشط (يشمل التجديد المؤجل) هو مرجع القرار
+  -- أحدث اشتراك نشط (يشمل التجديد المؤجل) هو مرجع القرار؛
+  -- التعادل في created_at داخل المعاملة الواحدة يُحسم بعمود seq الأحادي.
   SELECT * INTO v_current FROM public.vip_subscriptions
   WHERE user_id = p_user_id AND status = 'active'
-  ORDER BY created_at DESC LIMIT 1 FOR UPDATE;
+  ORDER BY seq DESC LIMIT 1 FOR UPDATE;
 
   IF NOT FOUND THEN
     v_kind := 'initial';
@@ -316,9 +348,8 @@ BEGIN
     v_start := now();
     v_expire := v_start + make_interval(days => v_tier.duration_days);
   ELSIF v_current.tier = p_tier THEN
-    -- تجديد: صف جديد يبدأ من نهاية الصف السابق (يظل الأصلي نشطاً حتى
-    -- انتهائه، فلا يفقد المستخدم تغطيته بين الآن وتاريخ انتهائه).
-    -- إذا كان الصف الأخير تجديداً مؤجلاً لم يبدأ بعد، يُستبدل بسلسلة أحدث.
+    -- تجديد: يُسلسل بعد نهاية التغطية الحالية (نهاية أحدث صف نشط).
+    -- إن كان أحدث صف تجديداً مؤجلاً لم يبدأ بعد فيُستبدل بسلسلة أحدث.
     v_kind := 'renewal';
     v_due := v_paid;
     v_start := v_current.expires_at;
@@ -328,20 +359,32 @@ BEGIN
       SET status = 'superseded' WHERE id = v_current.id;
     END IF;
   ELSIF v_current.tier < p_tier THEN
-    -- ترقية: قيمة المدة المتبقية من الصف الحالي تُخصم من سعر الدرجة الأعلى.
-    -- الصف المؤجَل لم يبدأ بعد فيُحتسب رصيده كاملاً.
+    -- ترقية: تُلغي السلسلة النشطة كاملةً فوراً وتحتسب قيمة المدة المتبقية
+    -- لكل صف منها بعدالة (الصف المؤجَّل غير المبدوء رصيده كامل)، ثم تُخصم
+    -- من سعر الدرجة الأعلى بسقف مجموع المدفوع وسعر الدرجة الجديدة.
     v_kind := 'upgrade';
-    v_credit := floor(
-      v_current.price_coins_paid
-      * greatest(0, extract(epoch FROM (v_current.expires_at - now())))
-      / greatest(1, (v_current.duration_days * 86400.0))
-    )::bigint;
-    v_credit := least(v_credit, v_current.price_coins_paid, v_paid);
-    v_due := greatest(0, v_paid - v_credit);
     v_start := now();
     v_expire := v_start + make_interval(days => v_tier.duration_days);
+    FOR v_row IN
+      SELECT * FROM public.vip_subscriptions s
+      WHERE s.user_id = p_user_id AND s.status = 'active'
+      ORDER BY s.seq ASC
+      FOR UPDATE
+    LOOP
+      v_credit := v_credit + least(
+        v_row.price_coins_paid,
+        floor(
+          v_row.price_coins_paid
+          * greatest(0, extract(epoch FROM (v_row.expires_at - now())))
+          / greatest(1, (v_row.duration_days * 86400.0))
+        )::bigint
+      );
+    END LOOP;
+    v_credit := least(v_credit, v_paid);
+    v_due := greatest(0, v_paid - v_credit);
     UPDATE public.vip_subscriptions
-    SET status = 'superseded' WHERE id = v_current.id;
+    SET status = 'superseded'
+    WHERE user_id = p_user_id AND status = 'active';
   ELSE
     RAISE EXCEPTION 'لديك اشتراك أعلى نشط؛ لا يمكن شراء درجة أقل الآن';
   END IF;
@@ -393,7 +436,7 @@ BEGIN
     p_user_id, NULL, 'vip_purchase', v_new.id,
     'تم تفعيل ' || v_tier.name_ar,
     CASE v_kind
-      WHEN 'upgrade' THEN 'ترقية ناجحة — القيمة المتبقية من اشتراكك السابق خُصمت من السعر. ينتهي الاشتراك في ' || to_char(v_expire, 'YYYY-MM-DD') || '.'
+      WHEN 'upgrade' THEN 'ترقية ناجحة — قيمة المدة المتبقية (' || v_credit::text || ' كوين) خُصمت من السعر. ينتهي الاشتراك في ' || to_char(v_expire, 'YYYY-MM-DD') || '.'
       WHEN 'renewal' THEN 'تم تجديد اشتراكك حتى ' || to_char(v_expire, 'YYYY-MM-DD') || '.'
       ELSE 'مفعّل حتى ' || to_char(v_expire, 'YYYY-MM-DD') || '.'
     END,
@@ -502,9 +545,9 @@ BEGIN
   INSERT INTO public.admin_audit_log (
     admin_id, action, target_type, target_id, before, after, metadata
   ) VALUES (
-    p_admin_id, 'update'::public.audit_action_type, 'vip_tier', v_after.tier,
+    p_admin_id, 'update'::public.audit_action_type, 'vip_tier', NULL,
     to_jsonb(v_before), to_jsonb(v_after),
-    jsonb_build_object('reason', v_reason)
+    jsonb_build_object('reason', v_reason, 'tier', v_after.tier)
   );
 
   RETURN to_jsonb(v_after);

@@ -180,8 +180,8 @@ BEGIN
   v_award := (v_result->>'awarded_count')::int;
   SELECT count(*) INTO v_ok FROM public.host_target_awards a
   WHERE a.target_id = v_target AND a.host_user_id = v_user;
-  v_ok := v_ok = 1 AND v_award = 1;
-  v_actual := 'awards=' || v_ok || ' awarded_count=' || v_award;
+  v_ok := (v_ok::int = 1) AND v_award = 1;
+  v_actual := 'awards=' || v_ok::int || ' awarded_count=' || v_award;
   INSERT INTO _results VALUES ('T05a', 'صرف مكافأة الهدف مرة واحدة', v_actual, v_ok);
 
   SELECT public.admin_evaluate_host_targets(v_admin, date_trunc('month', now())::date) INTO v_result;
@@ -204,6 +204,11 @@ BEGIN
   ORDER BY u.created_at LIMIT 1;
 
   IF v_user2 IS NOT NULL THEN
+    -- تأهيل المرشحة: شرطا M7.4 (تأكيد العمر + إكمال الإعداد)
+    UPDATE public.users
+    SET adult_confirmed_at = coalesce(adult_confirmed_at, now()),
+        onboarding_completed_at = coalesce(onboarding_completed_at, now())
+    WHERE id = v_user2;
     INSERT INTO public.admin_settings (key, value) VALUES ('agency_host_auto_approve', 'true'::jsonb)
     ON CONFLICT (key) DO UPDATE SET value='true'::jsonb;
 

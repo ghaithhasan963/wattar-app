@@ -62,7 +62,8 @@ BEGIN
   SELECT (t->>'price_coins')::bigint INTO v_num
   FROM jsonb_array_elements(public.get_public_vip_tiers()) t WHERE (t->>'tier')::int = 1;
   SELECT count(*) INTO v_cnt FROM public.admin_audit_log
-    WHERE target_type = 'vip_tier' AND target_id = 1 AND action = 'update';
+    WHERE target_type = 'vip_tier' AND action = 'update'
+      AND (metadata->>'tier')::int = 1;
   v_ok := v_num = 1234 AND v_cnt >= 1;
   v_actual := 'price=' || coalesce(v_num::text, 'NULL') || ' audits=' || v_cnt;
   INSERT INTO _results VALUES ('T02', 'تحديث الدرجة يُسجَّل ويُطبَّق', v_actual, v_ok);
@@ -115,7 +116,8 @@ BEGIN
     || ' balance=' || v_balance || ' tier=' || coalesce(public.active_vip_tier(v_user)::text, 'NULL');
   INSERT INTO _results VALUES ('T05', 'تجديد يبدأ من نهاية الحالي', v_actual, v_ok);
 
-  -- T06: الترقية إلى 5 — رصيد التجديد المؤجل (لم يبدأ) يُخصم كاملاً من السعر
+  -- T06: الترقية إلى 5 — تُلغي السلسلة كاملة: الصف الجاري (متبقٍ ≈ كامل = 6000)
+  -- والتجديد المؤجل غير المبدوء (رصيده كامل = 6000) → ائتمان 12000 والفرق 3000
   v_result := public.settle_vip_purchase(v_user, 5, 'm8vip-test-upgrade-01');
   SELECT balance_gold INTO v_balance FROM public.users WHERE id = v_user;
   v_credit := (v_result->>'upgrade_credit_coins')::bigint;
@@ -126,18 +128,18 @@ BEGIN
     INTO v_row
   FROM public.vip_subscriptions s
   WHERE s.user_id = v_user AND s.status = 'active'
-  ORDER BY s.created_at DESC LIMIT 1;
+  ORDER BY s.seq DESC LIMIT 1;
   v_ok := v_cnt = 1
-    AND v_credit = 6000
-    AND v_num = 9000
-    AND v_balance = 79000
+    AND v_credit = 12000
+    AND v_num = 3000
+    AND v_balance = 85000
     AND (v_row->>'kind') = 'upgrade'
     AND (v_row->>'prev')::int = 2
     AND public.active_vip_tier(v_user) = 5;
   v_actual := 'credit=' || v_credit || ' due=' || v_num || ' balance=' || v_balance
     || ' kind=' || (v_row->>'kind') || ' prev=' || coalesce((v_row->>'prev')::text, 'NULL')
     || ' tier=' || coalesce(public.active_vip_tier(v_user)::text, 'NULL');
-  INSERT INTO _results VALUES ('T06', 'ترقية بفرق عادل ورصيد متبقٍ موثق', v_actual, v_ok);
+  INSERT INTO _results VALUES ('T06', 'ترقية تلغي السلسلة وتحتسب قيمة كل صف موثقة', v_actual, v_ok);
 
   -- T07: حالة التطبيق ترى الدرجة 5
   PERFORM set_config('request.jwt.claims',
