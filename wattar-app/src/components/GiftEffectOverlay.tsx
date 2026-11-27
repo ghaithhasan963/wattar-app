@@ -140,7 +140,7 @@ export function GiftEffectOverlay({ effect, onDone }: Props) {
     opacity.setValue(0);
     glow.setValue(0);
 
-    Animated.parallel([
+    const animation = Animated.parallel([
       Animated.timing(opacity, { toValue: 1, duration: 220, useNativeDriver: true }),
       Animated.spring(scale, { toValue: 1, friction: 5, tension: 70, useNativeDriver: true }),
       Animated.loop(
@@ -149,13 +149,17 @@ export function GiftEffectOverlay({ effect, onDone }: Props) {
           Animated.timing(glow, { toValue: 0, duration: 700, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ]),
       ),
-    ]).start();
+    ]);
+    animation.start();
 
     const fadeOut = setTimeout(() => {
       Animated.timing(opacity, { toValue: 0, duration: 260, useNativeDriver: true }).start(() => onDone());
     }, Math.max(duration - 300, 800));
 
-    return () => clearTimeout(fadeOut);
+    return () => {
+      clearTimeout(fadeOut);
+      animation.stop();
+    };
   }, [effect, duration, opacity, scale, glow, onDone]);
 
   const particles = useMemo(() => {
