@@ -9,23 +9,39 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Check, Clock3, Crown, Sparkles } from 'lucide-react-native';
-import { supabase } from '@/lib/supabase';
+import { ArrowLeft, Check, Clock3, Crown, Sparkles, X } from 'lucide-react-native';
+import { supabase, callFunction } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 
-interface MembershipPlan {
-  id: string;
-  name: string;
+interface VipTierPublic {
+  tier: number;
   name_ar: string;
   duration_days: number;
   price_coins: number;
-  xp_boost: number;
+  frame: string | null;
+  badge: string | null;
+  entry_effect: string | null;
+  perks: string[];
+  room_kick_protection: boolean;
+  offer_discount_percent: number;
+  offer_active: boolean;
+  effective_price_coins: number;
+  offer_ends_at: string | null;
 }
 
-interface MembershipPurchase {
-  plan_name: string;
-  plan_name_ar: string;
-  expires_at: string;
+interface MyVip {
+  active: boolean;
+  tier: number | null;
+  name_ar: string | null;
+  frame: string | null;
+  badge: string | null;
+  entry_effect: string | null;
+  perks: string[];
+  room_kick_protection: boolean;
+  starts_at: string | null;
+  expires_at: string | null;
+  days_remaining: number;
+  purchase_kind: string | null;
 }
 
 const palette = {
@@ -44,72 +60,94 @@ const palette = {
 export default function MembershipScreen() {
   const router = useRouter();
   const { profile, loadProfile } = useAuthStore();
-  const [plans, setPlans] = useState<MembershipPlan[]>([]);
-  const [membership, setMembership] = useState<MembershipPurchase | null>(null);
+  const [tiers, setTiers] = useState<VipTierPublic[]>([]);
+  const [myVip, setMyVip] = useState<MyVip | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [busyPlan, setBusyPlan] = useState<string | null>(null);
-  const purchaseAttempt = useRef<{ planId: string; key: string } | null>(null);
+  const [busyTier, setBusyTier] = useState<number | null>(null);
+  const purchaseAttempt = useRef<{ tier: number; key: string } | null>(null);
 
-  const loadMembership = useCallback(async () => {
+  const loadVip = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [plansResult, membershipResult] = await Promise.all([
-        supabase
-          .from('membership_plans')
-          .select('id, name, name_ar, duration_days, price_coins, xp_boost')
-          .eq('is_active', true)
-          .order('price_coins'),
-        supabase
-          .from('membership_purchases')
-          .select('plan_name, plan_name_ar, expires_at')
-          .gt('expires_at', new Date().toISOString())
-          .order('expires_at', { ascending: false })
-          .limit(1),
+      const [tiersResult, myVipResult] = await Promise.all([
+        supabase.rpc('get_public_vip_tiers'),
+        supabase.rpc('get_my_vip'),
       ]);
-      if (plansResult.error) throw plansResult.error;
-      if (membershipResult.error) throw membershipResult.error;
-      setPlans((plansResult.data ?? []) as MembershipPlan[]);
-      setMembership((membershipResult.data?.[0] ?? null) as MembershipPurchase | null);
+      if (tiersResult.error) throw tiersResult.error;
+      if (myVipResult.error) throw myVipResult.error;
+      setTiers((tiersResult.data ?? []) as VipTierPublic[]);
+      setMyVip(myVipResult.data as MyVip);
     } catch (caught: unknown) {
-      setError(caught instanceof Error ? caught.message : 'تعذر تحميل العضويات.');
+      setError(caught instanceof Error ? caught.message : 'تعذر تحميل درجات VIP.');
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadMembership();
-  }, [loadMembership]);
-
-  const purchase = async (plan: MembershipPlan) => {
-    if (busyPlan) return;
-    setBusyPlan(plan.id);
-    try {
-      if (purchaseAttempt.current?.planId !== plan.id) {
-        purchaseAttempt.current = {
-          planId: plan.id,
-          key: `member-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-        };
-      }
-      const { error: purchaseError } = await supabase.rpc('purchase_membership', {
-        p_plan_id: plan.id,
-        p_idempotency_key: purchaseAttempt.current.key,
-      });
-      if (purchaseError) throw purchaseError;
-      purchaseAttempt.current = null;
-      await Promise.all([loadMembership(), loadProfile()]);
-      Alert.alert('تم تفعيل العضوية', 'العضوية غير متجددة تلقائيًا. يمكنك شراء مدة جديدة عند الرغبة.');
-    } catch (caught: unknown) {
-      Alert.alert('تعذر شراء العضوية', caught instanceof Error ? caught.message : 'حاول مرة أخرى.');
-    } finally {
-      setBusyPlan(null);
-    }
-  };
+    void loadVip();
+  }, [loadVip]);
 
   const balance = profile?.balance_gold ?? 0;
-  const expiresAt = membership ? new Date(membership.expires_at) : null;
+  const activeTier = myVip?.active ? myVip.tier : null;
+  const expiresAt = myVip?.expires_at ? new Date(myVip.expires_at) : null;
+
+  const purchase = async (tier: VipTierPublic) => {
+    if (busyTier) return;
+    const kind = activeTier === tier.tier ? 'renewal' : activeTier !== null && tier.tier > activeTier ? 'upgrade' : 'initial';
+    const priceLine = tier.offer_active
+      ? `${tier.effective_price_coins.toLocaleString()} كوين (بدل ${tier.price_coins.toLocaleString()})`
+      : `${tier.effective_price_coins.toLocaleString()} كوين`;
+    const note =
+      kind === 'renewal'
+        ? 'يبدأ التجديد من تاريخ انتهاء اشتراكك الحالي.'
+        : kind === 'upgrade'
+          ? 'عند الترقية تُخصم القيمة المتبقية من اشتراكك الحالي من السعر تلقائيًا.'
+          : '';
+    Alert.alert(
+      `شراء ${tier.name_ar}`,
+      `السعر: ${priceLine}\nالمدة: ${tier.duration_days} يومًا.\n${note}`,
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        {
+          text: 'تأكيد الشراء',
+          style: 'default',
+          onPress: () => void confirmPurchase(tier),
+        },
+      ],
+    );
+  };
+
+  const confirmPurchase = async (tier: VipTierPublic) => {
+    if (busyTier) return;
+    setBusyTier(tier.tier);
+    try {
+      if (purchaseAttempt.current?.tier !== tier.tier) {
+        purchaseAttempt.current = {
+          tier: tier.tier,
+          key: `vip-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`,
+        };
+      }
+      const result = await callFunction<{ success?: boolean; error?: string; message?: string; subscription?: { purchase_kind: string } }>(
+        'vip-purchase',
+        { tier: tier.tier },
+        purchaseAttempt.current.key,
+      );
+      if (!result?.success) {
+        throw new Error(result?.message || 'تعذر إتمام الشراء.');
+      }
+      purchaseAttempt.current = null;
+      await Promise.all([loadVip(), loadProfile()]);
+      const kindAr = result.subscription?.purchase_kind === 'upgrade' ? 'الترقية' : result.subscription?.purchase_kind === 'renewal' ? 'التجديد' : 'الشراء';
+      Alert.alert('تم تأكيد الطلب', `${kindAr} ناجح — تم تفعيل ${tier.name_ar}.`);
+    } catch (caught: unknown) {
+      Alert.alert('تعذر شراء VIP', caught instanceof Error ? caught.message : 'حاول مرة أخرى.');
+    } finally {
+      setBusyTier(null);
+    }
+  };
 
   return (
     <View style={styles.screen}>
@@ -117,15 +155,15 @@ export default function MembershipScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="رجوع">
           <ArrowLeft size={20} color={palette.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>عضوية VIP</Text>
+        <Text style={styles.title}>VIP</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <View style={styles.heroIcon}><Crown size={24} color={palette.gold} /></View>
-          <Text style={styles.heroTitle}>عضوية باختيارك</Text>
+          <Text style={styles.heroTitle}>درجات VIP</Text>
           <Text style={styles.heroCopy}>
-            اشترِ مدة محددة باستخدام Coins من محفظتك. العضوية لا تتجدد تلقائيًا ولا تتضمن دفعًا عبر متجر التطبيقات أو أموالًا حقيقية.
+            اشترِ أي درجة مباشرة دون المرور بالدرجات السابقة. الشراء بكوين من محفظتك فقط — لا يُمنح VIP بالشحن التراكمي أو النشاط.
           </Text>
         </View>
 
@@ -134,72 +172,123 @@ export default function MembershipScreen() {
           <Text style={styles.balance}>{balance.toLocaleString()}</Text>
         </View>
 
-        {membership ? (
+        {myVip?.active ? (
           <View style={styles.activeCard}>
             <View style={styles.activeHeading}>
               <Check size={18} color={palette.teal} />
-              <Text style={styles.activeTitle}>عضويتك الحالية: {membership.plan_name_ar || membership.plan_name}</Text>
+              <Text style={styles.activeTitle}>اشتراكك الحالي: {myVip.name_ar}</Text>
             </View>
             {expiresAt ? (
               <Text style={styles.expiryText}>
-                تنتهي في {expiresAt.toLocaleDateString('ar', { year: 'numeric', month: 'long', day: 'numeric' })}
+                ينتهي في {expiresAt.toLocaleDateString('ar', { year: 'numeric', month: 'long', day: 'numeric' })}
+                {' · '}متبقٍ {myVip.days_remaining} يومًا
               </Text>
             ) : null}
-            <Text style={styles.renewText}>لا يوجد تجديد تلقائي؛ اشترِ مدة جديدة يدويًا عند رغبتك.</Text>
+            {myVip.perks?.length ? (
+              <View style={styles.perkWrap}>
+                {myVip.perks.map((perk, index) => (
+                  <View key={index} style={styles.perkRow}>
+                    <Sparkles size={12} color={palette.teal} />
+                    <Text style={styles.perkText}>{perk}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+            {myVip.room_kick_protection ? (
+              <Text style={styles.protectionNote}>حماية من الطرد والحظر العادي داخل الغرف مفعّلة.</Text>
+            ) : null}
           </View>
         ) : null}
 
         {error ? (
           <View style={styles.errorCard}>
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={() => void loadMembership()}><Text style={styles.retry}>إعادة المحاولة</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => void loadVip()}><Text style={styles.retry}>إعادة المحاولة</Text></TouchableOpacity>
           </View>
         ) : null}
 
         <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>الخطط المتاحة</Text>
-          <Text style={styles.sectionSubtitle}>المدة والسعر يحددهما فريق Wattar</Text>
+          <Text style={styles.sectionTitle}>الدرجات المتاحة</Text>
+          <Text style={styles.sectionSubtitle}>السعر والمدة والمزايا تحددها إدارة Wattar</Text>
         </View>
 
         {loading ? (
           <View style={styles.state}><ActivityIndicator color={palette.primary} /></View>
-        ) : plans.length === 0 && !error ? (
-          <View style={styles.state}><Text style={styles.emptyText}>لا توجد خطط متاحة حاليًا.</Text></View>
+        ) : tiers.length === 0 && !error ? (
+          <View style={styles.state}><Text style={styles.emptyText}>لا توجد درجات متاحة حاليًا.</Text></View>
         ) : (
-          plans.map((plan) => {
-            const busy = busyPlan === plan.id;
-            const canAfford = balance >= Number(plan.price_coins);
+          tiers.map((tier) => {
+            const busy = busyTier === tier.tier;
+            const isCurrent = activeTier === tier.tier;
+            const canAfford = balance >= tier.effective_price_coins;
+            const downgradeBlocked = activeTier !== null && tier.tier < activeTier;
             return (
-              <View key={plan.id} style={styles.planCard}>
+              <View key={tier.tier} style={styles.planCard}>
                 <View style={styles.planHeading}>
                   <View style={styles.planIcon}><Crown size={19} color={palette.gold} /></View>
                   <View style={styles.planCopy}>
-                    <Text style={styles.planName}>{plan.name_ar || plan.name}</Text>
-                    <Text style={styles.planDuration}><Clock3 size={12} color={palette.muted} /> {plan.duration_days} يومًا · بدون تجديد تلقائي</Text>
+                    <Text style={styles.planName}>{tier.name_ar}</Text>
+                    <Text style={styles.planDuration}><Clock3 size={12} color={palette.muted} /> {tier.duration_days} يومًا · بدون تجديد تلقائي</Text>
                   </View>
-                  <Text style={styles.price}>{Number(plan.price_coins).toLocaleString()} Coin</Text>
+                  <View style={styles.priceWrap}>
+                    {tier.offer_active ? (
+                      <Text style={styles.priceOld}>{tier.price_coins.toLocaleString()}</Text>
+                    ) : null}
+                    <Text style={styles.price}>{tier.effective_price_coins.toLocaleString()} Coin</Text>
+                  </View>
                 </View>
-                {plan.xp_boost > 0 ? (
-                  <View style={styles.xpNote}>
-                    <Sparkles size={14} color={palette.teal} />
-                    <Text style={styles.xpText}>دفعة تصل إلى {plan.xp_boost} XP، ضمن حد شهري أقصى 500 XP</Text>
+                {tier.offer_active ? (
+                  <View style={styles.offerNote}>
+                    <Sparkles size={14} color={palette.gold} />
+                    <Text style={styles.offerText}>عرض لفترة محدودة بخصم {tier.offer_discount_percent}%</Text>
+                  </View>
+                ) : null}
+                {tier.perks?.length ? (
+                  <View style={styles.perkWrap}>
+                    {tier.perks.map((perk, index) => (
+                      <View key={index} style={styles.perkRow}>
+                        <Sparkles size={12} color={palette.muted} />
+                        <Text style={styles.perkText}>{perk}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+                {tier.room_kick_protection ? (
+                  <View style={styles.protectionRow}>
+                    <Check size={13} color={palette.teal} />
+                    <Text style={styles.protectionText}>حماية من الطرد والحظر العادي في الغرف</Text>
                   </View>
                 ) : null}
                 <TouchableOpacity
-                  style={[styles.buyButton, (!canAfford || busyPlan !== null) && styles.buyDisabled]}
-                  disabled={!canAfford || busyPlan !== null}
-                  onPress={() => void purchase(plan)}
+                  style={[styles.buyButton, (!canAfford || busyTier !== null || downgradeBlocked) && styles.buyDisabled]}
+                  disabled={!canAfford || busyTier !== null || downgradeBlocked}
+                  onPress={() => void purchase(tier)}
                   accessibilityRole="button"
                 >
                   {busy ? <ActivityIndicator size="small" color={palette.background} /> : null}
-                  <Text style={styles.buyText}>{busy ? 'جارٍ إتمام الشراء...' : canAfford ? 'شراء بعملة Coin' : 'رصيد Coin غير كافٍ'}</Text>
+                  <Text style={styles.buyText}>
+                    {busy
+                      ? 'جارٍ إتمام الطلب...'
+                      : downgradeBlocked
+                        ? 'لديك اشتراك أعلى نشط'
+                        : isCurrent
+                          ? 'تجديد — يبدأ بعد انتهاء الحالي'
+                          : activeTier !== null && tier.tier > activeTier
+                            ? 'ترقية — الفرق يُحسب تلقائيًا'
+                            : canAfford
+                              ? 'شراء بعملة Coin'
+                              : 'رصيد Coin غير كافٍ'}
+                  </Text>
                 </TouchableOpacity>
+                {busyTier !== null && !busy ? (
+                  <View style={styles.busyNote}><X size={12} color={palette.muted} /><Text style={styles.busyText}>انتظر انتهاء الطلب الجاري.</Text></View>
+                ) : null}
               </View>
             );
           })
         )}
         <Text style={styles.disclaimer}>
-          مستويات الحساب تُكتسب بالنشاط. شراء العضوية قد يمنح دفعة XP صغيرة ضمن الحدود الموضحة، ولا يشتري مستوى مباشرًا.
+          VIP مدفوع حصراً بكوين من محفظتك ولا يتضمن أي دفع حقيقي عبر متجر التطبيقات. العقوبات الأمنية وقرارات الإدارة تتجاوز حماية VIP.
         </Text>
       </ScrollView>
     </View>
@@ -223,7 +312,7 @@ const styles = StyleSheet.create({
   activeHeading: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   activeTitle: { color: palette.teal, fontSize: 13, fontWeight: '800' },
   expiryText: { color: palette.text, fontSize: 12, marginTop: 8, textAlign: 'right' },
-  renewText: { color: palette.muted, fontSize: 11, marginTop: 5, textAlign: 'right' },
+  protectionNote: { color: palette.teal, fontSize: 11, marginTop: 6, textAlign: 'right' },
   sectionHeading: { marginTop: 22, marginBottom: 10 },
   sectionTitle: { color: palette.text, fontSize: 16, fontWeight: '800', textAlign: 'right' },
   sectionSubtitle: { color: palette.muted, fontSize: 11, marginTop: 4, textAlign: 'right' },
@@ -233,9 +322,18 @@ const styles = StyleSheet.create({
   planCopy: { flex: 1 },
   planName: { color: palette.text, fontSize: 14, fontWeight: '800', textAlign: 'right' },
   planDuration: { flexDirection: 'row', color: palette.muted, fontSize: 10, marginTop: 5, textAlign: 'right' },
+  priceWrap: { alignItems: 'flex-end' },
   price: { color: palette.gold, fontSize: 12, fontWeight: '800' },
-  xpNote: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 13 },
-  xpText: { color: palette.teal, fontSize: 10, flex: 1, textAlign: 'right' },
+  priceOld: { color: palette.muted, fontSize: 10, textDecorationLine: 'line-through' },
+  offerNote: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 13 },
+  offerText: { color: palette.gold, fontSize: 10, flex: 1, textAlign: 'right' },
+  perkWrap: { marginTop: 10, gap: 5 },
+  perkRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  perkText: { color: palette.muted, fontSize: 11, flex: 1, textAlign: 'right' },
+  protectionRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
+  protectionText: { color: palette.teal, fontSize: 10, flex: 1, textAlign: 'right' },
+  busyNote: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
+  busyText: { color: palette.muted, fontSize: 10 },
   buyButton: { minHeight: 43, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14, borderRadius: 12, backgroundColor: palette.gold },
   buyDisabled: { opacity: 0.55 },
   buyText: { color: palette.background, fontSize: 12, fontWeight: '800' },

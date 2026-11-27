@@ -39,13 +39,29 @@ Deno.serve(async (req: Request) => {
       throw new HttpError(400, 'INVALID_SESSION_ID', 'Invalid room session ID');
     }
 
-    const { data: listenerCount, error } = await getSupabaseAdmin().rpc('record_wattar_room_presence', {
+    const admin = getSupabaseAdmin();
+    const sessionId = body.session_id ?? null;
+    const { data: listenerCount, error } = await admin.rpc('record_wattar_room_presence', {
       p_room_id: body.room_id,
       p_user_id: ctx.user_id,
-      p_session_id: body.session_id ?? null,
+      p_session_id: sessionId,
       p_joining: false,
     });
     if (error) throw new HttpError(409, 'ROOM_LEAVE_FAILED', error.message);
+
+    // M8.3: إنهاء جلسة نشاط المضيفة للأهداف (best-effort)
+    if (sessionId) {
+      try {
+        await admin.rpc('record_host_activity', {
+          p_user_id: ctx.user_id,
+          p_room_id: body.room_id,
+          p_session_id: sessionId,
+          p_joining: false,
+        });
+      } catch (activityErr) {
+        console.warn('[Wattar] record_host_activity leave failed:', activityErr);
+      }
+    }
 
     return jsonResponse({ success: true, listener_count: listenerCount });
   } catch (err) {

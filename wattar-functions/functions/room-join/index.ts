@@ -101,6 +101,18 @@ Deno.serve(async (req: Request) => {
     });
     if (error) throw new HttpError(403, 'ROOM_JOIN_FAILED', error.message);
 
+    // M8.3: تتبع نشاط المضيفة للأهداف الشهرية (best-effort، لا يعيق الدخول)
+    try {
+      await admin.rpc('record_host_activity', {
+        p_user_id: ctx.user_id,
+        p_room_id: body.room_id,
+        p_session_id: body.session_id,
+        p_joining: true,
+      });
+    } catch (activityErr) {
+      console.warn('[Wattar] record_host_activity join failed:', activityErr);
+    }
+
     return jsonResponse({ success: true, listener_count: listenerCount });
   } catch (error) {
     return errorResponse(error);

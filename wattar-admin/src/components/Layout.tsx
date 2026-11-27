@@ -77,6 +77,7 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
       { to: '/missions', label: 'المهمات', icon: Target, permission: 'missions.view' },
       { to: '/store', label: 'كتالوج الهدايا', icon: Gift, permission: 'store.view' },
       { to: '/memberships', label: 'عضويات VIP', icon: Crown, permission: 'memberships.view' },
+      { to: '/vip', label: 'درجات VIP (١–١٠)', icon: Crown, permission: 'vip.view' },
       { to: '/settings', label: 'الإعدادات', icon: Settings, permission: 'settings.view' },
     ],
   },

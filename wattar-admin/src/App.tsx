@@ -29,6 +29,7 @@ import { ModerationPage } from '@/pages/ModerationPage';
 import { AgentDashboardPage } from '@/pages/AgentDashboardPage';
 import { HostApplicationsPage } from '@/pages/HostApplicationsPage';
 import { MembershipsPage } from '@/pages/MembershipsPage';
+import { VIPPage } from '@/pages/VIPPage';
 import { MessagingPage } from '@/pages/MessagingPage';
 import { SupportPage } from '@/pages/SupportPage';
 import { AlertsPage } from '@/pages/AlertsPage';
@@ -261,6 +262,14 @@ export default function App() {
             element={
               <ProtectedRoute permission="memberships.view">
                 <MembershipsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vip"
+            element={
+              <ProtectedRoute permission="vip.view">
+                <VIPPage />
               </ProtectedRoute>
             }
           />

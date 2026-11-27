@@ -32,6 +32,13 @@ const activateHostReasons = [
   'تسوية المخالفة السابقة',
 ];
 
+const revokeHostReasons = [
+  'طلب سحب الاعتماد من المضيفة',
+  'مخالفة جسيمة لقواعد المنصة',
+  'تزوير هوية أو مستندات',
+  'قرار إداري نهائي',
+];
+
 interface HostApplication {
   id: string;
   user_id: string;
@@ -81,7 +88,7 @@ export function HostApplicationsPage() {
   const [hostPicker, setHostPicker] = useState<
     | { kind: 'approve'; application: HostApplication }
     | { kind: 'reject'; application: HostApplication }
-    | { kind: 'host'; host: HostAccount; action: 'activate' | 'suspend' | 'assign' }
+    | { kind: 'host'; host: HostAccount; action: 'activate' | 'suspend' | 'assign' | 'revoke' }
     | null
   >(null);
 
@@ -207,7 +214,7 @@ export function HostApplicationsPage() {
     }
   };
 
-  const manageHost = async (userId: string, action: 'assign' | 'suspend' | 'activate', reason: string) => {
+  const manageHost = async (userId: string, action: 'assign' | 'suspend' | 'activate' | 'revoke', reason: string) => {
     if (reason.trim().length < 3) {
       toast.error('اكتب سببًا واضحًا من 3 أحرف على الأقل.');
       return;
@@ -221,7 +228,8 @@ export function HostApplicationsPage() {
       });
       toast.success(
         action === 'assign' ? 'تم توثيق الحساب.' :
-          action === 'activate' ? 'تمت إعادة تفعيل التوثيق.' : 'تم إيقاف التوثيق.',
+          action === 'activate' ? 'تمت إعادة تفعيل التوثيق.' :
+            action === 'revoke' ? 'تم سحب اعتماد المضيفة.' : 'تم إيقاف التوثيق.',
       );
       setCandidate(null);
       setUsernameSearch('');
@@ -444,33 +452,48 @@ export function HostApplicationsPage() {
                         ? 'نشطة'
                         : host.status === 'pending'
                           ? 'بانتظار إكمال الملف وتأكيد العمر'
-                          : 'موقوفة'
+                          : host.status === 'revoked'
+                            ? 'مسحوب الاعتماد'
+                            : 'موقوفة'
                     }
                   </p>
                 </div>
-                <button
-                  type="button"
-                  disabled={
-                    hostActionId === host.id
-                    || (host.status === 'pending' && (!host.adult_confirmed_at || !host.onboarding_completed_at))
-                  }
-                  onClick={() => {
-                    const action = host.status === 'active'
-                      ? 'suspend'
-                      : host.status === 'pending'
-                        ? 'assign'
-                        : 'activate';
-                    if (action === 'assign') {
-                      setHostPicker({ kind: 'host', host, action: 'assign' });
-                      return;
+                <div className="flex items-center gap-2">
+                  {host.status === 'active' && (
+                    <button
+                      type="button"
+                      disabled={hostActionId === host.id}
+                      onClick={() => setHostPicker({ kind: 'host', host, action: 'revoke' })}
+                      className="inline-flex items-center gap-1 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300 disabled:opacity-50"
+                    >
+                      {hostActionId === host.id ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+                      سحب الاعتماد
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={
+                      hostActionId === host.id
+                      || (host.status === 'pending' && (!host.adult_confirmed_at || !host.onboarding_completed_at))
                     }
-                    setHostPicker({ kind: 'host', host, action });
-                  }}
-                  className={`inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs disabled:opacity-50 ${host.status === 'active' ? 'bg-amber-500/10 text-amber-300' : 'bg-green-500/10 text-green-300'}`}
-                >
-                  {hostActionId === host.id ? <Loader2 size={14} className="animate-spin" /> : <ShieldOff size={14} />}
-                  {host.status === 'active' ? 'إيقاف' : host.status === 'pending' ? 'اعتماد' : 'تفعيل'}
-                </button>
+                    onClick={() => {
+                      const action = host.status === 'active'
+                        ? 'suspend'
+                        : host.status === 'pending'
+                          ? 'assign'
+                          : 'activate';
+                      if (action === 'assign') {
+                        setHostPicker({ kind: 'host', host, action: 'assign' });
+                        return;
+                      }
+                      setHostPicker({ kind: 'host', host, action });
+                    }}
+                    className={`inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs disabled:opacity-50 ${host.status === 'active' ? 'bg-amber-500/10 text-amber-300' : 'bg-green-500/10 text-green-300'}`}
+                  >
+                    {hostActionId === host.id ? <Loader2 size={14} className="animate-spin" /> : <ShieldOff size={14} />}
+                    {host.status === 'active' ? 'إيقاف' : host.status === 'pending' ? 'اعتماد' : 'تفعيل'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -532,8 +555,9 @@ export function HostApplicationsPage() {
             hostPicker.kind === 'approve' ? 'اعتماد طلب التوثيق'
               : hostPicker.kind === 'reject' ? 'رفض طلب التوثيق'
                 : hostPicker.action === 'suspend' ? 'إيقاف توثيق الحساب'
-                  : hostPicker.action === 'assign' ? 'اعتماد التوثيق'
-                    : 'إعادة تفعيل التوثيق'
+                  : hostPicker.action === 'revoke' ? 'سحب اعتماد المضيفة'
+                    : hostPicker.action === 'assign' ? 'اعتماد التوثيق'
+                      : 'إعادة تفعيل التوثيق'
           }
           subtitle={
             hostPicker.kind === 'host'
@@ -551,14 +575,17 @@ export function HostApplicationsPage() {
             hostPicker.kind === 'approve' ? approveNotes
               : hostPicker.kind === 'reject' ? rejectReasons
                 : hostPicker.action === 'suspend' ? suspendHostReasons
-                  : activateHostReasons
+                  : hostPicker.action === 'revoke' ? revokeHostReasons
+                    : activateHostReasons
           }
           confirmLabel={
             hostPicker.kind === 'approve' ? 'اعتماد التوثيق'
               : hostPicker.kind === 'reject' ? 'تأكيد الرفض'
-                : hostPicker.action === 'suspend' ? 'تأكيد الإيقاف' : 'تأكيد التفعيل'
+                : hostPicker.action === 'suspend' ? 'تأكيد الإيقاف'
+                  : hostPicker.action === 'revoke' ? 'تأكيد سحب الاعتماد'
+                    : 'تأكيد التفعيل'
           }
-          tone={hostPicker.kind === 'reject' || (hostPicker.kind === 'host' && hostPicker.action === 'suspend') ? 'danger' : 'info'}
+          tone={hostPicker.kind === 'reject' || (hostPicker.kind === 'host' && (hostPicker.action === 'suspend' || hostPicker.action === 'revoke')) ? 'danger' : 'info'}
           processing={processingId === (hostPicker.kind === 'host' ? hostPicker.host.id : hostPicker.application.id)}
           onClose={() => {
             if (processingId) return;

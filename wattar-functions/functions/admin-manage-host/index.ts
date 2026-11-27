@@ -12,7 +12,7 @@ import {
 
 interface ManageHostBody {
   user_id: string;
-  action: 'assign' | 'suspend' | 'activate';
+  action: 'assign' | 'suspend' | 'activate' | 'revoke';
   reason: string;
 }
 
@@ -32,7 +32,7 @@ Deno.serve(async (req: Request) => {
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.user_id)) {
       throw new HttpError(400, 'INVALID_USER_ID', 'حدد حسابًا صالحًا.');
     }
-    if (!['assign', 'suspend', 'activate'].includes(body.action)) {
+    if (!['assign', 'suspend', 'activate', 'revoke'].includes(body.action)) {
       throw new HttpError(400, 'INVALID_ACTION', 'الإجراء الإداري غير صالح.');
     }
     const reason = body.reason.trim();
