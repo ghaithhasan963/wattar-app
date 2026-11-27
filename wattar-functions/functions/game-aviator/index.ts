@@ -2,26 +2,15 @@
  * Wattar Edge Function — game-aviator (طيارة المضاعفات)
  *
  * POST /functions/v1/game-aviator
- * Body:
- *   {
- *     "bet_amount": number,
- *     "auto_cashout_multiplier"?: number  // إذا أراد السحب التلقائي عند مضاعف معين
- *   }
+ * Body: { "bet_amount": number, "auto_cashout_multiplier": number, "test_mode"?: boolean }
  *
- * منطق اللعبة:
- *   - الطيارة تُقلع ومضاعفها ينمو أُسّيًا
- *   - في أي لحظة قد "تنهار"
- *   - المستخدم يلعب بأسلوبين:
- *     أ) يلعب مع السيرفر: يراهن → ينتظر → يضغط "cashout" قبل الانهيار
- *     ب) يلعب تلقائيًا: يحدد مضاعف السحب التلقائي
- *   - هنا ننفّذ الأسلوب (ب): المستخدم يحدد مضاعف السحب، السيرفر يحدد نقطة الانهيار
+ * M9.4 — تصحيح نموذج الاحتمال:
+ *   نريد E[ payout عند السحب على x ] = RTP لكل x ≥ 1.
+ *   نختار U ~ Uniform(0,1) و crash = r / (1 - U)  حيث r = RTP/100.
+ *   إذن P(crash > x) = r / x، و E[x · 1(crash>x)] = r. ✅
+ *   (النموذج القديم r/U كان يعطي عائداً أكبر من 1 لكل x < r.)
  *
- * معادلة RTP:
- *   عند RTP = r (كسر، أي 25% = 0.25):
- *   - احتمال الانهيار الفوري (crash@1.0) ≈ (1 - r)
- *   - عند عدم الانهيار الفوري، crash_point ~ 1 / (1 - U)^(1/r) مع حد أقصى max_multiplier
- *
- * @version 1.0.0
+ * @version 2.0.0
  */
 import {
   requireNotMaintenance,
@@ -37,18 +26,22 @@ import {
 import {
   GameContext,
   GameResult,
+  assertGameAvailable,
+  checkForcedOutcome,
+  determineRTP,
+  getBalanceGold,
   getGameConfig,
   getUserGameState,
-  determineRTP,
-  checkForcedOutcome,
   placeBetAndSettle,
+  readTestMode,
   secureRandom,
   validateBetAmount,
 } from '../_shared/game-engine.ts';
 
 interface AviatorBody {
   bet_amount: number;
-  auto_cashout_multiplier?: number;  // مثلاً 2.5 = السحب عند x2.5
+  auto_cashout_multiplier?: number;
+  test_mode?: boolean;
 }
 
 Deno.serve(async (req: Request) => {
@@ -62,58 +55,50 @@ Deno.serve(async (req: Request) => {
     const idempotencyKey = requireIdempotencyKey(req);
 
     const body = await parseBody<AviatorBody>(req);
-    if (!body.bet_amount || body.bet_amount <= 0) {
-      throw new HttpError(400, 'INVALID_BET', 'Bet amount must be positive');
-    }
-    if (!body.auto_cashout_multiplier || body.auto_cashout_multiplier < 1.01) {
+    const cashout = Number(body.auto_cashout_multiplier);
+    if (!Number.isFinite(cashout) || cashout < 1.01) {
       throw new HttpError(400, 'INVALID_CASHOUT', 'auto_cashout_multiplier must be >= 1.01');
     }
 
     const supabase = getSupabaseAdmin();
-
-    // 1) إعدادات اللعبة
+    const gate = await assertGameAvailable(supabase, ctx.user_id, 'aviator');
     const config = await getGameConfig(supabase, 'aviator');
-    const maxMult = Number(config.max_multiplier);
-    if (body.auto_cashout_multiplier > maxMult) {
-      throw new HttpError(400, 'CASHOUT_TOO_HIGH', `Max multiplier is ${maxMult}`);
+    const testMode = readTestMode(body, gate);
+
+    const maxMultiplier = Number(config.max_multiplier);
+    if (cashout > maxMultiplier) {
+      throw new HttpError(400, 'CASHOUT_TOO_HIGH', `Max multiplier is ${maxMultiplier}`);
     }
 
-    // 2) حالة المستخدم
     const userState = await getUserGameState(supabase, ctx.user_id);
-
-    if (userState.balance_gold < body.bet_amount) {
+    validateBetAmount(body.bet_amount, config, userState.bet_limit_override);
+    if (!testMode && userState.balance_gold < body.bet_amount) {
       throw new HttpError(400, 'INSUFFICIENT_BALANCE', 'Not enough Coin balance');
     }
-    validateBetAmount(body.bet_amount, config, userState.bet_limit_override);
 
-    // 3) تحديد RTP و forced outcome
     const rtp = determineRTP(userState, config);
     const forced = checkForcedOutcome(userState);
 
-    // 4) حساب نقطة الانهيار
     let crashPoint: number;
-    if (forced === 'lose') {
-      crashPoint = 1.0; // انهيار فوري
-    } else if (forced === 'win') {
-      // نقطة انهيار أعلى من auto_cashout
-      crashPoint = Math.max(body.auto_cashout_multiplier * 1.5, 3.0);
+    if (forced === 'win') {
+      crashPoint = Math.min(maxMultiplier, Math.max(cashout * 1.5, cashout + 0.5));
+      crashPoint = Math.floor(crashPoint * 100) / 100;
     } else {
-      crashPoint = computeCrashPoint(rtp, maxMult, config.settings);
+      crashPoint = computeCrashPoint(rtp, maxMultiplier);
     }
 
-    // 5) تحديد الفوز
-    const isWin = body.auto_cashout_multiplier < crashPoint;
-    const multiplier = isWin ? body.auto_cashout_multiplier : 0;
+    const isWin = cashout < crashPoint;
+    const multiplier = isWin ? cashout : 0;
     const payout = isWin ? Math.floor(body.bet_amount * multiplier) : 0;
 
-    // 6) تنفيذ المعاملة
     const gameCtx: GameContext = {
       user_id: ctx.user_id,
       game_type: 'aviator',
       idempotency_key: idempotencyKey,
-      request_data: { auto_cashout_multiplier: body.auto_cashout_multiplier },
+      request_data: { auto_cashout_multiplier: cashout },
       bet_amount: body.bet_amount,
-      bet_data: { auto_cashout: body.auto_cashout_multiplier, crash_point: crashPoint },
+      bet_data: { auto_cashout: cashout, crash_point: crashPoint },
+      test_mode: testMode,
     };
 
     const result: GameResult = {
@@ -123,9 +108,9 @@ Deno.serve(async (req: Request) => {
       payout,
       result: {
         crash_point: crashPoint,
-        auto_cashout: body.auto_cashout_multiplier,
+        auto_cashout: cashout,
         rtp_target: rtp,
-        max_multiplier: maxMult,
+        max_multiplier: maxMultiplier,
       },
       forced_outcome: forced,
       rtp_applied: rtp,
@@ -135,6 +120,7 @@ Deno.serve(async (req: Request) => {
 
     return jsonResponse({
       success: true,
+      test_mode: placed.test_mode,
       round_id: placed.round_id,
       bet_id: placed.bet_id,
       crash_point: Number(placed.result.crash_point),
@@ -142,7 +128,15 @@ Deno.serve(async (req: Request) => {
       is_win: placed.is_win,
       multiplier: placed.multiplier,
       payout: placed.payout,
-      balance_gold: await getNewBalance(supabase, ctx.user_id),
+      net: placed.payout - body.bet_amount,
+      promo_reward: forced === 'win',
+      declared_rtp: rtp,
+      odds: {
+        p_win: Math.min(1, Math.round((rtp / 100 / cashout) * 10000) / 10000),
+        multiplier: cashout,
+        rtp,
+      },
+      balance_gold: await getBalanceGold(supabase, ctx.user_id),
     });
   } catch (err) {
     return errorResponse(err);
@@ -150,41 +144,14 @@ Deno.serve(async (req: Request) => {
 });
 
 /**
- * حساب نقطة الانهيار وفق RTP
- * نموذج: تكامل معكوس لدالة التوزيع
- *
- * عند RTP = r (0..1):
- *   - احتمال crash @ 1.0 = (1 - r)
- *   - للأرقام > 1.0: P(crash <= x) = 1 - r/x  =>  P(crash > x) = r/x
- *
- * ولذلك:
- *   crash_point = r / U  حيث U ~ Uniform(0, 1)
- *   مع clip إلى [1.0, maxMultiplier]
- *
- * تحقق: E[payout عند مراهنة بـ 1 بـ cashout @ x] = x * P(crash > x) = x * r/x = r ✓
+ * crash = r / (1 - U) مع سقف maxMultiplier.
+ * P(crash > x) = r / x لكل 1 ≤ x ≤ maxMultiplier، لذا RTP المعلن = r.
  */
-function computeCrashPoint(rtp: number, maxMult: number, settings: any): number {
-  const r = rtp / 100;
+function computeCrashPoint(rtp: number, maxMultiplier: number): number {
+  const r = Math.max(0.01, Math.min(0.99, rtp / 100));
   const u = secureRandom();
-
-  // احتمال الانهيار الفوري
-  const instantCrashProb = settings?.instant_crash_probability ?? 0.03;
-  if (secureRandom() < instantCrashProb) {
-    return 1.0;
-  }
-
-  // نموذج: crash = max(1, r / u)
-  let crash = r / Math.max(u, 0.001);
-  // الحد الأقصى
-  crash = Math.min(crash, maxMult);
-  // تقريب لمنزلتين
-  crash = Math.max(1.0, Math.floor(crash * 100) / 100);
-
+  let crash = r / Math.max(1 - u, 1e-9);
+  crash = Math.min(crash, maxMultiplier);
+  crash = Math.max(1, Math.floor(crash * 100) / 100);
   return crash;
-}
-
-async function getNewBalance(supabase: any, userId: string): Promise<number> {
-  const { data, error } = await supabase.from('users').select('balance_gold').eq('id', userId).single();
-  if (error) throw new HttpError(500, 'BALANCE_LOAD_FAILED', 'Could not load Coin balance');
-  return Number(data.balance_gold);
 }

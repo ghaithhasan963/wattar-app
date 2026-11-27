@@ -2,19 +2,14 @@
  * Wattar Edge Function — game-plinko (بلانغو)
  *
  * POST /functions/v1/game-plinko
- * Body: { "bet_amount": number, "risk_level": "low" | "medium" | "high" }
+ * Body: { "bet_amount": number, "risk_level": "low"|"medium"|"high", "test_mode"?: boolean }
  *
- * منطق اللعبة:
- *   - كرة تسقط عبر صف من الأوتاد، تنحرف يمينًا/يسارًا عشوائيًا
- *   - تنتهي في خانة مع مضاعف معين
- *   - 12 صف + 11 خانة نهاية
- *   - 3 مستويات مخاطرة: low / medium / high
+ * M9.4:
+ *  - 12 صفاً → 13 خانة (0..12) باحتمال ثنائي دقيق C(12,k)/2^12.
+ *  - المضاعفات معلنة من الإعدادات، ولا يوجد أي تعديل RTP محلي.
+ *  - المسار والنتيجة يُحسبان على الخادم فقط.
  *
- * توزيع الخانات:
- *   - منخفض: توزيع متوازن حول الوسط
- *   - مرتفع: خانات الأطراف لها مضاعفات عالية جدًا
- *
- * @version 1.0.0
+ * @version 2.0.0
  */
 import {
   requireNotMaintenance,
@@ -30,18 +25,24 @@ import {
 import {
   GameContext,
   GameResult,
+  assertGameAvailable,
+  binomialDraw,
+  checkForcedOutcome,
+  determineRTP,
+  getBalanceGold,
   getGameConfig,
   getUserGameState,
-  determineRTP,
-  checkForcedOutcome,
   placeBetAndSettle,
+  readTestMode,
   secureRandom,
+  secureRandomInt,
   validateBetAmount,
 } from '../_shared/game-engine.ts';
 
 interface PlinkoBody {
   bet_amount: number;
   risk_level: 'low' | 'medium' | 'high';
+  test_mode?: boolean;
 }
 
 Deno.serve(async (req: Request) => {
@@ -55,50 +56,41 @@ Deno.serve(async (req: Request) => {
     const idempotencyKey = requireIdempotencyKey(req);
 
     const body = await parseBody<PlinkoBody>(req);
-    if (!body.bet_amount || body.bet_amount <= 0) {
-      throw new HttpError(400, 'INVALID_BET', 'Bet amount must be positive');
-    }
     if (!['low', 'medium', 'high'].includes(body.risk_level)) {
       throw new HttpError(400, 'INVALID_RISK', 'risk_level must be low/medium/high');
     }
 
     const supabase = getSupabaseAdmin();
+    const gate = await assertGameAvailable(supabase, ctx.user_id, 'plinko');
     const config = await getGameConfig(supabase, 'plinko');
-    const userState = await getUserGameState(supabase, ctx.user_id);
+    const testMode = readTestMode(body, gate);
 
-    if (userState.balance_gold < body.bet_amount) {
+    const rows = Number(config.settings?.rows ?? 12);
+    const table = config.settings?.multipliers?.[body.risk_level];
+    if (!Array.isArray(table) || table.length !== rows + 1) {
+      throw new HttpError(500, 'GAME_NOT_CONFIGURED', 'Plinko multipliers are not configured');
+    }
+    const multipliers: number[] = table.map((value: unknown) => Number(value));
+
+    const userState = await getUserGameState(supabase, ctx.user_id);
+    validateBetAmount(body.bet_amount, config, userState.bet_limit_override);
+    if (!testMode && userState.balance_gold < body.bet_amount) {
       throw new HttpError(400, 'INSUFFICIENT_BALANCE', 'Not enough Coin balance');
     }
-    validateBetAmount(body.bet_amount, config, userState.bet_limit_override);
 
     const rtp = determineRTP(userState, config);
     const forced = checkForcedOutcome(userState);
 
-    // المضاعفات من الإعدادات
-    const multipliers: number[] = config.settings.multipliers[body.risk_level];
-    const rows = Number(config.settings.rows ?? 12);
-    const slots = multipliers.length; // عادة 11
-
-    // محاكاة المسار: لكل صف، انحراف يمين/يسار عشوائي
-    // عدد الانحرافات لليمين يتبع توزيع Binomial(rows, 0.5)
-    // الخانة النهائية = rightCount (0..rows)
-    let rightCount: number;
-    if (forced === 'lose') {
-      // اختر خانة بمضاعف صفر أو منخفض جدًا
-      rightCount = pickLoseSlot(multipliers);
-    } else if (forced === 'win') {
-      // اختر خانة فائزة
-      rightCount = pickWinSlot(multipliers);
+    let finalSlot: number;
+    if (forced === 'win') {
+      finalSlot = pickWinningSlot(multipliers);
     } else {
-      // محاكاة عشوائية مع تعديل بسيط لـ RTP
-      rightCount = simulatePlinkoPath(rows, rtp, multipliers);
+      finalSlot = binomialDraw(rows);
     }
 
-    const finalSlot = Math.min(rightCount, slots - 1);
-    const path = simulatePath(rows, rightCount);
     const multiplier = multipliers[finalSlot];
-    const isWin = multiplier >= 1;
     const payout = Math.floor(body.bet_amount * multiplier);
+    const path = buildPath(rows, finalSlot);
 
     const gameCtx: GameContext = {
       user_id: ctx.user_id,
@@ -107,11 +99,12 @@ Deno.serve(async (req: Request) => {
       request_data: { risk_level: body.risk_level },
       bet_amount: body.bet_amount,
       bet_data: { risk_level: body.risk_level, final_slot: finalSlot, path },
+      test_mode: testMode,
     };
 
     const result: GameResult = {
       round_id: '',
-      is_win: isWin,
+      is_win: payout > 0,
       multiplier,
       payout,
       result: {
@@ -130,117 +123,51 @@ Deno.serve(async (req: Request) => {
 
     return jsonResponse({
       success: true,
+      test_mode: placed.test_mode,
       round_id: placed.round_id,
       bet_id: placed.bet_id,
       final_slot: Number(placed.result.final_slot),
       path: placed.result.path,
+      path_length: rows,
       multiplier: placed.multiplier,
       is_win: placed.is_win,
       payout: placed.payout,
-      path_length: Number(placed.result.rows),
-      balance_gold: await getNewBalance(supabase, ctx.user_id),
+      net: placed.payout - body.bet_amount,
+      promo_reward: forced === 'win',
+      declared_rtp: rtp,
+      odds: {
+        slots: multipliers.length,
+        multiplier,
+        p_land: binomialProbability(rows, finalSlot),
+        rtp,
+      },
+      balance_gold: await getBalanceGold(supabase, ctx.user_id),
     });
   } catch (err) {
     return errorResponse(err);
   }
 });
 
-function simulatePlinkoPath(rows: number, rtp: number, multipliers: number[]): number {
-  // لكل خانة k (0..rows): احتمال = C(rows, k) * 0.5^rows
-  // نعدّل الاحتمالات بحيث RTP المتوقع = rtp
-  const slots = multipliers.length;
-  const baseProbs = Array.from({ length: slots }, (_, k) => binomialProb(rows, k, slots));
-
-  // العائد المتوقع الحالي
-  const currentExpected = baseProbs.reduce((s, p, k) => s + p * multipliers[k], 0);
-  const targetExpected = rtp / 100;
-
-  // تعديل بسيط: زيادة احتمال خانة الصفر وإلا زيادة الفائزين
-  // الطريقة الأبسط: clip الـexpected إلى target عبر تحريك الاحتمال نحو الخسارة
-  if (currentExpected > targetExpected) {
-    // زيادة احتمال الخسارة (الخانات بمضاعف < 1)
-    const lossIndices = multipliers.map((m, i) => m < 1 ? i : -1).filter(i => i >= 0);
-    if (lossIndices.length > 0) {
-      // نقل 5% من الفائزين للخاسرين
-      const shift = Math.min(0.05, (currentExpected - targetExpected));
-      const adjusted = [...baseProbs];
-      // إعادة التوزيع
-      adjusted[lossIndices[0]] += shift;
-      // خصم من الفائزين بالتناسب
-      const winIdx = multipliers.map((m, i) => m >= 1 ? i : -1).filter(i => i >= 0);
-      const totalWin = winIdx.reduce((s, i) => s + adjusted[i], 0);
-      for (const i of winIdx) {
-        adjusted[i] *= (1 - shift / totalWin);
-      }
-      // إعادة التطبيع
-      const sum = adjusted.reduce((a, b) => a + b, 0);
-      const norm = adjusted.map(p => p / sum);
-      // اختيار عشوائي
-      return pickFromDist(norm);
-    }
+function pickWinningSlot(multipliers: number[]): number {
+  const winners = multipliers
+    .map((value, index) => ({ value, index }))
+    .filter((entry) => entry.value > 1);
+  if (winners.length === 0) {
+    let best = 0;
+    multipliers.forEach((value, index) => { if (value > multipliers[best]) best = index; });
+    return best;
   }
-
-  return pickFromDist(baseProbs);
+  return winners[secureRandomInt(0, winners.length - 1)].index;
 }
 
-function binomialProb(rows: number, k: number, slots: number): number {
-  // تقريب: توزيع binomial مع مركز في النصف
-  // للـ12 صف و11 خانة: k=0..10 → خانون الوسط هما 5,6
-  // E[Binomial(12, 0.5)] = 6
-  // C(12, k) * 0.5^12
-  const n = rows;
-  const p = 0.5;
-  const c = binomialCoefficient(n, Math.min(k, n));
-  return c * Math.pow(p, n);
-}
-
-function binomialCoefficient(n: number, k: number): number {
-  if (k < 0 || k > n) return 0;
-  if (k === 0 || k === n) return 1;
-  let result = 1;
-  for (let i = 0; i < k; i++) {
-    result = (result * (n - i)) / (i + 1);
-  }
-  return Math.round(result);
-}
-
-function pickFromDist(probs: number[]): number {
-  const sum = probs.reduce((a, b) => a + b, 0);
-  const norm = probs.map(p => p / sum);
-  let u = secureRandom();
-  for (let i = 0; i < norm.length; i++) {
-    u -= norm[i];
-    if (u <= 0) return i;
-  }
-  return norm.length - 1;
-}
-
-function pickLoseSlot(multipliers: number[]): number {
-  // اختر خانة بمضاعف < 1
-  const lossIdx = multipliers.map((m, i) => m < 1 ? i : -1).filter(i => i >= 0);
-  if (lossIdx.length === 0) return 0;
-  return lossIdx[Math.floor(secureRandom() * lossIdx.length)];
-}
-
-function pickWinSlot(multipliers: number[]): number {
-  // اختر خانة بمضاعف >= 2
-  const winIdx = multipliers.map((m, i) => m >= 2 ? i : -1).filter(i => i >= 0);
-  if (winIdx.length === 0) {
-    // اختر أعلى خانة
-    let max = 0, maxIdx = 0;
-    multipliers.forEach((m, i) => { if (m > max) { max = m; maxIdx = i; } });
-    return maxIdx;
-  }
-  return winIdx[Math.floor(secureRandom() * winIdx.length)];
-}
-
-function simulatePath(rows: number, rightCount: number): Array<'L' | 'R'> {
+function buildPath(rows: number, rightCount: number): Array<'L' | 'R'> {
   const path: Array<'L' | 'R'> = [];
-  let rights = rightCount;
-  for (let i = 0; i < rows; i++) {
-    if (rights > 0 && secureRandom() < rights / (rows - i)) {
+  let rights = Math.max(0, Math.min(rows, rightCount));
+  for (let i = 0; i < rows; i += 1) {
+    const remaining = rows - i;
+    if (rights > 0 && secureRandom() < rights / remaining) {
       path.push('R');
-      rights--;
+      rights -= 1;
     } else {
       path.push('L');
     }
@@ -248,8 +175,12 @@ function simulatePath(rows: number, rightCount: number): Array<'L' | 'R'> {
   return path;
 }
 
-async function getNewBalance(supabase: any, userId: string): Promise<number> {
-  const { data, error } = await supabase.from('users').select('balance_gold').eq('id', userId).single();
-  if (error) throw new HttpError(500, 'BALANCE_LOAD_FAILED', 'Could not load Coin balance');
-  return Number(data.balance_gold);
+function binomialProbability(rows: number, k: number): number {
+  if (k < 0 || k > rows) return 0;
+  let coefficient = 1;
+  const smaller = Math.min(k, rows - k);
+  for (let i = 1; i <= smaller; i += 1) {
+    coefficient = coefficient * (rows - smaller + i) / i;
+  }
+  return Math.round((coefficient / Math.pow(2, rows)) * 1000000) / 1000000;
 }

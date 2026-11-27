@@ -81,6 +81,15 @@ Deno.serve(async (req: Request) => {
       throw new HttpError(404, 'USER_NOT_FOUND', 'User not found');
     }
 
+    // M9.4 / قسم 19: لا يُسمح بفرض خسارة مضمونة على مستخدم دون علمه.
+    if (body.outcome === 'lose') {
+      throw new HttpError(
+        400,
+        'FORCED_LOSS_FORBIDDEN',
+        'فرض خسارة مضمونة على مستخدم ممنوع. استخدم مكافأة ترويجية معلنة (win) أو اترك النتيجة للعشوائية.',
+      );
+    }
+
     const count = body.count ?? 1;
 
     let updateData: Record<string, unknown>;

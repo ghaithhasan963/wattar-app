@@ -1,3 +1,15 @@
+/**
+ * Wattar Edge Function — game-slots (Slots)
+ *
+ * POST /functions/v1/game-slots
+ * Body: { "bet_amount": number, "test_mode"?: boolean }
+ *
+ * M9.4:
+ *  - جدول الجوائز (الرمز + المضاعف + الاحتمال) يأتي من game_configs.settings.tiers.
+ *  - لا مضاعفات أو احتمالات ثابتة في الكود.
+ *
+ * @version 2.0.0
+ */
 import {
   requireNotMaintenance,
   authenticate,
@@ -10,13 +22,16 @@ import {
   requireIdempotencyKey,
 } from '../_shared/supabase.ts';
 import {
-  checkForcedOutcome,
-  determineRTP,
   GameContext,
   GameResult,
+  assertGameAvailable,
+  checkForcedOutcome,
+  determineRTP,
+  getBalanceGold,
   getGameConfig,
   getUserGameState,
   placeBetAndSettle,
+  readTestMode,
   secureRandom,
   secureRandomInt,
   validateBetAmount,
@@ -24,6 +39,7 @@ import {
 
 interface SlotsBody {
   bet_amount: number;
+  test_mode?: boolean;
 }
 
 interface PayoutTier {
@@ -31,14 +47,6 @@ interface PayoutTier {
   multiplier: number;
   probability: number;
 }
-
-const payoutTiers: PayoutTier[] = [
-  { symbol: '🍒', multiplier: 2, probability: 0.05 },
-  { symbol: '🔔', multiplier: 5, probability: 0.02 },
-  { symbol: '💎', multiplier: 10, probability: 0.01 },
-];
-
-const lossSymbols = ['🍋', '🍀', '⭐', '🍇'];
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return jsonResponse({}, 200);
@@ -52,20 +60,41 @@ Deno.serve(async (req: Request) => {
     const body = await parseBody<SlotsBody>(req);
 
     const supabase = getSupabaseAdmin();
+    const gate = await assertGameAvailable(supabase, ctx.user_id, 'slots');
     const config = await getGameConfig(supabase, 'slots');
+    const testMode = readTestMode(body, gate);
+
+    const rawTiers = config.settings?.tiers;
+    if (!Array.isArray(rawTiers) || rawTiers.length === 0) {
+      throw new HttpError(500, 'GAME_NOT_CONFIGURED', 'Slots payouts are not configured');
+    }
+    const tiers: PayoutTier[] = rawTiers.map((tier: Record<string, unknown>) => ({
+      symbol: String(tier.symbol),
+      multiplier: Number(tier.multiplier),
+      probability: Number(tier.probability),
+    }));
+    const lossSymbols: string[] = Array.isArray(config.settings?.loss_symbols)
+      ? config.settings.loss_symbols.map((symbol: unknown) => String(symbol))
+      : ['🍋', '🍀', '⭐', '🍇'];
+
     const userState = await getUserGameState(supabase, ctx.user_id);
     validateBetAmount(body.bet_amount, config, userState.bet_limit_override);
-    if (userState.balance_gold < body.bet_amount) {
+    if (!testMode && userState.balance_gold < body.bet_amount) {
       throw new HttpError(400, 'INSUFFICIENT_BALANCE', 'Not enough Coin balance');
     }
 
     const rtp = determineRTP(userState, config);
     const forced = checkForcedOutcome(userState);
-    const tier = forced === 'lose' ? null : pickPayoutTier(rtp, forced === 'win');
-    const reels = tier
-      ? [tier.symbol, tier.symbol, tier.symbol]
-      : createLosingReels();
-    const multiplier = tier?.multiplier ?? 0;
+
+    let tier: PayoutTier | null = null;
+    if (forced === 'win') {
+      tier = pickTierByWeight(tiers);
+    } else {
+      tier = drawTier(tiers);
+    }
+
+    const reels = tier ? [tier.symbol, tier.symbol, tier.symbol] : createLosingReels(lossSymbols);
+    const multiplier = tier ? Number(tier.multiplier) : 0;
     const payout = Math.floor(body.bet_amount * multiplier);
 
     const gameContext: GameContext = {
@@ -75,6 +104,7 @@ Deno.serve(async (req: Request) => {
       request_data: {},
       bet_amount: body.bet_amount,
       bet_data: { reels },
+      test_mode: testMode,
     };
     const result: GameResult = {
       round_id: '',
@@ -94,59 +124,62 @@ Deno.serve(async (req: Request) => {
       throw new HttpError(500, 'INVALID_GAME_RESULT', 'The slot result was not returned correctly');
     }
 
-    const { data: updatedUser, error: balanceError } = await supabase
-      .from('users')
-      .select('balance_gold')
-      .eq('id', ctx.user_id)
-      .single();
-    if (balanceError) {
-      console.error('[Wattar] Failed to load Coin balance after slots settlement:', balanceError);
-      throw new HttpError(500, 'BALANCE_LOAD_FAILED', 'Could not load Coin balance');
-    }
-
     return jsonResponse({
       success: true,
+      test_mode: settled.test_mode,
       round_id: settled.round_id,
       bet_id: settled.bet_id,
       reels: settledReels,
       is_win: settled.is_win,
       multiplier: settled.multiplier,
       payout: settled.payout,
-      balance_gold: Number(updatedUser.balance_gold),
+      net: settled.payout - body.bet_amount,
+      promo_reward: forced === 'win',
+      declared_rtp: rtp,
+      odds: {
+        hit_rate: Math.round(tiers.reduce((sum, item) => sum + item.probability, 0) * 10000) / 10000,
+        tiers: tiers.map((item) => ({
+          symbol: item.symbol,
+          multiplier: item.multiplier,
+          probability: item.probability,
+        })),
+        rtp,
+      },
+      balance_gold: await getBalanceGold(supabase, ctx.user_id),
     });
   } catch (error) {
     return errorResponse(error);
   }
 });
 
-function pickPayoutTier(rtp: number, forceWin: boolean): PayoutTier | null {
-  const expectedReturn = payoutTiers.reduce(
-    (total, tier) => total + tier.probability * tier.multiplier,
-    0,
-  );
-  const maximumScale = 1 / payoutTiers.reduce((total, tier) => total + tier.probability, 0);
-  const scale = forceWin ? 1 : Math.max(0, Math.min(maximumScale, rtp / (expectedReturn * 100)));
-  const randomValue = secureRandom();
-  let cumulativeProbability = 0;
-
-  for (const tier of payoutTiers) {
-    cumulativeProbability += tier.probability * scale;
-    if (randomValue < cumulativeProbability) return tier;
-  }
-
-  if (forceWin) {
-    return payoutTiers[secureRandomInt(0, payoutTiers.length - 1)];
+/** اختيار جائزة وفق احتمالها المعلن؛ وإذا خرجت القرعة خارج مجموع الاحتمالات → خسارة. */
+function drawTier(tiers: PayoutTier[]): PayoutTier | null {
+  const roll = secureRandom();
+  let cumulative = 0;
+  for (const tier of tiers) {
+    cumulative += Math.max(0, Number(tier.probability));
+    if (roll < cumulative) return tier;
   }
   return null;
 }
 
-function createLosingReels(): string[] {
-  const first = secureRandomInt(0, lossSymbols.length - 1);
-  let second = secureRandomInt(0, lossSymbols.length - 1);
-  while (second === first) second = secureRandomInt(0, lossSymbols.length - 1);
-  let third = secureRandomInt(0, lossSymbols.length - 1);
-  while (third === first || third === second) {
-    third = secureRandomInt(0, lossSymbols.length - 1);
+function pickTierByWeight(tiers: PayoutTier[]): PayoutTier {
+  const total = tiers.reduce((sum, tier) => sum + Math.max(0, Number(tier.probability)), 0);
+  if (total <= 0) return tiers[secureRandomInt(0, tiers.length - 1)];
+  let ticket = secureRandom() * total;
+  for (const tier of tiers) {
+    ticket -= Math.max(0, Number(tier.probability));
+    if (ticket <= 0) return tier;
   }
-  return [lossSymbols[first], lossSymbols[second], lossSymbols[third]];
+  return tiers[tiers.length - 1];
+}
+
+function createLosingReels(symbols: string[]): string[] {
+  const pool = symbols.length >= 3 ? symbols : ['🍋', '🍀', '⭐'];
+  const first = secureRandomInt(0, pool.length - 1);
+  let second = secureRandomInt(0, pool.length - 1);
+  while (second === first) second = secureRandomInt(0, pool.length - 1);
+  let third = secureRandomInt(0, pool.length - 1);
+  while (third === first || third === second) third = secureRandomInt(0, pool.length - 1);
+  return [pool[first], pool[second], pool[third]];
 }

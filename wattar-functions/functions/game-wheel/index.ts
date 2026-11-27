@@ -2,14 +2,14 @@
  * Wattar Edge Function — game-wheel (عجلة الحظ)
  *
  * POST /functions/v1/game-wheel
- * Body: { "bet_amount": number, "segment_choice": number }
+ * Body: { "bet_amount": number, "segment_choice": number, "test_mode"?: boolean }
  *
- * منطق اللعبة:
- *   6 خانات: x0, x2, x5, x10, x20, x50
- *   احتمالاتها في game_configs.settings.segments
- *   نطبّق RTP: لكل رهان، العائد المتوقع = bet_amount * RTP
+ * M9.4:
+ *  - المستخدم يختار خانة (رهان)، والسيرفر يختار الخانة الفائزة وفق الأوزان المعلنة.
+ *  - العائد = قيمة الخانة المختارة عند وقوع العجلة عليها، وإلا صفر.
+ *  - كل خانة لها احتمال معلن وعائد معلن، وRTP الخانة = الاحتمال × العائد.
  *
- * @version 1.0.0
+ * @version 2.0.0
  */
 import {
   requireNotMaintenance,
@@ -25,25 +25,29 @@ import {
 import {
   GameContext,
   GameResult,
+  assertGameAvailable,
+  checkForcedOutcome,
+  determineRTP,
+  getBalanceGold,
   getGameConfig,
   getUserGameState,
-  determineRTP,
-  checkForcedOutcome,
+  pickWeightedIndex,
   placeBetAndSettle,
-  secureRandom,
+  readTestMode,
   validateBetAmount,
 } from '../_shared/game-engine.ts';
 
 interface WheelSegment {
-  value: number;          // المضاعف (0 = خسارة)
-  probability: number;    // احتمال الوقوع
+  value: number;
+  probability: number;
   color: string;
   label: string;
 }
 
 interface WheelBody {
   bet_amount: number;
-  segment_choice: number;  // 0..5
+  segment_choice: number;
+  test_mode?: boolean;
 }
 
 Deno.serve(async (req: Request) => {
@@ -62,52 +66,48 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabase = getSupabaseAdmin();
-
-    // 1) إعدادات اللعبة
+    const gate = await assertGameAvailable(supabase, ctx.user_id, 'wheel');
     const config = await getGameConfig(supabase, 'wheel');
-    const segments: WheelSegment[] = config.settings.segments;
+    const testMode = readTestMode(body, gate);
+
+    const segments: WheelSegment[] = config.settings?.segments;
+    if (!Array.isArray(segments) || segments.length < 2) {
+      throw new HttpError(500, 'GAME_NOT_CONFIGURED', 'Wheel segments are not configured');
+    }
     if (body.segment_choice >= segments.length) {
       throw new HttpError(400, 'INVALID_SEGMENT', `Choose segment 0..${segments.length - 1}`);
     }
 
-    // 2) حالة المستخدم
     const userState = await getUserGameState(supabase, ctx.user_id);
-
-    // 3) التحقق من الرصيد وحدود الرهان
-    if (userState.balance_gold < body.bet_amount) {
+    validateBetAmount(body.bet_amount, config, userState.bet_limit_override);
+    if (!testMode && userState.balance_gold < body.bet_amount) {
       throw new HttpError(400, 'INSUFFICIENT_BALANCE', 'Not enough Coin balance');
     }
-    validateBetAmount(body.bet_amount, config, userState.bet_limit_override);
 
-    // 4) تحديد النتيجة
     const rtp = determineRTP(userState, config);
     const forced = checkForcedOutcome(userState);
+    const chosenSegment = segments[body.segment_choice];
+    const chosenValue = Number(chosenSegment.value);
 
     let winningSegment: number;
-    let chosenSegment = segments[body.segment_choice];
-
     if (forced === 'win') {
-      // اختر خانة فائزة عشوائيًا (ليس x0) مع مراعاة RTP
-      winningSegment = pickWinningSegment(segments, rtp, body.segment_choice);
-    } else if (forced === 'lose') {
-      winningSegment = 0; // x0 = خسارة
+      winningSegment = body.segment_choice;
     } else {
-      // اختيار عشوائي وفق RTP
-      winningSegment = pickSegmentByRTP(segments, rtp);
+      winningSegment = pickWeightedIndex(segments.map((segment) => Number(segment.probability)));
     }
 
     const isWin = winningSegment === body.segment_choice;
-    const multiplier = isWin ? chosenSegment.value : 0;
+    const multiplier = isWin ? chosenValue : 0;
     const payout = isWin ? Math.floor(body.bet_amount * multiplier) : 0;
 
-    // 5) تنفيذ المعاملة
     const gameCtx: GameContext = {
       user_id: ctx.user_id,
       game_type: 'wheel',
       idempotency_key: idempotencyKey,
       request_data: { segment_choice: body.segment_choice },
       bet_amount: body.bet_amount,
-      bet_data: { segment_choice: body.segment_choice, segment_value: chosenSegment.value },
+      bet_data: { segment_choice: body.segment_choice, segment_value: chosenValue },
+      test_mode: testMode,
     };
 
     const result: GameResult = {
@@ -117,10 +117,11 @@ Deno.serve(async (req: Request) => {
       payout,
       result: {
         winning_segment: winningSegment,
-        winning_value: segments[winningSegment].value,
+        winning_value: Number(segments[winningSegment].value),
         winning_color: segments[winningSegment].color,
         winning_label: segments[winningSegment].label,
         chosen_segment: body.segment_choice,
+        chosen_value: chosenValue,
         rtp_target: rtp,
       },
       forced_outcome: forced,
@@ -128,74 +129,31 @@ Deno.serve(async (req: Request) => {
     };
 
     const placed = await placeBetAndSettle(supabase, gameCtx, result);
-    winningSegment = Number(placed.result.winning_segment);
+    const winning = Number(placed.result.winning_segment);
 
     return jsonResponse({
       success: true,
+      test_mode: placed.test_mode,
       round_id: placed.round_id,
       bet_id: placed.bet_id,
-      winning_segment: winningSegment,
+      winning_segment: winning,
       winning_color: String(placed.result.winning_color),
       winning_label: String(placed.result.winning_label),
+      chosen_segment: body.segment_choice,
       is_win: placed.is_win,
       multiplier: placed.multiplier,
       payout: placed.payout,
-      balance_gold: await getNewBalance(supabase, ctx.user_id),
+      net: placed.payout - body.bet_amount,
+      promo_reward: forced === 'win',
+      declared_rtp: Number(config.default_rtp),
+      odds: {
+        p_win: Number(chosenSegment.probability),
+        multiplier: chosenValue,
+        rtp: Math.round(Number(chosenSegment.probability) * chosenValue * 10000) / 100,
+      },
+      balance_gold: await getBalanceGold(supabase, ctx.user_id),
     });
   } catch (err) {
     return errorResponse(err);
   }
 });
-
-// اختيار خانة فائزة (مع مراعاة RTP)
-function pickSegmentByRTP(segments: WheelSegment[], rtp: number): number {
-  // احتمالات معدّلة بحيث RTP النظري = rtp
-  // النموذج البسيط: تعديل احتمال الخسارة (segment 0) لإبقاء RTP عند المطلوب
-  const winningSegments = segments.filter(s => s.value > 0);
-  let totalWinProb = winningSegments.reduce((s, seg) => s + seg.probability, 0);
-
-  // العائد المتوقع = sum(prob_i * value_i)
-  // نريد أن يكون = rtp/100
-  // نُعدّل احتمالات الخانات الفائزة بنسبة (rtp / (currentExpected * 100))
-  const currentExpected = winningSegments.reduce((s, seg) => s + seg.probability * seg.value, 0);
-  const targetExpected = rtp / 100;
-  const adjustment = currentExpected > 0 ? targetExpected / currentExpected : 1;
-
-  // احتمالات معدّلة
-  const adjustedProbs = segments.map((seg, idx) => {
-    if (seg.value > 0) {
-      return Math.min(0.99, seg.probability * adjustment);
-    } else {
-      // باقي احتمال الخسارة
-      return Math.max(0.01, 1 - winningSegments.reduce((s, w) => s + Math.min(0.99, w.probability * adjustment), 0));
-    }
-  });
-
-  // اختيار عشوائي
-  const rand = secureRandom();
-  let cumul = 0;
-  for (let i = 0; i < segments.length; i++) {
-    cumul += adjustedProbs[i];
-    if (rand < cumul) return i;
-  }
-  return segments.length - 1;
-}
-
-function pickWinningSegment(segments: WheelSegment[], rtp: number, chosenSegment: number): number {
-  // اختيار خانة فائزة من بين الخانات (وليس بالضرورة الخانة المختارة)
-  // الأبسط: إرجاع الخانة المختارة إذا كانت فائزة، وإلا خانة فائزة منخفضة القيمة
-  if (segments[chosenSegment].value > 0) {
-    return chosenSegment;
-  }
-  // اختر أصغر خانة فائزة
-  for (let i = 0; i < segments.length; i++) {
-    if (segments[i].value > 0) return i;
-  }
-  return 0;
-}
-
-async function getNewBalance(supabase: any, userId: string): Promise<number> {
-  const { data, error } = await supabase.from('users').select('balance_gold').eq('id', userId).single();
-  if (error) throw new HttpError(500, 'BALANCE_LOAD_FAILED', 'Could not load Coin balance');
-  return Number(data.balance_gold);
-}

@@ -1,54 +1,32 @@
 /**
- * Wattar App — صفحة الألعاب
- * قائمة الألعاب الأربعة: عجلة الحظ، نرد، Aviator، Plinko
+ * Wattar App — صفحة الألعاب (M9.4)
+ * القائمة تُبنى من get_public_games(): الألعاب المفعّلة فقط تظهر، مع حالة
+ * الإتاحة (إيقاف/منطقة/عمر)، RTP المعلن، والعروض الترويجية المعلنة.
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Easing, View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Gamepad2, Dice5, Plane, ChevronDown, Users, Gift, Gem } from 'lucide-react-native';
+import { ArrowLeft, Gamepad2, Dice5, Plane, ChevronDown, Users, Gift, Gem, Sparkles } from 'lucide-react-native';
 import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
+import { usePublicGames } from '@/hooks/usePublicGames';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
 import { CurrencyIcon } from '@/components/CurrencyIcon';
+import { formatPercent, gameUnavailableLabel, PublicGame } from '@/lib/gameConfig';
 
-const games = [
-  {
-    id: 'wheel',
-    name: 'عجلة الحظ',
-    description: 'اختر معاملًا ودع العجلة تحدد الخانة',
-    icon: Gamepad2,
-    color: '#7C3AED',
-  },
-  {
-    id: 'aviator',
-    name: 'طيارة المضاعفات',
-    description: 'حدّد هدف السحب وشاهد مسار الرحلة',
-    icon: Plane,
-    color: '#3B82F6',
-  },
-  {
-    id: 'plinko',
-    name: 'بلانغو',
-    description: 'اختر المخاطرة وتابع سقوط الكرة',
-    icon: ChevronDown,
-    color: '#F59E0B',
-  },
-  {
-    id: 'dice',
-    name: 'نرد',
-    description: 'توقع رقمًا أعلى أو أدنى من حدك',
-    icon: Dice5,
-    color: '#10B981',
-  },
-  {
-    id: 'slots',
-    name: 'Slots',
-    description: 'طابق الرموز الثلاثة في البكرات',
-    icon: Gem,
-    color: '#C026D3',
-  },
-];
+const GAME_ICONS: Record<string, typeof Gamepad2> = {
+  disc: Sparkles,
+  'dice-5': Dice5,
+  plane: Plane,
+  'chevrons-down': ChevronDown,
+  gem: Gem,
+  gamepad: Gamepad2,
+};
+
+function iconFor(game: PublicGame) {
+  return GAME_ICONS[game.icon] ?? GAME_ICONS.gamepad;
+}
 
 export default function GamesScreen() {
   const router = useRouter();
@@ -57,6 +35,7 @@ export default function GamesScreen() {
   const { reduceMotion } = usePreferencesStore();
   const [claimingBonus, setClaimingBonus] = useState(false);
   const entrance = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const { games, loading, error, reload } = usePublicGames();
 
   useEffect(() => {
     if (reduceMotion) {
@@ -80,19 +59,27 @@ export default function GamesScreen() {
     if (claimingBonus) return;
     setClaimingBonus(true);
     try {
-      const { data, error } = await supabase.rpc('claim_daily_game_points');
-      if (error) throw error;
+      const { data, error: rpcError } = await supabase.rpc('claim_daily_game_points');
+      if (rpcError) throw rpcError;
       if (data?.claimed) {
         await loadProfile();
         Alert.alert('تمت الإضافة', `أضفنا ${Number(data.granted).toLocaleString()} Coin إلى رصيدك.`);
       } else {
         Alert.alert('تم استخدام المكافأة اليومية', 'يمكنك استلام مكافأة الدخول مرة أخرى بعد مرور 24 ساعة.');
       }
-    } catch (error: unknown) {
-      Alert.alert('تعذرت المكافأة اليومية', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+    } catch (caught: unknown) {
+      Alert.alert('تعذرت المكافأة اليومية', caught instanceof Error ? caught.message : 'حاول مرة أخرى.');
     } finally {
       setClaimingBonus(false);
     }
+  };
+
+  const openGame = (game: PublicGame) => {
+    if (!game.available) {
+      Alert.alert(game.display_name, gameUnavailableLabel(game.unavailable_reason));
+      return;
+    }
+    router.push(`/game/${game.game_type}` as never);
   };
 
   return (
@@ -121,7 +108,7 @@ export default function GamesScreen() {
           {claimingBonus ? 'جاري الاستلام...' : 'استلام Coin اليومية'}
         </Text>
       </TouchableOpacity>
-      <Text style={styles.pointsNotice}>مكافأة يومية محدودة بالـCoin (حتى 100 Coin). الألعاب تُلعب برصيد Coin المشحون، ولا يمكن سحب Coin نقدًا.</Text>
+      <Text style={styles.pointsNotice}>مكافأة يومية محدودة بالـCoin. الألعاب تُلعب برصيد Coin، والنتائج تُحسب على الخادم فقط.</Text>
 
       <Animated.View style={[styles.communityCard, entranceStyle]}>
         <View style={styles.communityIcon}><Users size={22} color={colors.primary} /></View>
@@ -149,37 +136,70 @@ export default function GamesScreen() {
         </View>
       </View>
 
-      <Animated.View style={[styles.gamesGrid, entranceStyle]}>
-        {games.map(game => (
-          <TouchableOpacity
-            key={game.id}
-            style={[styles.gameCard, { borderTopColor: game.color }]}
-            onPress={() => router.push(`/game/${game.id}`)}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel={`افتح لعبة ${game.name}`}
-          >
-            <View style={styles.gameCardTop}>
-              <View style={[styles.gameIconBg, { backgroundColor: `${game.color}22` }]}>
-                <game.icon size={25} color={game.color} />
-              </View>
-              <ArrowLeft size={17} color={colors.textSecondary} />
-            </View>
-            <View style={styles.gameInfo}>
-              <Text style={styles.gameName}>{game.name}</Text>
-              <Text style={styles.gameDesc} numberOfLines={2}>{game.description}</Text>
-              <View style={styles.gameBadge}>
-                <CurrencyIcon currency="coin" size={18} />
-                <Text style={styles.gameBadgeText}>Coin فقط</Text>
-              </View>
-            </View>
+      {loading ? (
+        <ActivityIndicator color={colors.teal} style={styles.loader} />
+      ) : error ? (
+        <View style={styles.errorCard}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => void reload()} accessibilityRole="button">
+            <Text style={styles.retryText}>إعادة المحاولة</Text>
           </TouchableOpacity>
-        ))}
-      </Animated.View>
+        </View>
+      ) : games.length === 0 ? (
+        <Text style={styles.pointsNotice}>لا توجد ألعاب متاحة حالياً.</Text>
+      ) : (
+        <Animated.View style={[styles.gamesGrid, entranceStyle]}>
+          {games.map((game) => {
+            const Icon = iconFor(game);
+            const accent = game.accent_color || colors.primary;
+            return (
+              <TouchableOpacity
+                key={game.game_type}
+                style={[styles.gameCard, { borderTopColor: accent }, !game.available && styles.gameCardDisabled]}
+                onPress={() => openGame(game)}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={`افتح لعبة ${game.display_name}`}
+              >
+                <View style={styles.gameCardTop}>
+                  <View style={[styles.gameIconBg, { backgroundColor: `${accent}22` }]}>
+                    <Icon size={25} color={accent} />
+                  </View>
+                  <ArrowLeft size={17} color={colors.textSecondary} />
+                </View>
+                <View style={styles.gameInfo}>
+                  <Text style={styles.gameName}>{game.display_name}</Text>
+                  <Text style={styles.gameDesc} numberOfLines={2}>
+                    {game.description ?? 'جولة سريعة برصيد Coin.'}
+                  </Text>
+                  <View style={styles.badgeRow}>
+                    <View style={styles.rtpPill}>
+                      <Text style={styles.rtpPillText}>RTP {formatPercent(game.declared_rtp)}</Text>
+                    </View>
+                    {game.promo ? (
+                      <View style={styles.promoPill}>
+                        <Text style={styles.promoPillText}>×{game.promo.multiplier} عرض</Text>
+                      </View>
+                    ) : null}
+                    {game.test_mode_enabled ? (
+                      <View style={styles.testPill}>
+                        <Text style={styles.testPillText}>محاكاة</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  {!game.available ? (
+                    <Text style={styles.unavailableText}>{gameUnavailableLabel(game.unavailable_reason)}</Text>
+                  ) : null}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </Animated.View>
+      )}
 
       <Animated.View style={[styles.statsCard, entranceStyle]}>
         <Text style={styles.statsTitle}>العب بأمان</Text>
-        <Text style={styles.pointsNotice}>الرهان يُخصم من رصيد Coin المشحون، والأرباح تعود إلى Coin نفسها. Coin لا تُسحب نقدًا؛ السحب متاح لأرباح Diamond فقط.</Text>
+        <Text style={styles.pointsNotice}>النتائج تُحدد على الخادم بعشوائية آمنة، وكل جولة تُسجَّل بشكل مستقل. Coin لا تُسحب نقدًا؛ السحب متاح لأرباح Diamond فقط.</Text>
       </Animated.View>
     </ScrollView>
   );
@@ -212,10 +232,15 @@ const styles = StyleSheet.create({
   sectionSubtitle: { color: colors.textSecondary, fontSize: 11, marginTop: 4 },
   gamesCount: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   gamesCountText: { color: colors.teal, fontSize: 10, fontWeight: '800' },
+  loader: { marginTop: 30 },
+  errorCard: { marginHorizontal: 16, marginTop: 16, padding: 16, borderRadius: 14, backgroundColor: colors.dangerSoft, borderWidth: 1, borderColor: colors.danger, gap: 10 },
+  errorText: { color: colors.danger, fontSize: 12, textAlign: 'right' },
+  retryButton: { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: colors.surface },
+  retryText: { color: colors.text, fontSize: 12, fontWeight: '800' },
   gamesGrid: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 },
   gameCard: {
     width: '48%',
-    minHeight: 174,
+    minHeight: 188,
     borderRadius: 19,
     padding: 13,
     backgroundColor: colors.surface,
@@ -223,6 +248,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderTopWidth: 3,
   },
+  gameCardDisabled: { opacity: 0.55 },
   gameCardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   gameIconBg: {
     width: 44,
@@ -234,8 +260,14 @@ const styles = StyleSheet.create({
   gameInfo: { flex: 1, justifyContent: 'flex-end', marginTop: 10 },
   gameName: { color: colors.text, fontSize: 15, fontWeight: '900', textAlign: 'right' },
   gameDesc: { minHeight: 32, color: colors.textSecondary, fontSize: 10, lineHeight: 15, marginTop: 4, textAlign: 'right' },
-  gameBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 5, marginTop: 8, paddingVertical: 4, paddingHorizontal: 7, borderRadius: 9, backgroundColor: colors.background },
-  gameBadgeText: { color: colors.textSecondary, fontSize: 9, fontWeight: '800' },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 8 },
+  rtpPill: { paddingVertical: 3, paddingHorizontal: 7, borderRadius: 8, backgroundColor: colors.tealSoft },
+  rtpPillText: { color: colors.teal, fontSize: 9, fontWeight: '800' },
+  promoPill: { paddingVertical: 3, paddingHorizontal: 7, borderRadius: 8, backgroundColor: colors.goldSoft },
+  promoPillText: { color: colors.gold, fontSize: 9, fontWeight: '800' },
+  testPill: { paddingVertical: 3, paddingHorizontal: 7, borderRadius: 8, backgroundColor: colors.primarySoft },
+  testPillText: { color: colors.primary, fontSize: 9, fontWeight: '800' },
+  unavailableText: { color: colors.danger, fontSize: 10, fontWeight: '800', marginTop: 6, textAlign: 'right' },
   statsCard: {
     margin: 16,
     backgroundColor: colors.surface,

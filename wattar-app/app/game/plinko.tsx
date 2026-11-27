@@ -1,8 +1,10 @@
 /**
- * Wattar App — صفحة بلانغو (Plinko)
- * الكرة تسقط عبر صف من الأوتاد، تنتهي في خانة مع مضاعف
+ * Wattar App — بلانغو (M9.4)
+ * 12 صفاً ← 13 خانة، والمسار والخانة النهائية يأتيان من الخادم (توزيع ثنائي
+ * دقيق C(12,k)/2^12). جدول المضاعفات لكل مستوى مخاطرة من إعدادات الخادم،
+ * والرسوم تتبع المسار الذي أعاده الخادم فقط.
  */
-import React, { useState, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert, Animated, Easing, ScrollView,
 } from 'react-native';
@@ -13,63 +15,99 @@ import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/lib/theme';
 import { GameHeader } from '@/components/GameHeader';
 import { GameBetControl, parseValidGameBet } from '@/components/GameBetControl';
+import { GameHistoryCard, GameOddsCard, GameTestModeRow } from '@/components/GamePanels';
+import { usePublicGames } from '@/hooks/usePublicGames';
+import { formatPercent, newIdempotencyKey, toPlinkoTable } from '@/lib/gameConfig';
 
-const ROWS = 12;
-const SLOTS = 11;
+type RiskLevel = 'low' | 'medium' | 'high';
 
-const MULTIPLIERS: Record<string, number[]> = {
-  low:    [5, 3, 2, 1.5, 1, 0.5, 1, 1.5, 2, 3, 5],
-  medium: [10, 5, 3, 1.5, 1, 0.3, 1, 1.5, 3, 5, 10],
-  high:   [100, 20, 5, 1.5, 0.5, 0.2, 0.5, 1.5, 5, 20, 100],
+interface PlinkoResponse {
+  final_slot: number;
+  path: Array<'L' | 'R'>;
+  path_length: number;
+  multiplier: number;
+  payout: number;
+  is_win: boolean;
+  test_mode: boolean;
+  promo_reward: boolean;
+}
+
+const RISK_LABELS: Record<RiskLevel, string> = {
+  low: 'منخفض',
+  medium: 'متوسط',
+  high: 'عالي',
 };
 
-const SLOT_COLORS: Record<string, string> = {
+const SLOT_COLORS = {
   high: '#EF4444',
   mid: colors.gold,
   low: colors.roomTeal,
   zero: '#6B7280',
 };
 
-interface PlinkoResponse {
-  final_slot: number;
-  path: Array<'L' | 'R'>;
-  multiplier: number;
-  payout: number;
-  is_win: boolean;
+function getColor(mult: number): string {
+  if (mult >= 5) return SLOT_COLORS.high;
+  if (mult >= 1) return SLOT_COLORS.mid;
+  if (mult > 0) return SLOT_COLORS.zero;
+  return SLOT_COLORS.low;
 }
 
-function getColor(mult: number): string {
-  if (mult >= 10) return SLOT_COLORS.high;
-  if (mult >= 1) return SLOT_COLORS.mid;
-  if (mult < 1) return SLOT_COLORS.zero;
-  return SLOT_COLORS.low;
+function formatSlot(mult: number): string {
+  if (!Number.isFinite(mult)) return '—';
+  if (mult >= 10) return String(Math.round(mult));
+  if (mult >= 1) return String(Math.round(mult * 10) / 10);
+  return String(Math.round(mult * 100) / 100);
 }
 
 export default function PlinkoGame() {
   const { profile, loadProfile } = useAuthStore();
   const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
+  const { find } = usePublicGames();
+  const game = find('plinko');
   const [betAmount, setBetAmount] = useState('100');
-  const [risk, setRisk] = useState<'low' | 'medium' | 'high'>('medium');
+  const [risk, setRisk] = useState<RiskLevel>('medium');
   const [dropping, setDropping] = useState(false);
+  const [testMode, setTestMode] = useState(false);
+  const [historyKey, setHistoryKey] = useState(0);
   const [result, setResult] = useState<{ slot: number; mult: number; payout: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [boardWidth, setBoardWidth] = useState(0);
-  const ballPos = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const ballX = useRef(new Animated.Value(0)).current;
+  const ballY = useRef(new Animated.Value(0)).current;
   const validBet = parseValidGameBet(betAmount, profile?.balance_gold ?? 0);
+
+  const table = useMemo(
+    () => toPlinkoTable(game?.settings ?? {}, risk),
+    [game, risk],
+  );
+  const multipliers = table.multipliers;
+  const rows = table.rows;
+  const slotCount = multipliers.length;
+  const width = Math.max(boardWidth, 260);
+  const slotWidth = width / Math.max(1, slotCount);
 
   const play = async () => {
     const bet = parseValidGameBet(betAmount, profile?.balance_gold ?? 0);
     if (bet === null || loading || dropping) return;
+    if (game && !game.available) {
+      Alert.alert('اللعبة غير متاحة', 'هذه اللعبة غير متاحة لحسابك حالياً.');
+      return;
+    }
+    if (game && (bet < game.min_bet || bet > game.max_bet)) {
+      Alert.alert('الرهان خارج الحدود', `الحد المسموح من ${game.min_bet} إلى ${game.max_bet} Coin.`);
+      return;
+    }
     setLoading(true);
     setResult(null);
-    setDropping(false);
-    ballPos.setValue({ x: 0, y: 0 });
+    ballX.setValue(0);
+    ballY.setValue(0);
 
     try {
       const response = await callFunction<PlinkoResponse>('game-plinko', {
         bet_amount: bet,
         risk_level: risk,
-      }, `game-plinko-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`);
+        test_mode: testMode,
+      }, newIdempotencyKey('game-plinko'));
 
       const path = response.path;
       if (
@@ -77,7 +115,7 @@ export default function PlinkoGame() {
         || response.final_slot < 0
         || response.final_slot >= multipliers.length
         || !Array.isArray(path)
-        || path.length !== ROWS
+        || path.length !== rows
         || path.some((step) => step !== 'L' && step !== 'R')
         || !Number.isFinite(response.multiplier)
         || response.multiplier < 0
@@ -90,30 +128,30 @@ export default function PlinkoGame() {
 
       setLoading(false);
       setDropping(true);
-      const horizontalStep = Math.max(boardWidth, 240) / (ROWS + 1) / 2;
-      let horizontalOffset = 0;
-      const animations = path.map((step, index) => {
-        horizontalOffset += step === 'R' ? horizontalStep : -horizontalStep;
-        if (index === path.length - 1) {
-          horizontalOffset = (response.final_slot - (SLOTS - 1) / 2) * (Math.max(boardWidth, 240) / SLOTS);
-        }
-        return Animated.parallel([
-          Animated.timing(ballPos.x, {
-            toValue: horizontalOffset,
-            duration: reduceMotion ? 55 : 160,
-            easing: Easing.inOut(Easing.quad),
-            useNativeDriver: false,
-          }),
-          Animated.timing(ballPos.y, {
-            toValue: (index + 1) / path.length,
-            duration: reduceMotion ? 55 : 160,
-            easing: Easing.inOut(Easing.quad),
-            useNativeDriver: false,
-          }),
-        ]);
+
+      const stepX = slotWidth / 2;
+      const stepDuration = reduceMotion ? 45 : 135;
+      let offset = 0;
+      const horizontalSteps = path.map((step) => {
+        offset += step === 'R' ? stepX : -stepX;
+        return Animated.timing(ballX, {
+          toValue: offset,
+          duration: stepDuration,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        });
       });
+
       await new Promise<void>((resolve) => {
-        Animated.sequence(animations).start(() => resolve());
+        Animated.parallel([
+          Animated.sequence(horizontalSteps),
+          Animated.timing(ballY, {
+            toValue: 1,
+            duration: stepDuration * path.length,
+            easing: Easing.in(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]).start(() => resolve());
       });
       setDropping(false);
       setResult({
@@ -121,91 +159,98 @@ export default function PlinkoGame() {
         mult: response.multiplier,
         payout: response.payout,
       });
+      setHistoryKey((key) => key + 1);
       void loadProfile().catch((error: unknown) => {
         console.warn('[Wattar] Failed to refresh Coin balance after Plinko:', error);
       });
     } catch (err: unknown) {
-      setDropping(false);
+      ballX.setValue(0);
+      ballY.setValue(0);
       Alert.alert('خطأ', err instanceof Error ? err.message : 'تعذر إكمال الجولة.');
     } finally {
+      setDropping(false);
       setLoading(false);
     }
   };
 
-  const multipliers = MULTIPLIERS[risk];
+  const ballTranslateY = ballY.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, Math.max(120, rows * 19)],
+  });
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <StatusBar style="light" />
       <GameHeader
-        title="بلانغو"
-        subtitle="اختر مستوى المخاطرة وأسقط الكرة لمشاهدة مسار الجولة."
+        title={game?.display_name ?? 'بلانغو'}
+        subtitle={game?.description ?? 'اختر مستوى المخاطرة وأسقط الكرة. الخانة تُختار على الخادم بتوزيع ثنائي معلن.'}
         balance={profile?.balance_gold ?? 0}
       />
 
+      <GameTestModeRow
+        enabled={game?.test_mode_enabled === true}
+        value={testMode}
+        onChange={setTestMode}
+      />
+
       <View style={styles.boardContainer}>
-        {/* صفوف الأوتاد */}
         <View
           style={styles.pegsBoard}
           onLayout={(event) => setBoardWidth(event.nativeEvent.layout.width)}
         >
-          {Array.from({ length: ROWS }).map((_, row) => (
-            <View
-              key={row}
+          {Array.from({ length: rows }).map((_, row) => {
+            const gap = width / (row + 3);
+            return (
+              <View
+                key={row}
+                style={[
+                  styles.pegRow,
+                  { top: 10 + row * 19, gap: Math.max(5, Math.min(22, gap)) },
+                ]}
+              >
+                {Array.from({ length: row + 2 }).map((__, index) => (
+                  <View key={index} style={styles.peg} />
+                ))}
+              </View>
+            );
+          })}
+
+          {dropping && (
+            <Animated.View
+              pointerEvents="none"
               style={[
-                styles.pegRow,
+                styles.ball,
                 {
-                  top: row * 18,
-                  gap: Math.max(4, Math.min(20, (boardWidth || 280) / (row + 4))),
+                  left: width / 2 - 7,
+                  transform: [{ translateX: ballX }, { translateY: ballTranslateY }],
                 },
               ]}
-            >
-              {Array.from({ length: row + 2 }).map((_, i) => (
-                <View key={i} style={styles.peg} />
-              ))}
-            </View>
-          ))}
+            />
+          )}
         </View>
 
-        {/* الكرة */}
-        {dropping && (
-          <Animated.View
-            style={[
-              styles.ball,
-              {
-                left: 16 + (Math.max(boardWidth, 240) - 16) / 2,
-                top: 16,
-                transform: [
-                { translateX: ballPos.x },
-                { translateY: ballPos.y.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 240],
-                  }) },
-                ],
-              },
-            ]}
-          />
-        )}
-
-        {/* الخانات السفلية */}
         <View style={styles.slotsRow}>
-          {multipliers.map((mult, i) => (
-            <View
-              key={i}
-              style={[
-                styles.slot,
-                {
-                  backgroundColor: getColor(mult) + '30',
-                  borderColor: getColor(mult),
-                  borderWidth: result?.slot === i ? 3 : 1,
-                },
-              ]}
-            >
-              <Text style={[styles.slotText, { color: getColor(mult) }]}>
-                {mult >= 1 ? `${mult}x` : `${mult}`}
-              </Text>
-            </View>
-          ))}
+          {multipliers.map((mult, index) => {
+            const color = getColor(mult);
+            const isHit = result?.slot === index;
+            return (
+              <View
+                key={`${index}-${mult}`}
+                style={[
+                  styles.slot,
+                  {
+                    backgroundColor: `${color}30`,
+                    borderColor: color,
+                    borderWidth: isHit ? 2 : 1,
+                  },
+                ]}
+              >
+                <Text style={[styles.slotText, { color }]} numberOfLines={1}>
+                  {formatSlot(mult)}
+                </Text>
+              </View>
+            );
+          })}
         </View>
       </View>
 
@@ -213,8 +258,8 @@ export default function PlinkoGame() {
         <View style={[styles.resultBanner, result.payout > 0 ? styles.winBanner : styles.loseBanner]}>
           <Text style={styles.resultText}>
             {result.payout > 0
-              ? `🎉 وقعت في ${result.mult}x — ربحت ${result.payout} Coin`
-              : `وقع في خانة ${result.mult}x — خسرت`}
+              ? `🎉 وقعت في ${formatSlot(result.mult)}x — ربحت ${result.payout.toLocaleString()} Coin`
+              : `وقعت في ${formatSlot(result.mult)}x — خسرت`}
           </Text>
         </View>
       )}
@@ -222,19 +267,24 @@ export default function PlinkoGame() {
       <View style={styles.controlsCard}>
         <Text style={styles.label}>مستوى المخاطرة</Text>
         <View style={styles.riskRow}>
-          {(['low', 'medium', 'high'] as const).map(r => (
+          {(['low', 'medium', 'high'] as const).map((level) => (
             <TouchableOpacity
-              key={r}
-              style={[styles.riskBtn, risk === r && styles.riskBtnActive]}
-              onPress={() => setRisk(r)}
+              key={level}
+              style={[styles.riskBtn, risk === level && styles.riskBtnActive]}
+              onPress={() => setRisk(level)}
               disabled={dropping || loading}
+              accessibilityRole="button"
+              accessibilityState={{ selected: risk === level, disabled: dropping || loading }}
             >
-              <Text style={[styles.riskText, risk === r && styles.riskTextActive]}>
-                {r === 'low' ? 'منخفض' : r === 'medium' ? 'متوسط' : 'عالي'}
+              <Text style={[styles.riskText, risk === level && styles.riskTextActive]}>
+                {RISK_LABELS[level]}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
+        <Text style={styles.riskHint}>
+          RTP المعلن {formatPercent(game?.declared_rtp ?? 0)} — {slotCount} خانة بتوزيع ثنائي دقيق.
+        </Text>
 
         <GameBetControl
           value={betAmount}
@@ -242,6 +292,11 @@ export default function PlinkoGame() {
           disabled={dropping || loading}
           onChange={setBetAmount}
         />
+        {game ? (
+          <Text style={styles.limitHint}>
+            الحد: {game.min_bet.toLocaleString()} – {game.max_bet.toLocaleString()} Coin
+          </Text>
+        ) : null}
 
         <TouchableOpacity
           style={[styles.playButton, (dropping || loading || validBet === null) && styles.playButtonDisabled]}
@@ -254,6 +309,8 @@ export default function PlinkoGame() {
         </TouchableOpacity>
       </View>
 
+      <GameOddsCard game={game} />
+      <GameHistoryCard gameType="plinko" refreshKey={historyKey} />
     </ScrollView>
   );
 }
@@ -261,15 +318,12 @@ export default function PlinkoGame() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.roomBackground },
   content: { padding: 16, paddingTop: 58, paddingBottom: 32 },
-  title: { color: colors.roomText, fontSize: 24, fontWeight: '800', textAlign: 'center', marginBottom: 16 },
   boardContainer: {
     backgroundColor: '#120D1C',
     borderRadius: 24,
     padding: 16,
     alignItems: 'center',
-    marginVertical: 16,
-    minHeight: 320,
-    position: 'relative',
+    marginVertical: 14,
     borderWidth: 1,
     borderColor: '#382A4B',
     overflow: 'hidden',
@@ -277,8 +331,8 @@ const styles = StyleSheet.create({
   pegsBoard: {
     position: 'relative',
     width: '100%',
+    height: 246,
     alignItems: 'center',
-    height: 240,
   },
   pegRow: {
     position: 'absolute',
@@ -292,22 +346,22 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: '#AE7BDF',
     shadowColor: '#B550FF',
-    shadowOpacity: 0.65,
-    shadowRadius: 5,
+    shadowOpacity: 0.6,
+    shadowRadius: 4,
     elevation: 3,
   },
   ball: {
     position: 'absolute',
-    top: 0,
-    width: 15,
-    height: 15,
-    borderRadius: 8,
+    top: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: '#FFE7A3',
     borderWidth: 2,
     borderColor: '#FFFFFF',
     shadowColor: colors.gold,
     shadowOpacity: 0.9,
-    shadowRadius: 9,
+    shadowRadius: 8,
     elevation: 7,
   },
   slotsRow: {
@@ -318,17 +372,17 @@ const styles = StyleSheet.create({
   },
   slot: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingVertical: 7,
+    borderRadius: 5,
     alignItems: 'center',
   },
-  slotText: { fontSize: 10, fontWeight: 'bold' },
+  slotText: { fontSize: 7.5, fontWeight: '900' },
   resultBanner: { padding: 12, borderRadius: 10, alignItems: 'center', marginBottom: 12 },
   winBanner: { backgroundColor: '#50D3C520', borderWidth: 1, borderColor: colors.roomTeal },
   loseBanner: { backgroundColor: '#EF444420', borderWidth: 1, borderColor: '#EF4444' },
   resultText: { color: colors.roomText, fontSize: 14, fontWeight: 'bold' },
   controlsCard: { backgroundColor: colors.roomSurface, borderRadius: 16, padding: 16 },
-  label: { color: colors.roomMuted, fontSize: 13, marginBottom: 8, marginTop: 12 },
+  label: { color: colors.roomMuted, fontSize: 13, marginBottom: 8 },
   riskRow: { flexDirection: 'row', gap: 8 },
   riskBtn: {
     flex: 1,
@@ -340,23 +394,16 @@ const styles = StyleSheet.create({
   riskBtnActive: { backgroundColor: colors.roomPrimary },
   riskText: { color: colors.roomMuted, fontSize: 13, fontWeight: '600' },
   riskTextActive: { color: colors.roomText },
-  input: {
-    backgroundColor: colors.roomElevated,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: colors.roomText,
-    fontSize: 16,
-  },
+  riskHint: { color: colors.roomMuted, fontSize: 10, textAlign: 'right', marginTop: 8, lineHeight: 15 },
+  limitHint: { color: colors.roomMuted, fontSize: 10, textAlign: 'right', marginTop: 8 },
   playButton: {
     backgroundColor: colors.gold,
     height: 50,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
+    marginTop: 14,
   },
   playButtonDisabled: { opacity: 0.5 },
   playButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  balance: { color: colors.roomMuted, fontSize: 13, textAlign: 'center', marginTop: 16 },
 });

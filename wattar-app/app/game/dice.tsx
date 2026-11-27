@@ -1,6 +1,7 @@
 /**
- * Wattar App — صفحة نرد (Dice)
- * المستخدم يختار target + direction (over/under)
+ * Wattar App — نرد (M9.4)
+ * حد التوقع واتجاهه من المستخدم، والنتيجة والمضاعف من الخادم.
+ * المضاعف المعروض = (1 ÷ احتمال الفوز) × RTP المعلن.
  */
 import React, { useRef, useState } from 'react';
 import {
@@ -14,32 +15,40 @@ import { colors } from '@/lib/theme';
 import { usePreferencesStore } from '@/store/preferences';
 import { GameHeader } from '@/components/GameHeader';
 import { GameBetControl, parseValidGameBet } from '@/components/GameBetControl';
+import { GameHistoryCard, GameOddsCard, GameTestModeRow } from '@/components/GamePanels';
+import { usePublicGames } from '@/hooks/usePublicGames';
+import { diceQuote, formatPercent, newIdempotencyKey } from '@/lib/gameConfig';
 
 interface DiceResponse {
   roll: number;
   is_win: boolean;
   payout: number;
   multiplier: number;
+  test_mode: boolean;
+  promo_reward: boolean;
 }
 
 export default function DiceGame() {
   const { profile, loadProfile } = useAuthStore();
   const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
+  const { find } = usePublicGames();
+  const game = find('dice');
+  const rtp = game?.declared_rtp ?? 30;
   const [betAmount, setBetAmount] = useState('100');
   const [target, setTarget] = useState('50');
   const [direction, setDirection] = useState<'over' | 'under'>('over');
   const [rolling, setRolling] = useState(false);
+  const [testMode, setTestMode] = useState(false);
+  const [historyKey, setHistoryKey] = useState(0);
   const [result, setResult] = useState<{ roll: number; won: boolean; payout: number; mult: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const dieRotation = useRef(new Animated.Value(0)).current;
   const dieBounce = useRef(new Animated.Value(0)).current;
+  const resultScale = useRef(new Animated.Value(0)).current;
   const validBet = parseValidGameBet(betAmount, profile?.balance_gold ?? 0);
 
-  const pWin = direction === 'over'
-    ? (100 - Number(target)) / 100
-    : (Number(target) - 1) / 100;
-  const fairMult = 1 / Math.max(pWin, 0.01);
-  const adjustedMult = fairMult * 30 / 100; // RTP 30%
+  const quote = diceQuote(Number(target), direction, rtp);
+
   const changeTarget = (amount: number) => {
     const nextTarget = Math.min(98, Math.max(2, Number(target) + amount));
     setTarget(String(nextTarget));
@@ -55,23 +64,31 @@ export default function DiceGame() {
       || targetValue > 98
       || loading
     ) return;
+    if (game && !game.available) {
+      Alert.alert('اللعبة غير متاحة', 'هذه اللعبة غير متاحة لحسابك حالياً.');
+      return;
+    }
+    if (game && (bet < game.min_bet || bet > game.max_bet)) {
+      Alert.alert('الرهان خارج الحدود', `الحد المسموح من ${game.min_bet} إلى ${game.max_bet} Coin.`);
+      return;
+    }
     setLoading(true);
     setResult(null);
+    resultScale.setValue(0);
 
     const rollAnimation = Animated.loop(
       Animated.parallel([
         Animated.sequence([
-          Animated.timing(dieRotation, { toValue: 1, duration: 420, easing: Easing.linear, useNativeDriver: true }),
-          Animated.timing(dieRotation, { toValue: 0, duration: 420, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(dieRotation, { toValue: 1, duration: 380, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(dieRotation, { toValue: 0, duration: 380, easing: Easing.linear, useNativeDriver: true }),
         ]),
         Animated.sequence([
-          Animated.timing(dieBounce, { toValue: 1, duration: 210, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-          Animated.timing(dieBounce, { toValue: 0, duration: 210, easing: Easing.in(Easing.quad), useNativeDriver: true }),
-          Animated.timing(dieBounce, { toValue: 1, duration: 210, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-          Animated.timing(dieBounce, { toValue: 0, duration: 210, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+          Animated.timing(dieBounce, { toValue: 1, duration: 190, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(dieBounce, { toValue: 0, duration: 190, easing: Easing.in(Easing.quad), useNativeDriver: true }),
         ]),
       ]),
     );
+
     try {
       setRolling(true);
       if (!reduceMotion) rollAnimation.start();
@@ -79,7 +96,9 @@ export default function DiceGame() {
         bet_amount: bet,
         target: targetValue,
         direction,
-      }, `game-dice-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`);
+        test_mode: testMode,
+      }, newIdempotencyKey('game-dice'));
+
       if (
         !Number.isInteger(response.roll)
         || response.roll < 1
@@ -97,8 +116,8 @@ export default function DiceGame() {
       if (!reduceMotion) {
         await new Promise<void>((resolve) => {
           Animated.sequence([
-            Animated.timing(dieBounce, { toValue: 0.75, duration: 100, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-            Animated.spring(dieBounce, { toValue: 0, speed: 18, bounciness: 8, useNativeDriver: true }),
+            Animated.timing(dieBounce, { toValue: 0.8, duration: 90, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+            Animated.spring(dieBounce, { toValue: 0, speed: 20, bounciness: 10, useNativeDriver: true }),
           ]).start(() => resolve());
         });
       }
@@ -108,6 +127,8 @@ export default function DiceGame() {
         payout: response.payout,
         mult: response.multiplier,
       });
+      setHistoryKey((key) => key + 1);
+      Animated.spring(resultScale, { toValue: 1, speed: 16, bounciness: 9, useNativeDriver: true }).start();
       void loadProfile().catch((error: unknown) => {
         console.warn('[Wattar] Failed to refresh Coin balance after dice:', error);
       });
@@ -128,27 +149,41 @@ export default function DiceGame() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <StatusBar style="light" />
       <GameHeader
-        title="نرد"
-        subtitle="اختر اتجاه التوقع وحدد رهانك قبل بدء الجولة."
+        title={game?.display_name ?? 'نرد'}
+        subtitle={game?.description ?? 'توقع أن تكون النتيجة أعلى أو أدنى من حدّك. المضاعف يُحسب على الخادم من RTP.'}
         balance={profile?.balance_gold ?? 0}
+      />
+
+      <GameTestModeRow
+        enabled={game?.test_mode_enabled === true}
+        value={testMode}
+        onChange={setTestMode}
       />
 
       <View style={styles.diceContainer}>
         {rolling ? (
-          <Animated.View style={{ transform: [
-            { translateY: dieBounce.interpolate({ inputRange: [0, 1], outputRange: [0, -36] }) },
-            { scale: dieBounce.interpolate({ inputRange: [0, 1], outputRange: [1, 0.88] }) },
-            { rotate: dieRotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) },
-          ] }}>
-            <Dice5 size={120} color={colors.roomPrimary} />
+          <Animated.View style={{
+            transform: [
+              { translateY: dieBounce.interpolate({ inputRange: [0, 1], outputRange: [0, -38] }) },
+              { scale: dieBounce.interpolate({ inputRange: [0, 1], outputRange: [1, 0.86] }) },
+              { rotate: dieRotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) },
+            ],
+          }}>
+            <Dice5 size={122} color={colors.roomPrimary} />
           </Animated.View>
         ) : result ? (
-          <View style={[styles.diceResult, result.won ? styles.diceWin : styles.diceLose]}>
+          <Animated.View
+            style={[
+              styles.diceResult,
+              result.won ? styles.diceWin : styles.diceLose,
+              { transform: [{ scale: resultScale }] },
+            ]}
+          >
             <Text style={styles.diceNumber}>{result.roll}</Text>
-          </View>
+          </Animated.View>
         ) : (
           <View style={styles.dicePlaceholder}>
-            <Dice5 size={120} color={colors.roomElevated} />
+            <Dice5 size={122} color={colors.roomElevated} />
           </View>
         )}
       </View>
@@ -157,7 +192,7 @@ export default function DiceGame() {
         <View style={[styles.resultBanner, result.won ? styles.winBanner : styles.loseBanner]}>
           <Text style={styles.resultText}>
             {result.won
-              ? `🎉 الرقم ${result.roll} — ربحت ${result.payout} Coin (${result.mult}x)`
+              ? `🎉 الرقم ${result.roll} — ربحت ${result.payout.toLocaleString()} Coin (×${result.mult})`
               : `الرقم ${result.roll} — خسرت`}
           </Text>
         </View>
@@ -236,11 +271,15 @@ export default function DiceGame() {
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>احتمال الفوز</Text>
-            <Text style={styles.statValue}>{(pWin * 100).toFixed(1)}%</Text>
+            <Text style={styles.statValue}>{formatPercent(quote.pWin * 100)}</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>المضاعف</Text>
-            <Text style={styles.statValue}>{adjustedMult.toFixed(2)}x</Text>
+            <Text style={styles.statLabel}>المضاعف المعلن</Text>
+            <Text style={styles.statValue}>{quote.multiplier.toFixed(2)}x</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statLabel}>RTP</Text>
+            <Text style={styles.statValue}>{formatPercent(rtp)}</Text>
           </View>
         </View>
 
@@ -250,6 +289,11 @@ export default function DiceGame() {
           disabled={loading || rolling}
           onChange={setBetAmount}
         />
+        {game ? (
+          <Text style={styles.limitHint}>
+            الحد: {game.min_bet.toLocaleString()} – {game.max_bet.toLocaleString()} Coin
+          </Text>
+        ) : null}
 
         <TouchableOpacity
           style={[styles.playButton, (rolling || loading || validBet === null) && styles.playButtonDisabled]}
@@ -262,6 +306,8 @@ export default function DiceGame() {
         </TouchableOpacity>
       </View>
 
+      <GameOddsCard game={game} />
+      <GameHistoryCard gameType="dice" refreshKey={historyKey} />
     </ScrollView>
   );
 }
@@ -269,20 +315,19 @@ export default function DiceGame() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.roomBackground },
   content: { padding: 16, paddingTop: 58, paddingBottom: 32 },
-  title: { color: colors.roomText, fontSize: 24, fontWeight: '800', textAlign: 'center', marginBottom: 16 },
-  diceContainer: { alignItems: 'center', marginVertical: 16 },
+  diceContainer: { alignItems: 'center', marginVertical: 16, minHeight: 132, justifyContent: 'center' },
   dicePlaceholder: { padding: 20 },
   diceResult: {
-    width: 120,
-    height: 120,
-    borderRadius: 20,
+    width: 122,
+    height: 122,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
   },
   diceWin: { backgroundColor: '#159C9C30', borderColor: colors.roomTeal },
   diceLose: { backgroundColor: '#C94D6030', borderColor: colors.danger },
-  diceNumber: { fontSize: 56, fontWeight: 'bold', color: colors.roomText },
+  diceNumber: { fontSize: 56, fontWeight: '900', color: colors.roomText },
   resultBanner: { padding: 12, borderRadius: 10, alignItems: 'center', marginBottom: 12 },
   winBanner: { backgroundColor: '#159C9C20', borderWidth: 1, borderColor: colors.roomTeal },
   loseBanner: { backgroundColor: '#C94D6020', borderWidth: 1, borderColor: colors.danger },
@@ -327,27 +372,18 @@ const styles = StyleSheet.create({
   dirText: { color: colors.roomMuted, fontSize: 14, fontWeight: '600' },
   dirTextActive: { color: colors.roomText },
   statsRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  statBox: { flex: 1, backgroundColor: colors.roomElevated, borderRadius: 8, padding: 10, alignItems: 'center' },
-  statLabel: { color: colors.roomMuted, fontSize: 11 },
-  statValue: { color: colors.gold, fontSize: 16, fontWeight: 'bold', marginTop: 4 },
-  label: { color: colors.roomMuted, fontSize: 13, marginBottom: 4 },
-  input: {
-    backgroundColor: colors.roomElevated,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: colors.roomText,
-    fontSize: 16,
-  },
+  statBox: { flex: 1, backgroundColor: colors.roomElevated, borderRadius: 8, padding: 9, alignItems: 'center' },
+  statLabel: { color: colors.roomMuted, fontSize: 10 },
+  statValue: { color: colors.gold, fontSize: 14, fontWeight: '900', marginTop: 4 },
+  limitHint: { color: colors.roomMuted, fontSize: 10, textAlign: 'right', marginTop: 8 },
   playButton: {
     backgroundColor: colors.roomTeal,
     height: 50,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
+    marginTop: 14,
   },
   playButtonDisabled: { opacity: 0.5 },
-  playButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  balance: { color: colors.roomMuted, fontSize: 13, textAlign: 'center', marginTop: 16 },
+  playButtonText: { color: colors.background, fontSize: 16, fontWeight: '900' },
 });
