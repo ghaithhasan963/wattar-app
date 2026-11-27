@@ -172,7 +172,7 @@ jobs:
         env:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
-        run: bash ./gradlew --no-daemon assembleRelease
+        run: bash ../../scripts/gradle-with-retry.sh --no-daemon assembleRelease
         working-directory: wattar-app/android
 
       - name: Upload APK
