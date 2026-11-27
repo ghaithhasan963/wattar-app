@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,12 +12,13 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Coins, Gift } from 'lucide-react-native';
+import { ArrowLeft, Coins, Gift, Sparkles } from 'lucide-react-native';
 import { callFunction, supabase } from '@/lib/supabase';
 import { notifySocialEvent } from '@/lib/notifications';
 import { useAuthStore } from '@/store/auth';
 import { colors } from '@/lib/theme';
 import { CurrencyIcon } from '@/components/CurrencyIcon';
+import { GiftEffectOverlay, GiftEffectPayload } from '@/components/GiftEffectOverlay';
 
 interface GiftItem {
   id: string;
@@ -25,10 +26,23 @@ interface GiftItem {
   name_ar: string | null;
   icon_url: string;
   icon_emoji: string;
-  price_gold: number;
-  recipient_diamond_ratio: number;
+  animation_url: string | null;
+  sound_url: string | null;
+  effect_key: string | null;
+  display_duration_ms: number;
+  gift_type: string;
+  rarity: string;
   category: string | null;
   is_premium: boolean;
+  recipient_diamond_ratio: number;
+  base_price: number;
+  price: number;
+  discount_percent: number;
+  campaign: string | null;
+  daily_limit_per_user: number | null;
+  stock_remaining: number | null;
+  available: boolean;
+  unavailable_reason: string | null;
 }
 
 interface FollowedUser {
@@ -37,6 +51,39 @@ interface FollowedUser {
   display_name: string | null;
   avatar_url: string | null;
 }
+
+interface GiftSendResult {
+  gift_transaction?: { id?: string };
+  sent_coins?: number;
+  gift_name?: string;
+}
+
+const rarityLabels: Record<string, string> = {
+  common: 'شائعة',
+  uncommon: 'غير شائعة',
+  rare: 'نادرة',
+  epic: 'ملحمية',
+  legendary: 'أسطورية',
+};
+
+const rarityColors: Record<string, string> = {
+  common: '#C9B8E0',
+  uncommon: '#4ADE80',
+  rare: '#60A5FA',
+  epic: '#C084FC',
+  legendary: '#FBBF24',
+};
+
+const typeLabels: Record<string, string> = {
+  normal: 'عادية',
+  animated: 'متحركة',
+  entry: 'دخول',
+  huge: 'ضخمة',
+  seasonal: 'موسمية',
+  rare: 'نادرة',
+  collective: 'جماعية',
+  occasion: 'مناسبات',
+};
 
 export default function StoreScreen() {
   const router = useRouter();
@@ -47,23 +94,28 @@ export default function StoreScreen() {
   const [loading, setLoading] = useState(true);
   const [busyUser, setBusyUser] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [category, setCategory] = useState<string | null>(null);
+  const [effect, setEffect] = useState<GiftEffectPayload | null>(null);
   const sendAttempt = useRef<{ fingerprint: string; key: string } | null>(null);
 
   const loadStore = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [giftsResult, followingResult] = await Promise.all([
-        supabase
-          .from('gifts')
-          .select('id, name, name_ar, icon_url, icon_emoji, price_gold, recipient_diamond_ratio, category, is_premium')
-          .eq('is_active', true)
-          .order('sort_order'),
+      const [storeResult, followingResult] = await Promise.all([
+        supabase.rpc('get_public_gift_store'),
         supabase.rpc('list_my_following'),
       ]);
-      if (giftsResult.error) throw giftsResult.error;
+      if (storeResult.error) throw storeResult.error;
       if (followingResult.error) throw followingResult.error;
-      setGifts((giftsResult.data ?? []) as GiftItem[]);
+      setGifts(((storeResult.data ?? []) as GiftItem[]).map((gift) => ({
+        ...gift,
+        price: Number(gift.price),
+        base_price: Number(gift.base_price),
+        discount_percent: Number(gift.discount_percent),
+        display_duration_ms: Number(gift.display_duration_ms ?? 4000),
+        available: Boolean(gift.available),
+      })));
       setFollowing((followingResult.data ?? []) as FollowedUser[]);
     } catch (caught: unknown) {
       setError(caught instanceof Error ? caught.message : 'تعذر تحميل المتجر.');
@@ -78,11 +130,29 @@ export default function StoreScreen() {
 
   const balance = profile?.balance_gold ?? 0;
 
+  const categories = useMemo(() => {
+    const unique = Array.from(new Set(gifts.map((gift) => gift.category).filter((value): value is string => !!value)));
+    return unique.sort((a, b) => a.localeCompare(b));
+  }, [gifts]);
+
+  const visibleGifts = useMemo(
+    () => (category ? gifts.filter((gift) => gift.category === category) : gifts),
+    [gifts, category],
+  );
+
+  const activeCampaign = useMemo(
+    () => gifts.find((gift) => gift.campaign && gift.discount_percent > 0) ?? null,
+    [gifts],
+  );
+
+  const clearEffect = useCallback(() => setEffect(null), []);
+
   const sendGift = async (recipient: FollowedUser) => {
     if (!selectedGift || busyUser) return;
+    const giftSnapshot = selectedGift;
     setBusyUser(recipient.user_id);
     try {
-      const fingerprint = `${recipient.user_id}:${selectedGift.id}:gold`;
+      const fingerprint = `${recipient.user_id}:${giftSnapshot.id}:gold`;
       if (sendAttempt.current?.fingerprint !== fingerprint) {
         sendAttempt.current = {
           fingerprint,
@@ -90,9 +160,9 @@ export default function StoreScreen() {
         };
       }
       const idempotencyKey = sendAttempt.current.key;
-      const giftResult = await callFunction<{ gift_transaction?: { id?: string } }>('gift-send', {
+      const giftResult = await callFunction<GiftSendResult>('gift-send', {
         to_user_id: recipient.user_id,
-        gift_id: selectedGift.id,
+        gift_id: giftSnapshot.id,
         quantity: 1,
         funding_currency: 'gold',
       }, idempotencyKey);
@@ -103,11 +173,25 @@ export default function StoreScreen() {
         });
       }
       sendAttempt.current = null;
-      const sentGiftName = selectedGift.name_ar || selectedGift.name;
+      const sentGiftName = giftSnapshot.name_ar || giftSnapshot.name;
       setSelectedGift(null);
+      setEffect({
+        giftId: giftSnapshot.id,
+        name: sentGiftName,
+        emoji: giftSnapshot.icon_emoji || '🎁',
+        iconUrl: giftSnapshot.icon_url ?? '',
+        animationUrl: giftSnapshot.animation_url ?? null,
+        soundUrl: giftSnapshot.sound_url ?? null,
+        effectKey: giftSnapshot.effect_key ?? null,
+        durationMs: Math.min(Math.max(giftSnapshot.display_duration_ms, 1000), 30000),
+        giftType: giftSnapshot.gift_type ?? 'normal',
+        rarity: giftSnapshot.rarity ?? 'common',
+        price: Number(giftResult.sent_coins ?? giftSnapshot.price),
+        senderName: profile?.display_name || profile?.username || 'أنت',
+        receiverName: recipient.display_name || recipient.username,
+      });
       try {
         await loadProfile();
-        Alert.alert('وصلت الهدية', `تم إرسال ${sentGiftName} بنجاح.`);
       } catch (refreshError: unknown) {
         console.warn('[Wattar] Gift sent but wallet refresh failed:', refreshError);
         Alert.alert('تم إرسال الهدية', 'أُرسلت الهدية، لكن تعذر تحديث الأرصدة الآن. اسحب الشاشة للتحديث.');
@@ -153,22 +237,53 @@ export default function StoreScreen() {
           </View>
         ) : null}
 
+        {activeCampaign ? (
+          <View style={styles.campaignCard}>
+            <Sparkles size={16} color={colors.gold} />
+            <Text style={styles.campaignText} numberOfLines={2}>
+              {activeCampaign.campaign} — خصم {activeCampaign.discount_percent}% على الهدايا المشاركة
+            </Text>
+          </View>
+        ) : null}
+
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>الهدايا المتاحة</Text>
-          <Text style={styles.sectionSubtitle}>الأسعار بوحدة Coins لكل هدية</Text>
+          <Text style={styles.sectionSubtitle}>الأسعار بوحدة Coins لكل هدية — تُخصم عند الإرسال</Text>
         </View>
+
+        {categories.length > 1 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+            <TouchableOpacity
+              onPress={() => setCategory(null)}
+              style={[styles.chip, category === null && styles.chipActive]}
+            >
+              <Text style={[styles.chipText, category === null && styles.chipTextActive]}>الكل</Text>
+            </TouchableOpacity>
+            {categories.map((item) => (
+              <TouchableOpacity
+                key={item}
+                onPress={() => setCategory(item)}
+                style={[styles.chip, category === item && styles.chipActive]}
+              >
+                <Text style={[styles.chipText, category === item && styles.chipTextActive]}>{item}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        ) : null}
 
         {loading ? (
           <View style={styles.state}><ActivityIndicator color={colors.primary} /></View>
-        ) : gifts.length === 0 && !error ? (
+        ) : visibleGifts.length === 0 && !error ? (
           <View style={styles.state}><Text style={styles.emptyTitle}>لا توجد هدايا نشطة الآن</Text></View>
         ) : (
           <View style={styles.giftGrid}>
-            {gifts.map((gift) => {
-              const canAfford = balance >= Number(gift.price_gold);
-              const remoteIcon = gift.icon_url.startsWith('https://') ? gift.icon_url : null;
+            {visibleGifts.map((gift) => {
+              const canAfford = balance >= gift.price;
+              const sendable = gift.available && canAfford;
+              const remoteIcon = /^https:\/\//i.test(gift.icon_url) ? gift.icon_url : null;
+              const tint = rarityColors[gift.rarity] ?? rarityColors.common;
               return (
-                <View key={gift.id} style={styles.giftCard}>
+                <View key={gift.id} style={[styles.giftCard, !gift.available && styles.giftCardDisabled]}>
                   <View style={styles.giftArt}>
                     {remoteIcon ? (
                       <Image source={{ uri: remoteIcon }} style={styles.giftImage} resizeMode="contain" />
@@ -176,18 +291,42 @@ export default function StoreScreen() {
                       <Text style={styles.giftEmoji}>{gift.icon_emoji}</Text>
                     )}
                   </View>
-                  {gift.is_premium ? <Text style={styles.premiumBadge}>مميزة</Text> : null}
+                  <View style={styles.badges}>
+                    <Text style={[styles.rarityBadge, { color: tint, borderColor: tint }]}>
+                      {rarityLabels[gift.rarity] ?? gift.rarity}
+                    </Text>
+                    {gift.gift_type !== 'normal' ? (
+                      <Text style={styles.typeBadge}>{typeLabels[gift.gift_type] ?? gift.gift_type}</Text>
+                    ) : null}
+                    {gift.is_premium ? <Text style={styles.premiumBadge}>مميزة</Text> : null}
+                  </View>
                   <Text style={styles.giftName} numberOfLines={1}>{gift.name_ar || gift.name}</Text>
                   <View style={styles.priceLine}>
                     <Coins size={13} color={colors.gold} />
-                    <Text style={styles.giftPrice}>{Number(gift.price_gold).toLocaleString()}</Text>
+                    <Text style={styles.giftPrice}>{gift.price.toLocaleString()}</Text>
+                    {gift.discount_percent > 0 ? (
+                      <Text style={styles.basePrice}>{gift.base_price.toLocaleString()}</Text>
+                    ) : null}
                   </View>
+                  {gift.discount_percent > 0 ? (
+                    <Text style={styles.discountText}>خصم {gift.discount_percent}%</Text>
+                  ) : null}
+                  {gift.stock_remaining !== null ? (
+                    <Text style={styles.stockText}>متبقٍ {gift.stock_remaining}</Text>
+                  ) : null}
+                  {gift.daily_limit_per_user !== null ? (
+                    <Text style={styles.stockText}>حد يومي {gift.daily_limit_per_user}</Text>
+                  ) : null}
                   <TouchableOpacity
-                    style={[styles.sendButton, !canAfford && styles.sendDisabled]}
-                    disabled={!canAfford}
+                    style={[styles.sendButton, !sendable && styles.sendDisabled]}
+                    disabled={!sendable}
                     onPress={() => setSelectedGift(gift)}
                   >
-                    <Text style={styles.sendButtonText}>{canAfford ? 'إرسال هدية' : 'الرصيد غير كافٍ'}</Text>
+                    <Text style={styles.sendButtonText} numberOfLines={2}>
+                      {!gift.available
+                        ? (gift.unavailable_reason ?? 'غير متاحة')
+                        : canAfford ? 'إرسال هدية' : 'الرصيد غير كافٍ'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               );
@@ -204,7 +343,7 @@ export default function StoreScreen() {
               <TouchableOpacity onPress={() => setSelectedGift(null)}><Text style={styles.cancel}>إلغاء</Text></TouchableOpacity>
             </View>
             <Text style={styles.modalSubtitle}>
-              {selectedGift ? `${selectedGift.name_ar || selectedGift.name} · ${Number(selectedGift.price_gold).toLocaleString()} Coins` : ''}
+              {selectedGift ? `${selectedGift.name_ar || selectedGift.name} · ${selectedGift.price.toLocaleString()} Coins` : ''}
             </Text>
             {following.length === 0 ? (
               <View style={styles.noFollowing}>
@@ -241,6 +380,8 @@ export default function StoreScreen() {
           </View>
         </View>
       </Modal>
+
+      <GiftEffectOverlay effect={effect} onDone={clearEffect} />
     </View>
   );
 }
@@ -264,23 +405,37 @@ const styles = StyleSheet.create({
   errorCard: { padding: 14, borderRadius: 14, backgroundColor: '#321923', gap: 8 },
   errorText: { color: colors.danger, textAlign: 'right' },
   retry: { color: colors.gold, textAlign: 'right', fontWeight: '800' },
+  campaignCard: { flexDirection: 'row-reverse', alignItems: 'center', gap: 8, padding: 12, borderRadius: 14, backgroundColor: '#2B1F0B', borderWidth: 1, borderColor: '#7A5A17' },
+  campaignText: { flex: 1, color: colors.gold, fontSize: 11, textAlign: 'right', lineHeight: 17 },
   sectionHeading: { alignItems: 'flex-end', marginTop: 3 },
   sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '900' },
   sectionSubtitle: { color: colors.textSecondary, fontSize: 11, marginTop: 4 },
+  chips: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
+  chip: { paddingHorizontal: 13, paddingVertical: 6, borderRadius: 999, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { color: colors.textSecondary, fontSize: 11, fontWeight: '700' },
+  chipTextActive: { color: '#FFFFFF' },
   state: { minHeight: 160, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { color: colors.textSecondary, textAlign: 'center', fontSize: 12, lineHeight: 18 },
   giftGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  giftCard: { width: '48%', minHeight: 188, padding: 12, borderRadius: 18, alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  giftCard: { width: '48%', minHeight: 196, padding: 12, borderRadius: 18, alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  giftCardDisabled: { opacity: 0.55 },
   giftArt: { width: 66, height: 66, borderRadius: 20, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
   giftImage: { width: 48, height: 48 },
   giftEmoji: { fontSize: 32 },
-  premiumBadge: { color: colors.gold, fontSize: 9, fontWeight: '800', marginTop: 5 },
+  badges: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 4, marginTop: 6 },
+  rarityBadge: { fontSize: 9, fontWeight: '800', borderWidth: 1, borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
+  typeBadge: { fontSize: 9, fontWeight: '700', color: colors.textSecondary, borderWidth: 1, borderColor: colors.border, borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
+  premiumBadge: { color: colors.gold, fontSize: 9, fontWeight: '800' },
   giftName: { color: colors.text, fontSize: 12, fontWeight: '800', marginTop: 6, maxWidth: '100%' },
   priceLine: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5 },
   giftPrice: { color: colors.gold, fontSize: 12, fontWeight: '900' },
-  sendButton: { minHeight: 34, width: '100%', alignItems: 'center', justifyContent: 'center', borderRadius: 11, backgroundColor: colors.primary, marginTop: 9 },
+  basePrice: { color: colors.textSecondary, fontSize: 10, textDecorationLine: 'line-through' },
+  discountText: { color: '#4ADE80', fontSize: 9, fontWeight: '800', marginTop: 3 },
+  stockText: { color: colors.textSecondary, fontSize: 9, marginTop: 3 },
+  sendButton: { minHeight: 34, width: '100%', alignItems: 'center', justifyContent: 'center', borderRadius: 11, backgroundColor: colors.primary, marginTop: 9, paddingHorizontal: 4 },
   sendDisabled: { backgroundColor: '#342C3B' },
-  sendButtonText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
+  sendButtonText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800', textAlign: 'center' },
   modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000099' },
   modalCard: { maxHeight: '75%', paddingHorizontal: 18, paddingTop: 20, paddingBottom: 28, borderTopLeftRadius: 25, borderTopRightRadius: 25, backgroundColor: colors.surface },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
