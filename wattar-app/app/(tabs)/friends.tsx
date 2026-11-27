@@ -16,7 +16,6 @@ import { useRouter } from 'expo-router';
 import { Dices, MessageCircle, MoreHorizontal, Search, UserCheck, UserPlus, Users } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
-import { notifySocialEvent } from '@/lib/notifications';
 import { colors } from '@/lib/theme';
 
 interface PublicUser {
@@ -220,9 +219,6 @@ export default function FriendsScreen() {
       });
       if (error) throw error;
       if (typeof data !== 'string') throw new Error('لم يتم إنشاء طلب الصداقة');
-      void notifySocialEvent('friend_request', data).catch((notificationError: unknown) => {
-        console.warn('[Wattar] Friend request push failed:', notificationError);
-      });
       Alert.alert('تم إرسال الطلب', `أرسلنا طلب صداقة إلى ${target.display_name || target.username}.`);
       setSearchResults((items) => items.filter((item) => item.user_id !== target.user_id));
       await loadSocialData();
@@ -241,11 +237,6 @@ export default function FriendsScreen() {
         p_accept: accept,
       });
       if (error) throw error;
-      if (accept) {
-        void notifySocialEvent('friend_accepted', request.request_id).catch((notificationError: unknown) => {
-          console.warn('[Wattar] Friend acceptance push failed:', notificationError);
-        });
-      }
       await loadSocialData();
     } catch (error: unknown) {
       Alert.alert('تعذر تحديث الطلب', error instanceof Error ? error.message : 'حاول مرة أخرى.');
@@ -279,11 +270,6 @@ export default function FriendsScreen() {
         { p_user_id: person.user_id },
       );
       if (error) throw error;
-      if (!isFollowing) {
-        void notifySocialEvent('new_follower', person.user_id).catch((notificationError: unknown) => {
-          console.warn('[Wattar] New follower push failed:', notificationError);
-        });
-      }
       setFollowing((current) => isFollowing
         ? current.filter((item) => item.user_id !== person.user_id)
         : [person, ...current]);
@@ -335,9 +321,6 @@ export default function FriendsScreen() {
       });
       if (error) throw error;
       if (typeof data !== 'string') throw new Error('لم يتم إنشاء التحدي');
-      void notifySocialEvent('dice_challenge', data).catch((notificationError: unknown) => {
-        console.warn('[Wattar] Dice challenge push failed:', notificationError);
-      });
       setSelectedOpponents([]);
       Alert.alert('تم إرسال التحدي', 'التحدي مجاني ولا يستخدم رصيد الذهب.');
       await loadSocialData();

@@ -14,7 +14,6 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase, callFunction } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import { notifySocialEvent } from '@/lib/notifications';
 import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
 import { CurrencyIcon } from '@/components/CurrencyIcon';
@@ -1194,9 +1193,6 @@ export default function RoomScreen() {
       });
       if (error) throw error;
       if (typeof data !== 'string') throw new Error('لم يتم إنشاء الدعوة');
-      void notifySocialEvent('room_invitation', data).catch((notificationError: unknown) => {
-        console.warn('[Wattar] Room invitation push failed:', notificationError);
-      });
       Alert.alert('تم إرسال الدعوة', `دعوت ${target.display_name || target.username} إلى الغرفة.`);
       setInviteFriends((items) => items.filter((item) => item.user_id !== target.user_id));
     } catch (error: unknown) {
@@ -2000,19 +1996,13 @@ function GiftsModal({
         ? giftAttempt.key
         : `gift-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       setGiftAttempt({ fingerprint, key: idempotencyKey });
-      const giftResult = await callFunction<{ gift_transaction?: { id?: string } }>('gift-send', {
+      await callFunction<{ gift_transaction?: { id?: string } }>('gift-send', {
         to_user_id: receiver.id,
         gift_id: selectedGift,
         room_id: roomId,
         quantity: 1,
         funding_currency: 'gold',
       }, idempotencyKey);
-      const giftTransactionId = giftResult.gift_transaction?.id;
-      if (giftTransactionId) {
-        void notifySocialEvent('gift_received', giftTransactionId).catch((notificationError: unknown) => {
-          console.warn('[Wattar] Room gift push failed:', notificationError);
-        });
-      }
       setGiftAttempt(null);
       onGiftSent({
         emoji: selectedGiftRecord?.icon_emoji ?? '🎁',

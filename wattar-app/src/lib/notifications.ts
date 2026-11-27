@@ -2,20 +2,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { callFunction, supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 const TOKEN_STORAGE_KEY = 'wattar-expo-push-token';
 const PROMPT_ASKED_KEY = 'wattar-notification-permission-asked';
 const ANDROID_CHANNEL_ID = 'social';
-
-export type SocialNotificationEvent =
-  | 'friend_request'
-  | 'friend_accepted'
-  | 'new_follower'
-  | 'private_message'
-  | 'room_invitation'
-  | 'dice_challenge'
-  | 'gift_received';
 
 export type PushRegistrationStatus = 'unsupported' | 'denied' | 'registered' | 'skipped' | 'failed';
 
@@ -158,18 +149,5 @@ export function watchPushTokenRotation(): () => void {
   } catch (error: unknown) {
     console.warn('[Wattar] Push token listener unavailable:', error);
     return () => {};
-  }
-}
-
-export async function notifySocialEvent(
-  eventType: SocialNotificationEvent,
-  referenceId: string,
-): Promise<void> {
-  const result = await callFunction<{ sent: number; failed: number }>('social-push', {
-    event_type: eventType,
-    reference_id: referenceId,
-  });
-  if (result.failed > 0) {
-    throw new Error(`تم إرسال ${result.sent} إشعار وتعذر إرسال ${result.failed}.`);
   }
 }

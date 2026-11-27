@@ -19,7 +19,6 @@ import { ChevronRight, Coins, Gift, Send, Smile, Sticker, UserRound } from 'luci
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { callFunction, supabase } from '@/lib/supabase';
-import { notifySocialEvent } from '@/lib/notifications';
 import {
   createIdempotencyKey,
   getConversationSubtitle,
@@ -392,12 +391,6 @@ export default function PrivateMessageScreen() {
         throw new Error(blockedResult.message ?? 'الرسالة تحتوي على كلمات غير مسموح بها');
       }
       retryMessageRef.current = null;
-      const result = data as { message_id?: string };
-      if (result?.message_id) {
-        void notifySocialEvent('private_message', result.message_id).catch((notificationError: unknown) => {
-          console.warn('[Wattar] Private message push failed:', notificationError);
-        });
-      }
       await loadLatest();
     } catch (error: unknown) {
       setMessages((items) => items.filter((item) => item.message_id !== temporaryId));
@@ -427,10 +420,6 @@ export default function PrivateMessageScreen() {
         p_confirmed_price_coin: price,
       });
       if (error) throw error;
-      const result = data as { message_id?: string };
-      if (result?.message_id) {
-        void notifySocialEvent('private_message', result.message_id).catch(() => undefined);
-      }
       await loadLatest();
       setPanel('none');
     } catch (error: unknown) {
@@ -464,9 +453,6 @@ export default function PrivateMessageScreen() {
         p_gift_transaction_id: transactionId,
       });
       if (attachError) throw attachError;
-      void notifySocialEvent('gift_received', transactionId).catch((notificationError: unknown) => {
-        console.warn('[Wattar] Gift push failed:', notificationError);
-      });
       await loadProfile().catch(() => undefined);
       await loadLatest();
       setPanel('none');

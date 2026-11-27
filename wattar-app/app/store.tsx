@@ -14,7 +14,6 @@ import {
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Coins, Gift, Sparkles } from 'lucide-react-native';
 import { callFunction, supabase } from '@/lib/supabase';
-import { notifySocialEvent } from '@/lib/notifications';
 import { useAuthStore } from '@/store/auth';
 import { colors } from '@/lib/theme';
 import { CurrencyIcon } from '@/components/CurrencyIcon';
@@ -166,12 +165,6 @@ export default function StoreScreen() {
         quantity: 1,
         funding_currency: 'gold',
       }, idempotencyKey);
-      const giftTransactionId = giftResult.gift_transaction?.id;
-      if (giftTransactionId) {
-        void notifySocialEvent('gift_received', giftTransactionId).catch((notificationError: unknown) => {
-          console.warn('[Wattar] Gift push failed:', notificationError);
-        });
-      }
       sendAttempt.current = null;
       const sentGiftName = giftSnapshot.name_ar || giftSnapshot.name;
       setSelectedGift(null);

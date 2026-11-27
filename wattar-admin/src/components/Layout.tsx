@@ -57,6 +57,7 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
       { to: '/hosts', label: 'طلبات التوثيق', icon: Mic, permission: 'hosts.applications.view' },
       { to: '/messaging', label: 'الرسائل وبرنامج المضيفات', icon: MessageCircle, permission: 'messaging.settings.view' },
       { to: '/stickers', label: 'حزم الملصقات', icon: Sticker, permission: 'stickers.view' },
+      { to: '/notifications', label: 'الإشعارات والحملات', icon: Bell, permission: 'notifications.view' },
     ],
   },
   {

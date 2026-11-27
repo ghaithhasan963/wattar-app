@@ -33,6 +33,7 @@ import { VIPPage } from '@/pages/VIPPage';
 import { ProtectionProductsPage } from '@/pages/ProtectionProductsPage';
 import { MessagingPage } from '@/pages/MessagingPage';
 import { StickerPacksPage } from '@/pages/StickerPacksPage';
+import { NotificationsPage } from '@/pages/NotificationsPage';
 import { SupportPage } from '@/pages/SupportPage';
 import { AlertsPage } from '@/pages/AlertsPage';
 import { StaffPage } from '@/pages/StaffPage';
@@ -288,6 +289,14 @@ export default function App() {
             element={
               <ProtectedRoute permission="stickers.view">
                 <StickerPacksPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute permission="notifications.view">
+                <NotificationsPage />
               </ProtectedRoute>
             }
           />

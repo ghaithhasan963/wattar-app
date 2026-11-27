@@ -157,6 +157,46 @@ export async function requireStaffPermissionOr(
 }
 
 /**
+ * بوابة العامل الخادمي (M9.3): تسمح بمفتاح service_role (جدولة/عامل)
+ * أو بجلسة موظف يملك الصلاحية المطلوبة (تشغيل يدوي من اللوحة).
+ */
+export async function requireServiceRoleOrAdmin(req: Request, permission: string): Promise<void> {
+  const authHeader = req.headers.get('Authorization') ?? '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  if (token && serviceKey && constantTimeEqual(token, serviceKey)) return;
+
+  const ctx = await authenticate(req);
+  await requireStaffPermissionOr(ctx, permission, 'admin', 'super_admin');
+}
+
+/**
+ * مفتاح عامل الدفع (M9.3): الجدولة الداخلية (pg_cron/pg_net) لا يمكنها
+ * إرسال مفتاح service_role، فتُرسل مفتاحاً عشوائياً محفوظاً في القاعدة.
+ * يُقارن بثبات زمني، وأي غياب أو عدم تطابق يرجع false.
+ */
+export async function hasPushWorkerKey(req: Request, settingKey: string): Promise<boolean> {
+  const provided = req.headers.get('x-push-worker-key') ?? '';
+  if (!provided) return false;
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('admin_settings')
+    .select('value')
+    .eq('key', settingKey)
+    .maybeSingle();
+  if (error || !data) return false;
+  const expected = typeof data.value === 'string' ? data.value : '';
+  return Boolean(expected) && constantTimeEqual(provided, expected);
+}
+
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+/**
  * M7.2 (أ): فحص وضع الصيانة للدوال المواجهة للمستخدمين.
  * إذا كان وضع الصيانة مفعّلاً، يُمنع المستخدمون العاديون من الإجراءات،
  * ويومَح للموظفين والإدارة بالاستمرار (لصيانة المنصة دون إغلاق اللوحة).

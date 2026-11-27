@@ -76,7 +76,7 @@ export default function RootLayout() {
     const openNotificationRoute = (route: unknown) => {
       if (typeof route !== 'string') return;
       // كل مسارات الإشعارات الداخلية فقط (المصدر: زناد الإشعارات في القاعدة).
-      const allowed = /^\/(?:\(tabs\)\/[a-z0-9-]+|messages\/[0-9a-f-]{36}|room\/[0-9a-f-]{36}|host-application|membership|privacy-settings|support)$/i;
+      const allowed = /^\/(?:\(tabs\)\/[a-z0-9-]+|messages\/[0-9a-f-]{36}|room\/[0-9a-f-]{36}|host-application|membership|privacy-settings|notification-settings|support)$/i;
       const clean = route.split('?')[0];
       if (!allowed.test(clean)) return;
       router.push(clean as Href);

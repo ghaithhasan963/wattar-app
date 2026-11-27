@@ -175,6 +175,18 @@ export default function SettingsScreen() {
             accessibilityLabel="إشعارات Wattar"
           />
         </View>
+        <TouchableOpacity
+          style={[styles.row, styles.rowBorder]}
+          onPress={() => router.push('/notification-settings')}
+          accessibilityRole="button"
+        >
+          <View style={styles.rowIcon}><Bell size={18} color={colors.primary} /></View>
+          <View style={styles.settingCopy}>
+            <Text style={styles.rowLabel}>أنواع الإشعارات</Text>
+            <Text style={styles.rowDescription}>تحكم بما يصلك داخل التطبيق وعلى جهازك لكل نوع.</Text>
+          </View>
+          <ChevronLeft size={17} color="#64748B" />
+        </TouchableOpacity>
         <View style={[styles.row, styles.rowBorder]}>
           <View style={styles.rowIcon}><MessageCircle size={18} color={colors.primary} /></View>
           <View style={styles.settingCopy}>

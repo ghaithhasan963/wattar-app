@@ -62,6 +62,7 @@ FUNCTIONS=(
   "admin-force-outcome"
   "admin-credit-agent"
   "social-push"
+  "push-worker"
   "delete-account"
   "auth-send-phone-otp"
   "auth-sign-up-email"

@@ -94,7 +94,7 @@ function matchesFilter(item: NotificationRow, filter: FilterKey): boolean {
   if (filter === 'transactions') {
     return item.event_type === 'deposit_update' || item.event_type === 'withdrawal_update';
   }
-  return ['friend_request', 'friend_accepted', 'new_follower', 'room_invitation', 'host_update']
+  return ['friend_request', 'friend_accepted', 'new_follower', 'room_invitation', 'host_update', 'dice_challenge']
     .includes(item.event_type);
 }
 
