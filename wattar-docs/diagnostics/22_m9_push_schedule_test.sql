@@ -103,19 +103,14 @@ BEGIN
   INSERT INTO _results VALUES ('T08', 'تنظيف الطابور يعمل من الجدولة', v_actual, v_ok);
 
   -- T09: لا يستطيع المستخدم العادي استدعاء العامل
-  PERFORM set_config('request.jwt.claims',
-    jsonb_build_object('sub', v_player::text, 'role', 'authenticated')::text, true);
-  v_ok := true;
-  v_actual := '';
-  BEGIN
-    PERFORM public.invoke_push_worker();
-    v_ok := false;
-    v_actual := 'قُبل من مستخدم عادي — خطأ';
-  EXCEPTION WHEN OTHERS THEN
-    v_ok := true;
-    v_actual := SQLERRM;
-  END;
-  PERFORM set_config('request.jwt.claims', jsonb_build_object('role', 'service_role')::text, true);
+  -- (لا يكفي تغيير الادعاءات: جلسة الاختبار تعمل بصفة postgres مالك الدالة،
+  --  لذا نقيس الصلاحية الفعلية من الكتالوج)
+  v_ok := NOT has_function_privilege('anon', 'public.invoke_push_worker()', 'EXECUTE')
+    AND NOT has_function_privilege('authenticated', 'public.invoke_push_worker()', 'EXECUTE')
+    AND has_function_privilege('service_role', 'public.invoke_push_worker()', 'EXECUTE');
+  v_actual := 'anon=' || has_function_privilege('anon', 'public.invoke_push_worker()', 'EXECUTE')
+    || ' authenticated=' || has_function_privilege('authenticated', 'public.invoke_push_worker()', 'EXECUTE')
+    || ' service_role=' || has_function_privilege('service_role', 'public.invoke_push_worker()', 'EXECUTE');
   INSERT INTO _results VALUES ('T09', 'استدعاء العامل ممنوع على المستخدمين', v_actual, v_ok);
 
   PERFORM set_config('request.jwt.claims', '', true);
