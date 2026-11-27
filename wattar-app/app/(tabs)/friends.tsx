@@ -85,6 +85,28 @@ const socialPalette = {
   online: '#43D69A',
 } as const;
 
+function formatRelativeTime(iso: string | null): string {
+  if (!iso) return '';
+  const date = new Date(iso);
+  const diffMinutes = Math.floor((Date.now() - date.getTime()) / 60000);
+  if (diffMinutes < 1) return 'الآن';
+  if (diffMinutes < 60) return `قبل ${diffMinutes} د`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `قبل ${diffHours} س`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `قبل ${diffDays} ي`;
+  return date.toLocaleDateString('ar', { day: 'numeric', month: 'short' });
+}
+
+function SectionHeading({ text, count }: { text: string; count?: number }) {
+  return (
+    <View style={styles.sectionHeading}>
+      <Text style={styles.sectionHeadingText}>{text}</Text>
+      {typeof count === 'number' ? <Text style={styles.sectionHeadingCount}>{count}</Text> : null}
+    </View>
+  );
+}
+
 export default function FriendsScreen() {
   const router = useRouter();
   const currentUserId = useAuthStore((state) => state.user?.id);
@@ -639,6 +661,7 @@ export default function FriendsScreen() {
             <EmptyState text="ما لقينا حسابًا مطابقًا. تأكد من الاسم وجرب مرة ثانية." />
           )}
           {searchResults.length > 0 && <View style={styles.divider} />}
+          <SectionHeading text="أصدقائي" count={friends.length} />
           {friends.length
             ? friends.map((person) => renderUser(person, 'message'))
             : <EmptyState text="أضف أصدقاء لتبدأ المحادثة وتدعوهم إلى الغرف." />}
@@ -646,25 +669,43 @@ export default function FriendsScreen() {
       );
     }
     if (activeTab === 'messages') {
+      const ordered = [...conversations].sort((a, b) => {
+        const left = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+        const right = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+        return right - left;
+      });
       return (
         <View>
-          {conversations.length ? conversations.map((conversation) => (
+          {ordered.length ? ordered.map((conversation) => (
             <TouchableOpacity
               key={conversation.conversation_id}
-              style={styles.personRow}
+              style={[styles.personRow, conversation.unread_count > 0 && styles.unreadRow]}
               onPress={() => router.push(`/messages/${conversation.conversation_id}`)}
+              accessibilityRole="button"
+              accessibilityLabel={`فتح محادثة ${conversation.display_name || conversation.username}`}
             >
               <View style={styles.avatar}>
                 {conversation.avatar_url
                   ? <Image source={{ uri: conversation.avatar_url }} style={styles.avatarImage} />
                   : <Text style={styles.avatarText}>{(conversation.display_name || conversation.username).slice(0, 1).toUpperCase()}</Text>}
+                {conversation.is_online ? <View style={styles.onlineDot} /> : null}
               </View>
               <View style={styles.personDetails}>
-                <Text style={styles.personName}>{conversation.display_name || conversation.username}</Text>
-                <Text style={styles.personMeta} numberOfLines={1}>{conversation.last_message || 'ابدأ المحادثة'}</Text>
+                <View style={styles.conversationTitleRow}>
+                  <Text style={styles.personName} numberOfLines={1}>{conversation.display_name || conversation.username}</Text>
+                  <Text style={styles.conversationTime}>{formatRelativeTime(conversation.last_message_at)}</Text>
+                </View>
+                <Text
+                  style={[styles.personMeta, conversation.unread_count > 0 && styles.unreadPreview]}
+                  numberOfLines={1}
+                >
+                  {conversation.last_message || 'ابدأ المحادثة'}
+                </Text>
               </View>
               {conversation.unread_count > 0 && (
-                <View style={styles.unreadBadge}><Text style={styles.unreadText}>{conversation.unread_count}</Text></View>
+                <View style={styles.unreadBadge}>
+                  <Text style={styles.unreadText}>{conversation.unread_count > 99 ? '99+' : conversation.unread_count}</Text>
+                </View>
               )}
             </TouchableOpacity>
           )) : <EmptyState text="لا توجد محادثات بعد. ابدأ محادثة من قائمة الأصدقاء." />}
@@ -682,33 +723,65 @@ export default function FriendsScreen() {
     }
     if (activeTab === 'requests') {
       const incoming = requests.filter((request) => request.direction === 'incoming');
+      const outgoing = requests.filter((request) => request.direction === 'outgoing');
       return (
         <View>
-          {incoming.length ? incoming.map((request) => (
-            <View key={request.request_id} style={styles.personRow}>
-              <View style={styles.avatar}>
-                {request.avatar_url
-                  ? <Image source={{ uri: request.avatar_url }} style={styles.avatarImage} />
-                  : <Text style={styles.avatarText}>{(request.display_name || request.username).slice(0, 1).toUpperCase()}</Text>}
-              </View>
-              <View style={styles.personDetails}>
-                <TouchableOpacity
-                  onPress={() => router.push(`/user/${request.user_id}`)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`عرض ملف ${request.display_name || request.username}`}
-                >
-                  <Text style={styles.personName}>{request.display_name || request.username}</Text>
-                  <Text style={styles.personMeta}>@{request.username} أرسل طلب صداقة</Text>
-                </TouchableOpacity>
-              </View>
-              <TouchableOpacity style={styles.acceptButton} onPress={() => respondToRequest(request, true)} disabled={busyId === request.request_id} accessibilityLabel="قبول طلب الصداقة">
-                <UserCheck size={17} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.declineButton} onPress={() => respondToRequest(request, false)} disabled={busyId === request.request_id}>
-                <Text style={styles.declineText}>رفض</Text>
-              </TouchableOpacity>
+          {incoming.length ? (
+            <View>
+              <SectionHeading text="طلبات واردة" count={incoming.length} />
+              {incoming.map((request) => (
+                <View key={request.request_id} style={styles.personRow}>
+                  <View style={styles.avatar}>
+                    {request.avatar_url
+                      ? <Image source={{ uri: request.avatar_url }} style={styles.avatarImage} />
+                      : <Text style={styles.avatarText}>{(request.display_name || request.username).slice(0, 1).toUpperCase()}</Text>}
+                  </View>
+                  <View style={styles.personDetails}>
+                    <TouchableOpacity
+                      onPress={() => router.push(`/user/${request.user_id}`)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`عرض ملف ${request.display_name || request.username}`}
+                    >
+                      <Text style={styles.personName}>{request.display_name || request.username}</Text>
+                      <Text style={styles.personMeta}>@{request.username} أرسل طلب صداقة</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity style={styles.acceptButton} onPress={() => respondToRequest(request, true)} disabled={busyId === request.request_id} accessibilityLabel="قبول طلب الصداقة">
+                    {busyId === request.request_id
+                      ? <ActivityIndicator size="small" color="#FFFFFF" />
+                      : <UserCheck size={17} color="#FFFFFF" />}
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.declineButton} onPress={() => respondToRequest(request, false)} disabled={busyId === request.request_id} accessibilityLabel="رفض طلب الصداقة">
+                    <Text style={styles.declineText}>رفض</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
             </View>
-          )) : <EmptyState text="ما عندك طلبات صداقة جديدة." />}
+          ) : null}
+          {outgoing.length ? (
+            <View>
+              <SectionHeading text="طلبات مرسلة" count={outgoing.length} />
+              {outgoing.map((request) => (
+                <View key={request.request_id} style={styles.personRow}>
+                  <View style={styles.avatar}>
+                    {request.avatar_url
+                      ? <Image source={{ uri: request.avatar_url }} style={styles.avatarImage} />
+                      : <Text style={styles.avatarText}>{(request.display_name || request.username).slice(0, 1).toUpperCase()}</Text>}
+                  </View>
+                  <View style={styles.personDetails}>
+                    <Text style={styles.personName}>{request.display_name || request.username}</Text>
+                    <Text style={styles.personMeta}>@{request.username} · بانتظار الرد</Text>
+                  </View>
+                  <View style={styles.pendingChip}>
+                    <Text style={styles.pendingChipText}>قيد الانتظار</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null}
+          {incoming.length === 0 && outgoing.length === 0
+            ? <EmptyState text="ما عندك طلبات صداقة جديدة." />
+            : null}
         </View>
       );
     }
@@ -873,7 +946,9 @@ const styles = StyleSheet.create({
   searchButton: { minWidth: 58, alignItems: 'center', backgroundColor: socialPalette.primaryDeep, paddingHorizontal: 13, paddingVertical: 10, borderRadius: 12 },
   searchButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
   personRow: { minHeight: 74, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 11, marginBottom: 9, borderWidth: 1, borderColor: socialPalette.border, borderRadius: 17, backgroundColor: socialPalette.surface },
+  unreadRow: { borderColor: '#6B3A8F', backgroundColor: '#1D1330' },
   avatar: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A1940', borderWidth: 1, borderColor: '#56306D', overflow: 'hidden' },
+  onlineDot: { position: 'absolute', bottom: 0, right: 0, width: 11, height: 11, borderRadius: 6, backgroundColor: socialPalette.online, borderWidth: 2, borderColor: socialPalette.background },
   avatarImage: { width: '100%', height: '100%' },
   avatarText: { color: socialPalette.gold, fontSize: 16, fontWeight: '800' },
   personDetails: { flex: 1 },
@@ -889,6 +964,14 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: socialPalette.border, marginVertical: 12 },
   unreadBadge: { minWidth: 24, height: 24, borderRadius: 12, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: socialPalette.primaryDeep },
   unreadText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+  conversationTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  conversationTime: { color: socialPalette.muted, fontSize: 10 },
+  unreadPreview: { color: socialPalette.text, fontWeight: '600' },
+  sectionHeading: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, marginBottom: 10, paddingHorizontal: 2 },
+  sectionHeadingText: { color: socialPalette.text, fontSize: 13, fontWeight: '800' },
+  sectionHeadingCount: { color: socialPalette.gold, fontSize: 11, fontWeight: '800', minWidth: 20, textAlign: 'center' },
+  pendingChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 11, backgroundColor: '#2A1940', borderWidth: 1, borderColor: '#52306C' },
+  pendingChipText: { color: socialPalette.muted, fontSize: 10, fontWeight: '700' },
   invitationCard: { padding: 15, marginBottom: 10, borderWidth: 1, borderColor: socialPalette.border, borderRadius: 17, backgroundColor: socialPalette.surface },
   inviteActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
   acceptInviteButton: { flex: 1, alignItems: 'center', paddingVertical: 11, borderRadius: 12, backgroundColor: socialPalette.primaryDeep },

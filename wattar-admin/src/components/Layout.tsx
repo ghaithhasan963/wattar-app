@@ -23,6 +23,7 @@ import {
   Settings,
   ShieldAlert,
   ShieldCheck,
+  Sticker,
   Target,
   UserCheck,
   Users,
@@ -55,6 +56,7 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
       { to: '/agencies', label: 'الوكالات', icon: Building2, permission: 'agencies.view' },
       { to: '/hosts', label: 'طلبات التوثيق', icon: Mic, permission: 'hosts.applications.view' },
       { to: '/messaging', label: 'الرسائل وبرنامج المضيفات', icon: MessageCircle, permission: 'messaging.settings.view' },
+      { to: '/stickers', label: 'حزم الملصقات', icon: Sticker, permission: 'stickers.view' },
     ],
   },
   {
