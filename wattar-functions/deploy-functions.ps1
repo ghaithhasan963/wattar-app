@@ -48,7 +48,8 @@ $availableFunctions = @(
   'admin-reset-user-password',
   'admin-moderation',
   'admin-agencies',
-  'vip-purchase'
+  'vip-purchase',
+  'protection-purchase'
 )
 $confirmationArgs = @()
 if ($Yes) {
