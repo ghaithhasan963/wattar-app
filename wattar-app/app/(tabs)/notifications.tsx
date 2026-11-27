@@ -344,9 +344,9 @@ function EventIcon({ type }: { type: string }) {
   return <Bell size={19} color={color} />;
 }
 
-function resolveNotificationRoute(route: string | null): '/(tabs)/friends' | '/(tabs)/wallet' | '/(tabs)/profile' | '/membership' | '/protection' | '/host-application' | `/messages/${string}` | `/room/${string}` | null {
+function resolveNotificationRoute(route: string | null): '/(tabs)/friends' | '/(tabs)/wallet' | '/(tabs)/profile' | '/membership' | '/protection' | '/loyalty' | '/host-application' | `/messages/${string}` | `/room/${string}` | null {
   if (route === '/(tabs)/friends' || route === '/(tabs)/wallet') return route;
-  if (route === '/(tabs)/profile' || route === '/membership' || route === '/protection' || route === '/host-application') return route;
+  if (route === '/(tabs)/profile' || route === '/membership' || route === '/protection' || route === '/loyalty' || route === '/host-application') return route;
   if (!route) return null;
   const match = route.match(/^\/(messages|room)\/([0-9a-f]{8}-[0-9a-f-]{27})$/i);
   if (!match) return null;

@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   Coins,
   Crown,
+  Flame,
   Gem,
   Gift,
   Headset,
@@ -291,6 +292,7 @@ export default function ProfileScreen() {
         <QuickAction icon={LockKeyhole} label={isPrivate ? 'الملف للأصدقاء' : 'الملف عام'} color={palette.teal} onPress={toggleProfileVisibility} />
         <QuickAction icon={Crown} label="عضوية VIP" color="#FFB86B" onPress={() => router.push('/membership')} />
         <QuickAction icon={ShieldCheck} label="حمايات الغرف" color="#72DCCA" onPress={() => router.push('/protection')} />
+        <QuickAction icon={Flame} label="سلسلة الولاء" color="#F4BD55" onPress={() => router.push('/loyalty')} />
       </View>
 
       {profile?.referral_code ? (
