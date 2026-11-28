@@ -9,17 +9,29 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, FlatList, TextInput, ScrollView, Alert, Image, ActivityIndicator,
-  PermissionsAndroid, Platform, Modal, Animated, Easing, AppState,
+  PermissionsAndroid, Platform, Modal, AppState,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Reanimated, {
+  Easing as ReanimatedEasing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { supabase, callFunction } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
 import { CurrencyIcon } from '@/components/CurrencyIcon';
 import { Avatar, LevelBadge } from '@/components/ui';
+import { GiftCelebration, type GiftCelebrationData } from '@/components/room/GiftCelebration';
+import { GiftCard, RecipientChip, type GiftRecord } from '@/components/room/GiftPicker';
+import { LiveEqualizer } from '@/components/room/LiveEqualizer';
+import { RoomAmbience } from '@/components/room/RoomAmbience';
 import { colors, fonts, gradients, radius, shadow } from '@/lib/theme';
 import { StatusBar } from 'expo-status-bar';
 import { joinVoice, leaveVoice, setMicEnabled } from '@/lib/livekit';
@@ -71,7 +83,7 @@ export default function RoomScreen() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [showGifts, setShowGifts] = useState(false);
-  const [giftCelebration, setGiftCelebration] = useState<{ emoji: string; name: string; recipient: string } | null>(null);
+  const [giftCelebration, setGiftCelebration] = useState<GiftCelebrationData | null>(null);
   const [showRoomInvites, setShowRoomInvites] = useState(false);
   const [inviteFriends, setInviteFriends] = useState<Array<{ user_id: string; username: string; display_name: string | null }>>([]);
   const [invitesLoading, setInvitesLoading] = useState(false);
@@ -122,7 +134,8 @@ export default function RoomScreen() {
   }>>([]);
   const [attendanceVisible, setAttendanceVisible] = useState(false);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
-  const giftCelebrationAnim = useRef(new Animated.Value(0)).current;
+  const [giftCombo, setGiftCombo] = useState(1);
+  const lastGiftAtRef = useRef(0);
   useEffect(() => {
     myRoleRef.current = myRole;
   }, [myRole]);
@@ -145,28 +158,14 @@ export default function RoomScreen() {
     ], { cancelable: false });
   }, [room?.status, router]);
 
-  useEffect(() => {
-    if (!giftCelebration) return;
-    giftCelebrationAnim.setValue(0);
-    const animation = Animated.sequence([
-      Animated.spring(giftCelebrationAnim, {
-        toValue: 1,
-        speed: 15,
-        bounciness: 12,
-        useNativeDriver: true,
-      }),
-      Animated.delay(1800),
-      Animated.timing(giftCelebrationAnim, {
-        toValue: 0,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-    ]);
-    animation.start(({ finished }) => {
-      if (finished) setGiftCelebration(null);
-    });
-    return () => animation.stop();
-  }, [giftCelebration, giftCelebrationAnim]);
+  /** إرسال هدية: نُظهر الاحتفال ونحسب الكومبو إذا تكرر الإهداء خلال ٥ ثوانٍ. */
+  const handleGiftSent = (gift: GiftCelebrationData) => {
+    const now = Date.now();
+    const withinCombo = now - lastGiftAtRef.current < 5000;
+    lastGiftAtRef.current = now;
+    setGiftCombo((previous) => (withinCombo ? Math.min(previous + 1, 99) : 1));
+    setGiftCelebration(gift);
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -1262,12 +1261,7 @@ export default function RoomScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={gradients.screen}
-        locations={[0, 0.38, 1]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
+      <RoomAmbience />
       <StatusBar style="light" />
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
@@ -1280,7 +1274,14 @@ export default function RoomScreen() {
           <LogOut size={20} color={colors.roomMuted} />
         </TouchableOpacity>
         <View style={styles.roomInfo}>
-          <Text style={styles.roomName} numberOfLines={1}>{room.name}</Text>
+          <View style={styles.roomTitleRow}>
+            <Text style={styles.roomName} numberOfLines={1}>{room.name}</Text>
+            {voiceState === VOICE_ON && (
+              <View style={styles.liveBadge}>
+                <LiveEqualizer bars={4} height={9} width={2} gap={1.5} color={colors.inkDark} />
+              </View>
+            )}
+          </View>
           <View style={styles.roomMeta}>
             <TouchableOpacity
               style={styles.listenersChip}
@@ -1288,13 +1289,25 @@ export default function RoomScreen() {
               accessibilityRole="button"
               accessibilityLabel={`عرض الحضور: ${listenersCount} مستمع و${speakersCount} متحدث`}
             >
-              <Users size={12} color={colors.roomMuted} />
+              <View style={styles.speakerStack}>
+                {seats
+                  .filter(seat => seat.status === 'occupied' && seat.user_id)
+                  .slice(0, 3)
+                  .map((seat, index) => (
+                    <View key={seat.id} style={[styles.speakerStackItem, index > 0 && styles.speakerStackOverlap]}>
+                      <Avatar
+                        size={15}
+                        uri={seat.user?.avatar_url}
+                        name={seat.user?.display_name ?? seat.user?.username}
+                      />
+                    </View>
+                  ))}
+              </View>
               <Text style={styles.roomMetaText}>{listenersCount} مستمع · {speakersCount} متحدث</Text>
             </TouchableOpacity>
             {/* مؤشر حالة الصوت الحي */}
             {voiceState === VOICE_ON && (
               <View style={styles.voiceChipOn}>
-                <Volume2 size={10} color={colors.inkDark} />
                 <Text style={styles.voiceChipText}>صوت مباشر</Text>
               </View>
             )}
@@ -1360,6 +1373,13 @@ export default function RoomScreen() {
 
       {/* Seats Grid */}
       <View style={styles.seatsContainer}>
+        <LinearGradient
+          colors={['rgba(169,71,245,0.10)', 'rgba(88,214,193,0.03)', 'rgba(10,7,18,0)']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
         <View style={styles.sectionHeading}>
           <View style={styles.sectionTitleWrap}>
             <View style={styles.sectionAccent} />
@@ -1575,29 +1595,15 @@ export default function RoomScreen() {
           roomId={id}
           seats={seats}
           onClose={() => setShowGifts(false)}
-          onGiftSent={(gift) => setGiftCelebration(gift)}
+          onGiftSent={handleGiftSent}
         />
       )}
       {giftCelebration && (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.giftCelebration,
-            {
-              opacity: giftCelebrationAnim,
-              transform: [
-                { scale: giftCelebrationAnim.interpolate({ inputRange: [0, 1], outputRange: [0.65, 1] }) },
-                { translateY: giftCelebrationAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) },
-              ],
-            },
-          ]}
-        >
-          <Text style={styles.giftCelebrationEmoji}>{giftCelebration.emoji}</Text>
-          <Text style={styles.giftCelebrationTitle}>وصلت هديتك!</Text>
-          <Text style={styles.giftCelebrationSubtitle}>
-            {giftCelebration.name} إلى {giftCelebration.recipient}
-          </Text>
-        </Animated.View>
+        <GiftCelebration
+          gift={giftCelebration}
+          combo={giftCombo}
+          onDone={() => setGiftCelebration(null)}
+        />
       )}
       <Modal
         visible={showRoomInvites}
@@ -1835,130 +1841,165 @@ function SeatView({
   moderationDisabled: boolean;
 }) {
   const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
-  const pulse = useRef(new Animated.Value(0)).current;
   const isOccupied = seat.status === 'occupied' && seat.user_id;
   const isLocked = seat.status === 'locked';
   const canTake = !isOccupied && (!isLocked || isFullManager) && (mySeat === null || mySeat === seat.seat_index);
 
+  /* دخول المقاعد واحدًا بعد الآخر */
+  const appear = useSharedValue(reduceMotion ? 1 : 0);
   useEffect(() => {
-    if (!seat.is_mic_on || reduceMotion) {
-      pulse.stopAnimation();
-      pulse.setValue(0);
+    if (reduceMotion) {
+      appear.value = 1;
       return;
     }
-
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 650,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulse, {
-          toValue: 0,
-          duration: 650,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]),
+    appear.value = withDelay(
+      Math.min(seat.seat_index, 9) * 45,
+      withTiming(1, { duration: 380, easing: ReanimatedEasing.out(ReanimatedEasing.cubic) }),
     );
-    animation.start();
-    return () => animation.stop();
-  }, [pulse, reduceMotion, seat.is_mic_on]);
+  }, [appear, reduceMotion, seat.seat_index]);
+  const appearStyle = useAnimatedStyle(() => ({
+    opacity: appear.value,
+    transform: [
+      { translateY: (1 - appear.value) * 14 },
+      { scale: 0.9 + appear.value * 0.1 },
+    ],
+  }));
 
-  const pulseScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.25] });
-  const pulseOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.65] });
+  /* حلقات المتحدث: موجتان متتاليتان */
+  const ringA = useSharedValue(0);
+  const ringB = useSharedValue(0);
+  useEffect(() => {
+    if (!seat.is_mic_on || reduceMotion) {
+      ringA.value = 0;
+      ringB.value = 0;
+      return;
+    }
+    const wave = withRepeat(
+      withTiming(1, { duration: 1500, easing: ReanimatedEasing.out(ReanimatedEasing.quad) }),
+      -1,
+      false,
+    );
+    ringA.value = wave;
+    ringB.value = withDelay(750, wave);
+  }, [reduceMotion, ringA, ringB, seat.is_mic_on]);
+
+  const ringAStyle = useAnimatedStyle(() => ({
+    opacity: 0.5 * (1 - ringA.value),
+    transform: [{ scale: 1 + ringA.value * 0.8 }],
+  }));
+  const ringBStyle = useAnimatedStyle(() => ({
+    opacity: 0.4 * (1 - ringB.value),
+    transform: [{ scale: 1 + ringB.value * 0.8 }],
+  }));
 
   return (
-    <TouchableOpacity
-      style={[
-        styles.seat,
-        isOccupied && styles.seatOccupied,
-        isOwner && seat.is_owner_seat && styles.seatOwner,
-        isOccupied && seat.is_mic_on && styles.seatSpeaking,
-      ]}
-      onPress={isOccupied ? onProfile : canTake ? onTake : undefined}
-      disabled={!isOccupied && !canTake}
-      accessibilityRole="button"
-      accessibilityLabel={isOccupied
-        ? `المقعد ${seat.seat_index + 1}، ${seat.user?.display_name ?? seat.user?.username ?? 'متحدث'}${seat.is_mic_on ? '، يتحدث' : '، الميكروفون مكتوم'}`
-        : isLocked ? `المقعد ${seat.seat_index + 1}، مقفل` : `انضم إلى المقعد ${seat.seat_index + 1}`}
-      accessibilityHint={isOccupied ? 'اضغط لعرض الملف الشخصي' : canTake ? 'اضغط للانضمام إلى المنصة الصوتية' : undefined}
-      accessibilityState={{ disabled: !isOccupied && !canTake }}
-    >
-      {isOccupied ? (
-        <>
-          <View style={styles.seatAvatarWrap}>
-            {seat.is_mic_on && !reduceMotion && (
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  styles.speakerHalo,
-                  { opacity: pulseOpacity, transform: [{ scale: pulseScale }] },
-                ]}
-              />
-            )}
-            <View style={[
-              styles.seatAvatarRing,
-              seat.is_mic_on && styles.seatAvatarRingLive,
-              seat.is_owner_seat && styles.seatAvatarRingOwner,
-            ]}>
-              <Avatar
-                size={44}
-                uri={seat.user?.avatar_url}
-                name={seat.user?.display_name ?? seat.user?.username}
-              />
+    <Reanimated.View style={[styles.seatWrap, appearStyle]}>
+      <TouchableOpacity
+        style={[
+          styles.seat,
+          isOccupied && styles.seatOccupied,
+          isOwner && seat.is_owner_seat && styles.seatOwner,
+          isOccupied && seat.is_mic_on && styles.seatSpeaking,
+        ]}
+        onPress={isOccupied ? onProfile : canTake ? onTake : undefined}
+        disabled={!isOccupied && !canTake}
+        accessibilityRole="button"
+        accessibilityLabel={isOccupied
+          ? `المقعد ${seat.seat_index + 1}، ${seat.user?.display_name ?? seat.user?.username ?? 'متحدث'}${seat.is_mic_on ? '، يتحدث' : '، الميكروفون مكتوم'}`
+          : isLocked ? `المقعد ${seat.seat_index + 1}، مقفل` : `انضم إلى المقعد ${seat.seat_index + 1}`}
+        accessibilityHint={isOccupied ? 'اضغط لعرض الملف الشخصي' : canTake ? 'اضغط للانضمام إلى المنصة الصوتية' : undefined}
+        accessibilityState={{ disabled: !isOccupied && !canTake }}
+      >
+        {isOccupied ? (
+          <>
+            <View style={styles.seatAvatarWrap}>
+              {seat.is_mic_on && !reduceMotion && (
+                <>
+                  <Reanimated.View pointerEvents="none" style={[styles.speakerHalo, ringAStyle]} />
+                  <Reanimated.View pointerEvents="none" style={[styles.speakerHalo, ringBStyle]} />
+                </>
+              )}
+              {seat.is_owner_seat ? (
+                <LinearGradient
+                  colors={gradients.gold}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.seatAvatarGradient}
+                >
+                  <View style={styles.seatAvatarInner}>
+                    <Avatar
+                      size={42}
+                      uri={seat.user?.avatar_url}
+                      name={seat.user?.display_name ?? seat.user?.username}
+                    />
+                  </View>
+                </LinearGradient>
+              ) : (
+                <View style={[
+                  styles.seatAvatarRing,
+                  seat.is_mic_on && styles.seatAvatarRingLive,
+                ]}>
+                  <Avatar
+                    size={42}
+                    uri={seat.user?.avatar_url}
+                    name={seat.user?.display_name ?? seat.user?.username}
+                  />
+                </View>
+              )}
+              {seat.is_owner_seat && (
+                <View style={styles.ownerCrown}>
+                  <Crown size={11} color={colors.inkGold} />
+                </View>
+              )}
+              {typeof seat.user?.level === 'number' && (
+                <View style={styles.seatLevel}>
+                  <LevelBadge level={seat.user.level} />
+                </View>
+              )}
             </View>
-            {seat.is_owner_seat && (
-              <View style={styles.ownerCrown}>
-                <Crown size={11} color={colors.inkGold} />
+            <Text style={styles.seatName} numberOfLines={1}>
+              {seat.user?.display_name ?? seat.user?.username ?? ''}
+            </Text>
+            {seat.is_mic_on ? (
+              <View style={styles.seatWavePill}>
+                <LiveEqualizer bars={3} height={9} width={2} gap={1.5} color={colors.roomTeal} />
+              </View>
+            ) : (
+              <View style={[styles.micIcon, styles.micOff]}>
+                <MicOff size={9} color={colors.roomMuted} />
               </View>
             )}
-            {typeof seat.user?.level === 'number' && (
-              <View style={styles.seatLevel}>
-                <LevelBadge level={seat.user.level} />
-              </View>
+            {canModerate && seat.user_id && (
+              <TouchableOpacity
+                style={styles.seatModerationButton}
+                onPress={onModerate}
+                disabled={moderationDisabled}
+                accessibilityRole="button"
+                accessibilityLabel={`إدارة ${seat.user?.display_name ?? seat.user?.username ?? 'المتحدث'}`}
+              >
+                {moderationDisabled
+                  ? <ActivityIndicator size="small" color={colors.gold} />
+                  : <VolumeX size={11} color={colors.gold} />}
+              </TouchableOpacity>
             )}
+          </>
+        ) : isLocked ? (
+          <View style={styles.seatEmpty}>
+            <View style={styles.seatEmptyIconDim}>
+              <Lock size={16} color={colors.textMuted} />
+            </View>
+            <Text style={styles.seatLockedText}>مقفل</Text>
           </View>
-          <Text style={styles.seatName} numberOfLines={1}>
-            {seat.user?.display_name ?? seat.user?.username ?? ''}
-          </Text>
-          <View style={[styles.micIcon, seat.is_mic_on ? styles.micOn : styles.micOff]}>
-            {seat.is_mic_on
-              ? <Mic size={10} color={colors.inkTeal} />
-              : <MicOff size={10} color={colors.roomMuted} />}
+        ) : (
+          <View style={styles.seatEmpty}>
+            <View style={styles.seatAddIcon}>
+              <Mic size={15} color={colors.roomPrimary} />
+            </View>
+            <Text style={styles.seatEmptyText}>انضم</Text>
           </View>
-          {canModerate && seat.user_id && (
-            <TouchableOpacity
-              style={styles.seatModerationButton}
-              onPress={onModerate}
-              disabled={moderationDisabled}
-              accessibilityRole="button"
-              accessibilityLabel={`إدارة ${seat.user?.display_name ?? seat.user?.username ?? 'المتحدث'}`}
-            >
-              {moderationDisabled
-                ? <ActivityIndicator size="small" color={colors.gold} />
-                : <VolumeX size={12} color={colors.gold} />}
-            </TouchableOpacity>
-          )}
-        </>
-      ) : isLocked ? (
-        <View style={styles.seatEmpty}>
-          <View style={styles.seatEmptyIconDim}>
-            <Lock size={17} color={colors.textMuted} />
-          </View>
-          <Text style={styles.seatLockedText}>مقفل</Text>
-        </View>
-      ) : (
-        <View style={styles.seatEmpty}>
-          <View style={styles.seatAddIcon}>
-            <Mic size={16} color={colors.roomPrimary} />
-          </View>
-          <Text style={styles.seatEmptyText}>انضم</Text>
-        </View>
-      )}
-    </TouchableOpacity>
+        )}
+      </TouchableOpacity>
+    </Reanimated.View>
   );
 }
 
@@ -2119,19 +2160,12 @@ function GiftsModal({
                 </View>
                 <ScrollView style={styles.giftList} contentContainerStyle={styles.giftsGrid} nestedScrollEnabled>
                   {filteredGifts.map(gift => (
-                    <TouchableOpacity
+                    <GiftCard
                       key={gift.id}
-                      style={[styles.giftCard, selectedGift === gift.id && styles.giftCardActive]}
+                      gift={gift as GiftRecord}
+                      selected={selectedGift === gift.id}
                       onPress={() => setSelectedGift(gift.id)}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: selectedGift === gift.id }}
-                    >
-                      <View style={[styles.giftIcon, selectedGift === gift.id && styles.giftIconActive]}>
-                        <Text style={styles.giftIconText}>{gift.icon_emoji ?? '🎁'}</Text>
-                      </View>
-                      <Text style={styles.giftName} numberOfLines={1}>{gift.name_ar ?? gift.name}</Text>
-                      <Text style={styles.giftPrice}>{Number(gift.price_gold).toLocaleString()} Coins</Text>
-                    </TouchableOpacity>
+                    />
                   ))}
                   {filteredGifts.length === 0 && (
                     <Text style={styles.noRecipients}>ما لقينا هدية بهذا الاسم.</Text>
@@ -2140,23 +2174,26 @@ function GiftsModal({
               </>
             )}
 
-            <Text style={styles.stepHint}>اختر المستلم من المنصة</Text>
+            <View style={styles.stepRow}>
+              <Text style={styles.stepHint}>اختر المستلم من المنصة</Text>
+              {selectedGift && <Text style={styles.comboHint}>أرسل هدايا متتالية لتفعيل الكومبو</Text>}
+            </View>
             {recipients.length === 0 ? (
               <Text style={styles.noRecipients}>لا يوجد مستلمون حاليًا؛ يجب أن يكون شخص آخر على مقعد.</Text>
             ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recipientsRow}>
-                {recipients.map(recipient => (
-                  <TouchableOpacity
-                    key={recipient.id}
-                    style={styles.recipientChip}
-                    onPress={() => selectedGift && setReceiver(recipient)}
-                    disabled={!selectedGift}
-                    accessibilityRole="button"
-                    accessibilityState={{ disabled: !selectedGift }}
-                  >
-                    <Text style={styles.recipientText}>{recipient.name}</Text>
-                  </TouchableOpacity>
-                ))}
+                {recipients.map(recipient => {
+                  const seat = seats.find(s => s.user_id === recipient.id);
+                  return (
+                    <RecipientChip
+                      key={recipient.id}
+                      name={recipient.name}
+                      avatarUrl={seat?.user?.avatar_url}
+                      disabled={!selectedGift}
+                      onPress={() => selectedGift && setReceiver(recipient)}
+                    />
+                  );
+                })}
               </ScrollView>
             )}
             {selectedGiftRecord && (
@@ -2196,7 +2233,15 @@ function GiftsModal({
               style={[styles.sendGiftBtn, (!selectedGift || sending || !canAffordGift) && styles.sendGiftDisabled]}
               disabled={!selectedGift || sending || !canAffordGift}
               onPress={sendGift}
+              accessibilityRole="button"
+              accessibilityLabel="إرسال الهدية الآن"
             >
+              <LinearGradient
+                colors={gradients.gold}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
               {sending
                 ? <ActivityIndicator color={colors.inkGold} />
                 : <Text style={styles.sendGiftText}>إرسال الهدية الآن 🎁</Text>}
@@ -2646,6 +2691,18 @@ const styles = StyleSheet.create({
   giftBalanceTitle: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   giftBalanceLabel: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 10 },
   giftBalanceValue: { color: colors.gold, fontFamily: fonts.black, fontSize: 16, lineHeight: 22, marginTop: 2 },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  comboHint: {
+    color: colors.primaryLight,
+    fontFamily: fonts.semibold,
+    fontSize: 9,
+    lineHeight: 14,
+  },
   stepHint: { color: colors.textSecondary, fontFamily: fonts.semibold, fontSize: 11, marginTop: 12, marginBottom: 7, textAlign: 'right' },
   noRecipients: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 11, lineHeight: 18, textAlign: 'center', paddingVertical: 8 },
   giftSearchWrap: {
@@ -2716,26 +2773,56 @@ const styles = StyleSheet.create({
   giftFundingOptionActive: { borderColor: colors.roomPrimary, backgroundColor: colors.primarySoft },
   giftFundingText: { color: colors.textSecondary, fontFamily: fonts.semibold, fontSize: 10, textAlign: 'center' },
 
-  giftCelebration: {
-    position: 'absolute',
-    top: '33%',
-    alignSelf: 'center',
-    minWidth: 230,
+  seatWrap: { alignItems: 'center' },
+  seatAvatarGradient: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    padding: 2,
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 18,
-    borderRadius: radius.xl,
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: colors.gold,
-    zIndex: 10,
-    ...shadow.raised,
+    justifyContent: 'center',
     shadowColor: colors.gold,
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 8,
   },
-  giftCelebrationEmoji: { fontSize: 54 },
-  giftCelebrationTitle: { color: colors.gold, fontFamily: fonts.black, fontSize: 17, lineHeight: 26, marginTop: 2 },
-  giftCelebrationSubtitle: { color: colors.roomText, fontFamily: fonts.semibold, fontSize: 11, lineHeight: 18, marginTop: 3, textAlign: 'center' },
+  seatAvatarInner: {
+    flex: 1,
+    alignSelf: 'stretch',
+    borderRadius: 23,
+    backgroundColor: colors.roomSurface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  seatWavePill: {
+    marginTop: 4,
+    height: 14,
+    paddingHorizontal: 6,
+    borderRadius: radius.pill,
+    backgroundColor: colors.tealHaze,
+    borderWidth: 1,
+    borderColor: colors.tealEdge,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roomTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  liveBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+    backgroundColor: colors.teal,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  speakerStack: { flexDirection: 'row', alignItems: 'center' },
+  speakerStackItem: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.roomSurface,
+    overflow: 'hidden',
+  },
+  speakerStackOverlap: { marginLeft: -5 },
 
   inviteModalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.overlay },
   inviteModal: {
