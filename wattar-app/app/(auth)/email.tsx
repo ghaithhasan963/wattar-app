@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -17,7 +17,7 @@ import * as Linking from 'expo-linking';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChevronRight, Eye, EyeOff, Lock, Mail, ShieldCheck, Sparkles } from 'lucide-react-native';
 import { useAuthStore } from '@/store/auth';
-import { colors } from '@/lib/theme';
+import { colors, fonts } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
 import { describeAuthError, describeRecoveryRequestError, RECOVERY_EMAIL_SENT_MESSAGE } from '@/lib/authMessages';
 import { checkRecoveryAllowance, describeRecoveryWait, readAttempts, recordAttempt } from '@/lib/recovery';
@@ -45,19 +45,19 @@ export default function EmailAuthScreen() {
     setError(null);
     const normalizedEmail = email.trim().toLowerCase();
     if (!EMAIL_PATTERN.test(normalizedEmail)) {
-      setError('أدخل بريدًا إلكترونيًا صحيحًا.');
+      setError('ط£ط¯ط®ظ„ ط¨ط±ظٹط¯ظ‹ط§ ط¥ظ„ظƒطھط±ظˆظ†ظٹظ‹ط§ طµط­ظٹط­ظ‹ط§.');
       return;
     }
     if (!password) {
-      setError('أدخل كلمة المرور للمتابعة.');
+      setError('ط£ط¯ط®ظ„ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظ„ظ„ظ…طھط§ط¨ط¹ط©.');
       return;
     }
     if (mode === 'sign-up' && (password.length < 8 || password.length > 128)) {
-      setError('استخدم كلمة مرور من 8 إلى 128 حرفًا لزيادة أمان حسابك.');
+      setError('ط§ط³طھط®ط¯ظ… ظƒظ„ظ…ط© ظ…ط±ظˆط± ظ…ظ† 8 ط¥ظ„ظ‰ 128 ط­ط±ظپظ‹ط§ ظ„ط²ظٹط§ط¯ط© ط£ظ…ط§ظ† ط­ط³ط§ط¨ظƒ.');
       return;
     }
     if (mode === 'sign-up' && password !== confirmPassword) {
-      setError('كلمتا المرور غير متطابقتين.');
+      setError('ظƒظ„ظ…طھط§ ط§ظ„ظ…ط±ظˆط± ط؛ظٹط± ظ…طھط·ط§ط¨ظ‚طھظٹظ†.');
       return;
     }
 
@@ -78,9 +78,9 @@ export default function EmailAuthScreen() {
       const emailConfirmationRequired = await signUpWithEmail(normalizedEmail, password);
       if (emailConfirmationRequired) {
         Alert.alert(
-          'باقي خطوة واحدة',
-          'أرسلنا رابط تأكيد إلى بريدك الإلكتروني. افتحه للعودة إلى التطبيق ومتابعة إعداد حسابك.',
-          [{ text: 'حسنًا', onPress: () => setMode('sign-in') }],
+          'ط¨ط§ظ‚ظٹ ط®ط·ظˆط© ظˆط§ط­ط¯ط©',
+          'ط£ط±ط³ظ„ظ†ط§ ط±ط§ط¨ط· طھط£ظƒظٹط¯ ط¥ظ„ظ‰ ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ. ط§ظپطھط­ظ‡ ظ„ظ„ط¹ظˆط¯ط© ط¥ظ„ظ‰ ط§ظ„طھط·ط¨ظٹظ‚ ظˆظ…طھط§ط¨ط¹ط© ط¥ط¹ط¯ط§ط¯ ط­ط³ط§ط¨ظƒ.',
+          [{ text: 'ط­ط³ظ†ظ‹ط§', onPress: () => setMode('sign-in') }],
         );
         return;
       }
@@ -99,13 +99,13 @@ export default function EmailAuthScreen() {
   const sendPasswordReset = async () => {
     const normalizedEmail = email.trim().toLowerCase();
     if (!EMAIL_PATTERN.test(normalizedEmail)) {
-      setError('أدخل بريدك الإلكتروني أولًا لإرسال رابط إعادة التعيين.');
+      setError('ط£ط¯ط®ظ„ ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط£ظˆظ„ظ‹ط§ ظ„ط¥ط±ط³ط§ظ„ ط±ط§ط¨ط· ط¥ط¹ط§ط¯ط© ط§ظ„طھط¹ظٹظٹظ†.');
       return;
     }
 
     setError(null);
 
-    // حدّ محاولات محلي (يُكمله حدّ Supabase على الخادم).
+    // ط­ط¯ظ‘ ظ…ط­ط§ظˆظ„ط§طھ ظ…ط­ظ„ظٹ (ظٹظڈظƒظ…ظ„ظ‡ ط­ط¯ظ‘ Supabase ط¹ظ„ظ‰ ط§ظ„ط®ط§ط¯ظ…).
     const requestedAt = Date.now();
     try {
       const allowance = checkRecoveryAllowance(await readAttempts(AsyncStorage, requestedAt), requestedAt);
@@ -114,7 +114,7 @@ export default function EmailAuthScreen() {
         return;
       }
     } catch {
-      // تعذّر قراءة التخزين المحلي: نكمل، والخادم يفرض حدّه.
+      // طھط¹ط°ظ‘ط± ظ‚ط±ط§ط،ط© ط§ظ„طھط®ط²ظٹظ† ط§ظ„ظ…ط­ظ„ظٹ: ظ†ظƒظ…ظ„طŒ ظˆط§ظ„ط®ط§ط¯ظ… ظٹظپط±ط¶ ط­ط¯ظ‘ظ‡.
     }
 
     setResetSending(true);
@@ -123,15 +123,15 @@ export default function EmailAuthScreen() {
         redirectTo: Linking.createURL('callback', { queryParams: { flow: 'recovery' } }),
       });
       if (resetError) throw resetError;
-      // رسالة محايدة: لا تكشف إن كان البريد مسجّلاً.
-      Alert.alert('تحقق من بريدك', RECOVERY_EMAIL_SENT_MESSAGE);
+      // ط±ط³ط§ظ„ط© ظ…ط­ط§ظٹط¯ط©: ظ„ط§ طھظƒط´ظپ ط¥ظ† ظƒط§ظ† ط§ظ„ط¨ط±ظٹط¯ ظ…ط³ط¬ظ‘ظ„ط§ظ‹.
+      Alert.alert('طھط­ظ‚ظ‚ ظ…ظ† ط¨ط±ظٹط¯ظƒ', RECOVERY_EMAIL_SENT_MESSAGE);
     } catch (resetError: unknown) {
       setError(describeRecoveryRequestError(resetError));
     } finally {
       try {
         await recordAttempt(AsyncStorage, Date.now());
       } catch {
-        // لا نُفشل الطلب بسبب التخزين المحلي.
+        // ظ„ط§ ظ†ظڈظپط´ظ„ ط§ظ„ط·ظ„ط¨ ط¨ط³ط¨ط¨ ط§ظ„طھط®ط²ظٹظ† ط§ظ„ظ…ط­ظ„ظٹ.
       }
       setResetSending(false);
     }
@@ -151,10 +151,10 @@ export default function EmailAuthScreen() {
           style={styles.backButton}
           onPress={() => router.replace('/(auth)/login')}
           accessibilityRole="button"
-          accessibilityLabel="العودة إلى خيارات الدخول"
+          accessibilityLabel="ط§ظ„ط¹ظˆط¯ط© ط¥ظ„ظ‰ ط®ظٹط§ط±ط§طھ ط§ظ„ط¯ط®ظˆظ„"
         >
           <ChevronRight size={20} color={colors.textSecondary} />
-          <Text style={styles.backText}>خيارات الدخول</Text>
+          <Text style={styles.backText}>ط®ظٹط§ط±ط§طھ ط§ظ„ط¯ط®ظˆظ„</Text>
         </TouchableOpacity>
 
         <View style={styles.brand}>
@@ -163,11 +163,11 @@ export default function EmailAuthScreen() {
           </View>
           <View style={styles.brandEyebrow}>
             <Sparkles size={13} color={colors.gold} />
-            <Text style={styles.brandEyebrowText}>أهلاً بك في وتر</Text>
+            <Text style={styles.brandEyebrowText}>ط£ظ‡ظ„ط§ظ‹ ط¨ظƒ ظپظٹ ظˆطھط±</Text>
           </View>
-          <Text style={styles.title}>{mode === 'sign-in' ? 'سعداء بعودتك' : 'مكانك بيننا'}</Text>
+          <Text style={styles.title}>{mode === 'sign-in' ? 'ط³ط¹ط¯ط§ط، ط¨ط¹ظˆط¯طھظƒ' : 'ظ…ظƒط§ظ†ظƒ ط¨ظٹظ†ظ†ط§'}</Text>
           <Text style={styles.subtitle}>
-            {mode === 'sign-in' ? 'سجّل دخولك وتابع عالمك الصوتي.' : 'أنشئ حسابك وابدأ حكايتك بصوتك.'}
+            {mode === 'sign-in' ? 'ط³ط¬ظ‘ظ„ ط¯ط®ظˆظ„ظƒ ظˆطھط§ط¨ط¹ ط¹ط§ظ„ظ…ظƒ ط§ظ„طµظˆطھظٹ.' : 'ط£ظ†ط´ط¦ ط­ط³ط§ط¨ظƒ ظˆط§ط¨ط¯ط£ ط­ظƒط§ظٹطھظƒ ط¨طµظˆطھظƒ.'}
           </Text>
         </View>
 
@@ -180,7 +180,7 @@ export default function EmailAuthScreen() {
               accessibilityRole="tab"
               accessibilityState={{ selected: mode === 'sign-up' }}
             >
-              <Text style={[styles.modeTabText, mode === 'sign-up' && styles.modeTabTextActive]}>حساب جديد</Text>
+              <Text style={[styles.modeTabText, mode === 'sign-up' && styles.modeTabTextActive]}>ط­ط³ط§ط¨ ط¬ط¯ظٹط¯</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modeTab, mode === 'sign-in' && styles.modeTabActive]}
@@ -189,11 +189,11 @@ export default function EmailAuthScreen() {
               accessibilityRole="tab"
               accessibilityState={{ selected: mode === 'sign-in' }}
             >
-              <Text style={[styles.modeTabText, mode === 'sign-in' && styles.modeTabTextActive]}>تسجيل الدخول</Text>
+              <Text style={[styles.modeTabText, mode === 'sign-in' && styles.modeTabTextActive]}>طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.label}>البريد الإلكتروني</Text>
+          <Text style={styles.label}>ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ</Text>
           <View style={styles.inputWrap}>
             <Mail size={18} color={colors.textSecondary} />
             <TextInput
@@ -201,7 +201,7 @@ export default function EmailAuthScreen() {
               value={email}
               onChangeText={(value) => { setEmail(value); setError(null); }}
               placeholder="name@example.com"
-              placeholderTextColor="#756B83"
+              placeholderTextColor={colors.textMuted}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -212,15 +212,15 @@ export default function EmailAuthScreen() {
             />
           </View>
 
-          <Text style={styles.label}>كلمة المرور</Text>
+          <Text style={styles.label}>ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</Text>
           <View style={styles.inputWrap}>
             <Lock size={18} color={colors.textSecondary} />
             <TextInput
               style={styles.input}
               value={password}
               onChangeText={(value) => { setPassword(value); setError(null); }}
-              placeholder={mode === 'sign-up' ? '8 أحرف على الأقل' : 'أدخل كلمة المرور'}
-              placeholderTextColor="#756B83"
+              placeholder={mode === 'sign-up' ? '8 ط£ط­ط±ظپ ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„' : 'ط£ط¯ط®ظ„ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±'}
+              placeholderTextColor={colors.textMuted}
               secureTextEntry={!passwordVisible}
               autoCapitalize="none"
               autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'}
@@ -232,7 +232,7 @@ export default function EmailAuthScreen() {
             <TouchableOpacity
               onPress={() => setPasswordVisible((visible) => !visible)}
               accessibilityRole="button"
-              accessibilityLabel={passwordVisible ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+              accessibilityLabel={passwordVisible ? 'ط¥ط®ظپط§ط، ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±' : 'ط¥ط¸ظ‡ط§ط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±'}
               hitSlop={8}
             >
               {passwordVisible
@@ -243,15 +243,15 @@ export default function EmailAuthScreen() {
 
           {mode === 'sign-up' && (
             <>
-              <Text style={styles.label}>تأكيد كلمة المرور</Text>
+              <Text style={styles.label}>طھط£ظƒظٹط¯ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</Text>
               <View style={styles.inputWrap}>
                 <ShieldCheck size={18} color={colors.textSecondary} />
                 <TextInput
                   style={styles.input}
                   value={confirmPassword}
                   onChangeText={(value) => { setConfirmPassword(value); setError(null); }}
-                  placeholder="أعد كتابة كلمة المرور"
-                  placeholderTextColor="#756B83"
+                  placeholder="ط£ط¹ط¯ ظƒطھط§ط¨ط© ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±"
+                  placeholderTextColor={colors.textMuted}
                   secureTextEntry={!passwordVisible}
                   autoCapitalize="none"
                   autoComplete="new-password"
@@ -274,7 +274,7 @@ export default function EmailAuthScreen() {
               accessibilityRole="button"
             >
               <Text style={styles.forgotPasswordText}>
-                {resetSending ? 'جارٍ إرسال الرابط...' : 'نسيت كلمة المرور؟'}
+                {resetSending ? 'ط¬ط§ط±ظچ ط¥ط±ط³ط§ظ„ ط§ظ„ط±ط§ط¨ط·...' : 'ظ†ط³ظٹطھ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±طں'}
               </Text>
             </TouchableOpacity>
           )}
@@ -286,29 +286,29 @@ export default function EmailAuthScreen() {
             accessibilityRole="button"
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.text} />
             ) : (
               <Text style={styles.submitText}>
-                {mode === 'sign-in' ? 'تسجيل الدخول' : 'إنشاء حسابي'}
+                {mode === 'sign-in' ? 'طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„' : 'ط¥ظ†ط´ط§ط، ط­ط³ط§ط¨ظٹ'}
               </Text>
             )}
           </TouchableOpacity>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              {mode === 'sign-in' ? 'ليس لديك حساب؟' : 'لديك حساب بالفعل؟'}
+              {mode === 'sign-in' ? 'ظ„ظٹط³ ظ„ط¯ظٹظƒ ط­ط³ط§ط¨طں' : 'ظ„ط¯ظٹظƒ ط­ط³ط§ط¨ ط¨ط§ظ„ظپط¹ظ„طں'}
             </Text>
             <TouchableOpacity
               onPress={() => switchMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}
               disabled={loading}
               accessibilityRole="button"
             >
-              <Text style={styles.footerLink}>{mode === 'sign-in' ? 'إنشاء حساب' : 'تسجيل الدخول'}</Text>
+              <Text style={styles.footerLink}>{mode === 'sign-in' ? 'ط¥ظ†ط´ط§ط، ط­ط³ط§ط¨' : 'طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„'}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <Text style={styles.terms}>بياناتك محفوظة بأمان. بالمتابعة، أنت توافق على شروط الاستخدام وسياسة الخصوصية.</Text>
+        <Text style={styles.terms}>ط¨ظٹط§ظ†ط§طھظƒ ظ…ط­ظپظˆط¸ط© ط¨ط£ظ…ط§ظ†. ط¨ط§ظ„ظ…طھط§ط¨ط¹ط©طŒ ط£ظ†طھ طھظˆط§ظپظ‚ ط¹ظ„ظ‰ ط´ط±ظˆط· ط§ظ„ط§ط³طھط®ط¯ط§ظ… ظˆط³ظٹط§ط³ط© ط§ظ„ط®طµظˆطµظٹط©.</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: 8,
   },
-  backText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+  backText: { color: colors.textSecondary, fontSize: 13, fontFamily: fonts.semibold },
   brand: { alignItems: 'center', marginBottom: 23 },
   logoFrame: {
     width: 70,
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
     borderRadius: 23,
     backgroundColor: colors.primarySoft,
     borderWidth: 1,
-    borderColor: '#61357D',
+    borderColor: colors.borderStrong,
     marginBottom: 13,
   },
   logo: { width: '100%', height: '100%', borderRadius: 19 },
@@ -356,13 +356,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.goldSoft,
     marginBottom: 9,
   },
-  brandEyebrowText: { color: colors.gold, fontSize: 10, fontWeight: '700' },
-  title: { color: colors.text, fontSize: 25, fontWeight: '900' },
+  brandEyebrowText: { color: colors.gold, fontSize: 10, fontFamily: fonts.semibold },
+  title: { color: colors.text, fontSize: 25, fontFamily: fonts.black },
   subtitle: { color: colors.textSecondary, fontSize: 13, marginTop: 6, textAlign: 'center' },
   card: {
     padding: 19,
     borderRadius: 24,
-    backgroundColor: '#120D1B',
+    backgroundColor: colors.sheet,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -381,9 +381,9 @@ const styles = StyleSheet.create({
     borderRadius: 11,
   },
   modeTabActive: { backgroundColor: colors.primary },
-  modeTabText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
-  modeTabTextActive: { color: '#fff' },
-  label: { color: colors.text, fontSize: 13, fontWeight: '700', textAlign: 'right', marginBottom: 8 },
+  modeTabText: { color: colors.textSecondary, fontSize: 12, fontFamily: fonts.semibold },
+  modeTabTextActive: { color: colors.text },
+  label: { color: colors.text, fontSize: 13, fontFamily: fonts.semibold, textAlign: 'right', marginBottom: 8 },
   inputWrap: {
     minHeight: 53,
     flexDirection: 'row-reverse',
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   input: { flex: 1, color: colors.text, fontSize: 14, paddingVertical: 12, textAlign: 'right' },
   error: { color: colors.danger, fontSize: 12, textAlign: 'right', lineHeight: 19, marginBottom: 8 },
   forgotPassword: { alignSelf: 'flex-start', paddingVertical: 8 },
-  forgotPasswordText: { color: colors.primary, fontSize: 12, fontWeight: '700' },
+  forgotPasswordText: { color: colors.primary, fontSize: 12, fontFamily: fonts.semibold },
   submitButton: {
     minHeight: 53,
     borderRadius: 15,
@@ -409,9 +409,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   disabled: { opacity: 0.55 },
-  submitText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  submitText: { color: colors.text, fontSize: 15, fontFamily: fonts.bold },
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, paddingTop: 18 },
   footerText: { color: colors.textSecondary, fontSize: 12 },
-  footerLink: { color: colors.primary, fontSize: 12, fontWeight: '800' },
-  terms: { color: '#746A82', fontSize: 10, lineHeight: 17, textAlign: 'center', marginTop: 18 },
+  footerLink: { color: colors.primary, fontSize: 12, fontFamily: fonts.bold },
+  terms: { color: colors.textMuted, fontSize: 10, lineHeight: 17, textAlign: 'center', marginTop: 18 },
 });

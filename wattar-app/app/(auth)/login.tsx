@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +16,7 @@ import { useRouter } from 'expo-router';
 import { ArrowLeft, Gamepad2, Mail, Mic2, Phone, Sparkles, UsersRound } from 'lucide-react-native';
 import { useAuthStore } from '@/store/auth';
 import { setPendingPhone } from '@/lib/pending';
-import { colors } from '@/lib/theme';
+import { colors, fonts } from '@/lib/theme';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -32,7 +32,7 @@ export default function LoginScreen() {
 
   const handleSendOtp = async () => {
     if (!phone.trim()) {
-      setLocalError('أدخل رقم هاتفك للمتابعة.');
+      setLocalError('ط£ط¯ط®ظ„ ط±ظ‚ظ… ظ‡ط§طھظپظƒ ظ„ظ„ظ…طھط§ط¨ط¹ط©.');
       return;
     }
     setLocalError(null);
@@ -41,7 +41,7 @@ export default function LoginScreen() {
       await setPendingPhone(phone.trim());
       router.push('/(auth)/verify');
     } catch (caught: unknown) {
-      setLocalError(caught instanceof Error ? caught.message : 'تعذر إرسال رمز التحقق.');
+      setLocalError(caught instanceof Error ? caught.message : 'طھط¹ط°ط± ط¥ط±ط³ط§ظ„ ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚.');
     }
   };
 
@@ -49,7 +49,7 @@ export default function LoginScreen() {
     if (provider === 'facebook') {
       setLocalError(null);
       useAuthStore.setState({ error: null });
-      Alert.alert('Facebook غير متاح حاليًا', 'سنفعّل تسجيل الدخول عبر Facebook بعد إكمال إعداد الخدمة.');
+      Alert.alert('Facebook ط؛ظٹط± ظ…طھط§ط­ ط­ط§ظ„ظٹظ‹ط§', 'ط³ظ†ظپط¹ظ‘ظ„ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¹ط¨ط± Facebook ط¨ط¹ط¯ ط¥ظƒظ…ط§ظ„ ط¥ط¹ط¯ط§ط¯ ط§ظ„ط®ط¯ظ…ط©.');
       return;
     }
     setLocalError(null);
@@ -85,22 +85,22 @@ export default function LoginScreen() {
           </View>
           <View style={styles.brandEyebrow}>
             <Sparkles size={14} color={colors.gold} />
-            <Text style={styles.brandEyebrowText}>مجتمعك الصوتي العربي</Text>
+            <Text style={styles.brandEyebrowText}>ظ…ط¬طھظ…ط¹ظƒ ط§ظ„طµظˆطھظٹ ط§ظ„ط¹ط±ط¨ظٹ</Text>
           </View>
-          <Text style={styles.title}>صوتك يقرّبنا</Text>
-          <Text style={styles.subtitle}>غرف حية، أصدقاء جدد، ولحظات تستحق المشاركة.</Text>
+          <Text style={styles.title}>طµظˆطھظƒ ظٹظ‚ط±ظ‘ط¨ظ†ط§</Text>
+          <Text style={styles.subtitle}>ط؛ط±ظپ ط­ظٹط©طŒ ط£طµط¯ظ‚ط§ط، ط¬ط¯ط¯طŒ ظˆظ„ط­ط¸ط§طھ طھط³طھط­ظ‚ ط§ظ„ظ…ط´ط§ط±ظƒط©.</Text>
         </View>
 
         <View style={styles.features}>
-          <Feature icon={Mic2} label="غرف صوتية" />
-          <Feature icon={UsersRound} label="مجتمع وأصدقاء" />
-          <Feature icon={Gamepad2} label="ألعاب وتحديات" />
+          <Feature icon={Mic2} label="ط؛ط±ظپ طµظˆطھظٹط©" />
+          <Feature icon={UsersRound} label="ظ…ط¬طھظ…ط¹ ظˆط£طµط¯ظ‚ط§ط،" />
+          <Feature icon={Gamepad2} label="ط£ظ„ط¹ط§ط¨ ظˆطھط­ط¯ظٹط§طھ" />
         </View>
 
         <View style={styles.authCard}>
-          <Text style={styles.cardTitle}>{showPhoneForm ? 'الدخول برقم الهاتف' : 'أهلًا بك في وتر'}</Text>
+          <Text style={styles.cardTitle}>{showPhoneForm ? 'ط§ظ„ط¯ط®ظˆظ„ ط¨ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ' : 'ط£ظ‡ظ„ظ‹ط§ ط¨ظƒ ظپظٹ ظˆطھط±'}</Text>
           <Text style={styles.cardSubtitle}>
-            {showPhoneForm ? 'سنرسل لك رمز تحقق لمرة واحدة.' : 'سجّل دخولك أو أنشئ حسابك وابدأ المشاركة.'}
+            {showPhoneForm ? 'ط³ظ†ط±ط³ظ„ ظ„ظƒ ط±ظ…ط² طھط­ظ‚ظ‚ ظ„ظ…ط±ط© ظˆط§ط­ط¯ط©.' : 'ط³ط¬ظ‘ظ„ ط¯ط®ظˆظ„ظƒ ط£ظˆ ط£ظ†ط´ط¦ ط­ط³ط§ط¨ظƒ ظˆط§ط¨ط¯ط£ ط§ظ„ظ…ط´ط§ط±ظƒط©.'}
           </Text>
 
           {showPhoneForm ? (
@@ -125,11 +125,11 @@ export default function LoginScreen() {
                 disabled={loading}
                 accessibilityRole="button"
               >
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>إرسال رمز التحقق</Text>}
-                {!loading && <ArrowLeft size={18} color="#fff" />}
+                {loading ? <ActivityIndicator color={colors.text} /> : <Text style={styles.primaryButtonText}>ط¥ط±ط³ط§ظ„ ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚</Text>}
+                {!loading && <ArrowLeft size={18} color={colors.text} />}
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setShowPhoneForm(false)} disabled={loading}>
-                <Text style={styles.backText}>العودة إلى خيارات الدخول</Text>
+                <Text style={styles.backText}>ط§ظ„ط¹ظˆط¯ط© ط¥ظ„ظ‰ ط®ظٹط§ط±ط§طھ ط§ظ„ط¯ط®ظˆظ„</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -143,8 +143,8 @@ export default function LoginScreen() {
                 disabled={loading}
                 accessibilityRole="button"
               >
-                <Phone size={19} color="#fff" />
-                <Text style={styles.primaryButtonText}>المتابعة برقم الهاتف</Text>
+                <Phone size={19} color={colors.text} />
+                <Text style={styles.primaryButtonText}>ط§ظ„ظ…طھط§ط¨ط¹ط© ط¨ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -154,12 +154,12 @@ export default function LoginScreen() {
                 accessibilityRole="button"
               >
                 <Mail size={18} color={colors.text} />
-                <Text style={styles.emailButtonText}>الدخول بالبريد الإلكتروني</Text>
+                <Text style={styles.emailButtonText}>ط§ظ„ط¯ط®ظˆظ„ ط¨ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ</Text>
               </TouchableOpacity>
 
               <View style={styles.divider}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>أو تابع باستخدام</Text>
+                <Text style={styles.dividerText}>ط£ظˆ طھط§ط¨ط¹ ط¨ط§ط³طھط®ط¯ط§ظ…</Text>
                 <View style={styles.dividerLine} />
               </View>
 
@@ -177,7 +177,7 @@ export default function LoginScreen() {
                   onPress={() => handleSocialSignIn('facebook')}
                   disabled={loading}
                   accessibilityRole="button"
-                  accessibilityLabel="تسجيل الدخول عبر Facebook"
+                  accessibilityLabel="طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¹ط¨ط± Facebook"
                 >
                   <Text style={styles.socialButtonText}>Facebook</Text>
                 </TouchableOpacity>
@@ -199,10 +199,10 @@ export default function LoginScreen() {
           disabled={loading}
           accessibilityRole="button"
         >
-          <Text style={styles.signupPromptText}>جديد في وتر؟ <Text style={styles.signupLink}>أنشئ حسابك الآن</Text></Text>
+          <Text style={styles.signupPromptText}>ط¬ط¯ظٹط¯ ظپظٹ ظˆطھط±طں <Text style={styles.signupLink}>ط£ظ†ط´ط¦ ط­ط³ط§ط¨ظƒ ط§ظ„ط¢ظ†</Text></Text>
         </TouchableOpacity>
 
-        <Text style={styles.terms}>بالمتابعة، أنت توافق على شروط الاستخدام وسياسة الخصوصية.</Text>
+        <Text style={styles.terms}>ط¨ط§ظ„ظ…طھط§ط¨ط¹ط©طŒ ط£ظ†طھ طھظˆط§ظپظ‚ ط¹ظ„ظ‰ ط´ط±ظˆط· ط§ظ„ط§ط³طھط®ط¯ط§ظ… ظˆط³ظٹط§ط³ط© ط§ظ„ط®طµظˆطµظٹط©.</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     width: 340,
     height: 340,
     borderRadius: 170,
-    backgroundColor: '#1C1030',
+    backgroundColor: colors.primaryHaze,
   },
   glowSide: {
     position: 'absolute',
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 110,
-    backgroundColor: '#160F25',
+    backgroundColor: colors.heroSurface,
   },
   brand: { alignItems: 'center', marginBottom: 24 },
   logoFrame: {
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     padding: 5,
     backgroundColor: colors.primarySoft,
     borderWidth: 1,
-    borderColor: '#61357D',
+    borderColor: colors.borderStrong,
     marginBottom: 17,
   },
   logo: { width: '100%', height: '100%', borderRadius: 23 },
@@ -269,8 +269,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.goldSoft,
     marginBottom: 10,
   },
-  brandEyebrowText: { color: colors.gold, fontSize: 11, fontWeight: '700' },
-  title: { color: colors.text, fontSize: 28, fontWeight: '900', textAlign: 'center' },
+  brandEyebrowText: { color: colors.gold, fontSize: 11, fontFamily: fonts.semibold },
+  title: { color: colors.text, fontSize: 28, fontFamily: fonts.black, textAlign: 'center' },
   subtitle: {
     color: colors.textSecondary,
     fontSize: 13,
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
     borderRadius: 17,
-    backgroundColor: '#130E1D',
+    backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: 4,
@@ -300,15 +300,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  featureLabel: { color: colors.textSecondary, fontSize: 10, fontWeight: '600', textAlign: 'center' },
+  featureLabel: { color: colors.textSecondary, fontSize: 10, fontFamily: fonts.semibold, textAlign: 'center' },
   authCard: {
     padding: 18,
     borderRadius: 24,
-    backgroundColor: '#120D1B',
+    backgroundColor: colors.sheet,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  cardTitle: { color: colors.text, fontSize: 19, fontWeight: '800', textAlign: 'right' },
+  cardTitle: { color: colors.text, fontSize: 19, fontFamily: fonts.bold, textAlign: 'right' },
   cardSubtitle: { color: colors.textSecondary, fontSize: 12, textAlign: 'right', marginTop: 5, marginBottom: 16 },
   primaryButton: {
     minHeight: 53,
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 9,
   },
-  primaryButtonText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  primaryButtonText: { color: colors.text, fontSize: 15, fontFamily: fonts.bold },
   emailButton: {
     minHeight: 51,
     borderRadius: 15,
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
     gap: 9,
     marginTop: 10,
   },
-  emailButtonText: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  emailButtonText: { color: colors.text, fontSize: 14, fontFamily: fonts.semibold },
   divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 15, marginBottom: 12 },
   dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
   dividerText: { color: colors.textSecondary, fontSize: 11 },
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  socialButtonText: { color: colors.text, fontSize: 13, fontWeight: '700' },
+  socialButtonText: { color: colors.text, fontSize: 13, fontFamily: fonts.semibold },
   loader: { marginTop: 12 },
   phoneForm: { gap: 12 },
   phoneInput: {
@@ -365,6 +365,6 @@ const styles = StyleSheet.create({
   errorText: { color: colors.danger, fontSize: 12, textAlign: 'center', lineHeight: 18, marginTop: 12 },
   signupPrompt: { alignItems: 'center', paddingVertical: 17 },
   signupPromptText: { color: colors.textSecondary, fontSize: 13 },
-  signupLink: { color: colors.primary, fontWeight: '800' },
-  terms: { color: '#746A82', fontSize: 10, textAlign: 'center', lineHeight: 17 },
+  signupLink: { color: colors.primary, fontFamily: fonts.bold },
+  terms: { color: colors.textMuted, fontSize: 10, textAlign: 'center', lineHeight: 17 },
 });
