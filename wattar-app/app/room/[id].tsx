@@ -29,10 +29,12 @@ import { usePreferencesStore } from '@/store/preferences';
 import { CurrencyIcon } from '@/components/CurrencyIcon';
 import { Avatar, LevelBadge } from '@/components/ui';
 import { GiftCelebration, type GiftCelebrationData } from '@/components/room/GiftCelebration';
+import { GiftScene } from '@/components/room/GiftScene';
 import { GiftCard, RecipientChip, type GiftRecord } from '@/components/room/GiftPicker';
 import { GiftTicker, type GiftFeedEntry } from '@/components/room/GiftTicker';
 import { LiveEqualizer } from '@/components/room/LiveEqualizer';
 import { MessageEntrance } from '@/components/room/MessageEntrance';
+import { flagEmoji } from '@/lib/flags';
 import { RoomAmbience } from '@/components/room/RoomAmbience';
 import { colors, fonts, gradients, radius, shadow } from '@/lib/theme';
 import { StatusBar } from 'expo-status-bar';
@@ -66,7 +68,7 @@ interface Message {
   is_system: boolean;
   created_at: string;
   pending?: boolean;
-  user?: { username: string; display_name: string | null; avatar_url: string | null } | null;
+  user?: { username: string; display_name: string | null; avatar_url: string | null; level?: number | null; country_code?: string | null } | null;
 }
 
 export default function RoomScreen() {
@@ -195,6 +197,7 @@ export default function RoomScreen() {
           name: gift.name,
           recipient: gift.recipient,
           sender,
+          premium: Boolean(gift.premium),
         },
       })
       .catch(() => {
@@ -393,7 +396,7 @@ export default function RoomScreen() {
       .from('room_seats')
       .select(`
         *,
-        user:users(username, display_name, avatar_url, level)
+        user:users(username, display_name, avatar_url, level, country_code)
       `)
       .eq('room_id', id)
       .order('seat_index', { ascending: true }),
@@ -401,7 +404,7 @@ export default function RoomScreen() {
       .from('room_messages')
       .select(`
         *,
-        user:users(username, display_name, avatar_url)
+        user:users(username, display_name, avatar_url, level, country_code)
       `)
       .eq('room_id', id)
       .order('created_at', { ascending: true })
@@ -532,7 +535,7 @@ export default function RoomScreen() {
         .from('room_seats')
         .select(`
           *,
-          user:users(username, display_name, avatar_url, level)
+          user:users(username, display_name, avatar_url, level, country_code)
         `)
         .eq('room_id', id)
         .order('seat_index', { ascending: true }),
@@ -617,6 +620,7 @@ export default function RoomScreen() {
               name: typeof incoming.name === 'string' ? incoming.name : 'هدية',
               recipient: typeof incoming.recipient === 'string' ? incoming.recipient : '',
               sender: typeof incoming.sender === 'string' ? incoming.sender : null,
+              premium: Boolean(incoming.premium),
             });
             const feedId = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
             const feedEntry: GiftFeedEntry = {
@@ -775,7 +779,7 @@ export default function RoomScreen() {
         .from('room_messages')
         .select(`
           id, room_id, user_id, message, is_system, created_at,
-          user:users(username, display_name, avatar_url)
+          user:users(username, display_name, avatar_url, level, country_code)
         `)
         .eq('room_id', id)
         .order('created_at', { ascending: true })
@@ -1505,9 +1509,17 @@ export default function RoomScreen() {
                   </View>
                   <View style={[styles.messageBubble, isMine ? styles.ownMessageBubble : styles.otherMessageBubble]}>
                     <View style={styles.messageMeta}>
-                      <Text style={[styles.messageUser, isMine && styles.ownMessageUser]} numberOfLines={1}>
-                        {item.user?.display_name ?? item.user?.username ?? 'عضو'}
-                      </Text>
+                      <View style={styles.messageUserRow}>
+                        <Text style={[styles.messageUser, isMine && styles.ownMessageUser]} numberOfLines={1}>
+                          {item.user?.display_name ?? item.user?.username ?? 'عضو'}
+                        </Text>
+                        {typeof item.user?.level === 'number' && item.user.level > 0 && (
+                          <LevelBadge level={item.user.level} />
+                        )}
+                        {flagEmoji(item.user?.country_code) ? (
+                          <Text style={styles.messageFlag}>{flagEmoji(item.user?.country_code)}</Text>
+                        ) : null}
+                      </View>
                       <Text style={styles.messageTime}>
                         {new Date(item.created_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}
                       </Text>
@@ -1666,11 +1678,19 @@ export default function RoomScreen() {
         />
       )}
       {giftCelebration && (
-        <GiftCelebration
-          gift={giftCelebration}
-          combo={giftCombo}
-          onDone={() => setGiftCelebration(null)}
-        />
+        giftCelebration.premium ? (
+          <GiftScene
+            gift={giftCelebration}
+            combo={giftCombo}
+            onDone={() => setGiftCelebration(null)}
+          />
+        ) : (
+          <GiftCelebration
+            gift={giftCelebration}
+            combo={giftCombo}
+            onDone={() => setGiftCelebration(null)}
+          />
+        )
       )}
       <Modal
         visible={showRoomInvites}
@@ -2055,14 +2075,14 @@ function SeatView({
             <View style={styles.seatEmptyIconDim}>
               <Lock size={16} color={colors.textMuted} />
             </View>
-            <Text style={styles.seatLockedText}>مقفل</Text>
+            <Text style={styles.seatLockedText}>{seat.seat_index + 1}</Text>
           </View>
         ) : (
           <View style={styles.seatEmpty}>
             <View style={styles.seatAddIcon}>
-              <Mic size={15} color={colors.roomPrimary} />
+              <Mic size={18} color={colors.roomText} />
             </View>
-            <Text style={styles.seatEmptyText}>انضم</Text>
+            <Text style={styles.seatEmptyText}>{seat.seat_index + 1}</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -2079,7 +2099,7 @@ function GiftsModal({
   roomId: string;
   seats: Seat[];
   onClose: () => void;
-  onGiftSent: (gift: { emoji: string; name: string; recipient: string }) => void;
+  onGiftSent: (gift: GiftCelebrationData) => void;
 }) {
   const { profile, loadProfile } = useAuthStore();
   const [gifts, setGifts] = useState<any[]>([]);
@@ -2151,6 +2171,7 @@ function GiftsModal({
         emoji: selectedGiftRecord?.icon_emoji ?? '🎁',
         name: selectedGiftRecord?.name_ar ?? selectedGiftRecord?.name ?? 'هدية',
         recipient: receiver.name,
+        premium: Boolean(selectedGiftRecord?.is_premium) || Number(selectedGiftRecord?.price_gold ?? 0) >= 5000,
       });
       let profileRefreshFailed = false;
       try {
@@ -2367,12 +2388,9 @@ const styles = StyleSheet.create({
   },
 
   seatsContainer: {
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.glass,
-    backgroundColor: colors.glassFaint,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 12,
   },
   sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 },
   sectionTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 7 },
@@ -2402,39 +2420,54 @@ const styles = StyleSheet.create({
   seat: {
     position: 'relative',
     width: 74,
-    height: 96,
-    backgroundColor: colors.glassFaint,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
+    height: 92,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 6,
+    padding: 0,
   },
-  seatOccupied: { backgroundColor: colors.glass, borderColor: colors.border },
-  seatOwner: { borderColor: colors.goldEdge, backgroundColor: colors.goldHaze },
-  seatSpeaking: { borderColor: colors.tealEdge },
-  seatEmpty: { alignItems: 'center', gap: 5 },
+  seatOccupied: { backgroundColor: 'transparent' },
+  seatOwner: { backgroundColor: 'transparent' },
+  seatSpeaking: { backgroundColor: 'transparent' },
+  seatEmpty: { alignItems: 'center', gap: 4 },
   seatAddIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    backgroundColor: colors.primarySoft,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.22)',
+    borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
   },
   seatEmptyIconDim: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    backgroundColor: colors.surfaceGlass,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  seatEmptyText: { color: colors.roomPrimary, fontFamily: fonts.semibold, fontSize: 10, lineHeight: 15 },
-  seatLockedText: { color: colors.roomMuted, fontFamily: fonts.medium, fontSize: 10, lineHeight: 15 },
+  seatEmptyText: {
+    color: colors.roomText,
+    fontFamily: fonts.semibold,
+    fontSize: 10,
+    lineHeight: 15,
+    textShadowColor: 'rgba(0,0,0,0.75)',
+    textShadowRadius: 4,
+  },
+  seatLockedText: {
+    color: colors.roomMuted,
+    fontFamily: fonts.medium,
+    fontSize: 10,
+    lineHeight: 15,
+    textShadowColor: 'rgba(0,0,0,0.75)',
+    textShadowRadius: 4,
+  },
   seatAvatarWrap: { width: 54, height: 54, alignItems: 'center', justifyContent: 'center' },
   speakerHalo: {
     position: 'absolute',
@@ -2473,12 +2506,14 @@ const styles = StyleSheet.create({
   },
   seatName: {
     color: colors.roomText,
-    fontFamily: fonts.medium,
+    fontFamily: fonts.semibold,
     fontSize: 10,
     lineHeight: 16,
     marginTop: 3,
-    maxWidth: 66,
+    maxWidth: 70,
     textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.85)',
+    textShadowRadius: 5,
   },
   micIcon: {
     position: 'absolute',
@@ -2575,6 +2610,8 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 5,
   },
   messageMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  messageUserRow: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
+  messageFlag: { fontSize: 10, lineHeight: 14 },
   messageUser: { color: colors.roomTeal, fontFamily: fonts.semibold, fontSize: 10, lineHeight: 15, flexShrink: 1, textAlign: 'right' },
   ownMessageUser: { color: colors.primaryLight },
   messageTime: { color: colors.textMuted, fontFamily: fonts.regular, fontSize: 8, lineHeight: 13 },

@@ -1,5 +1,6 @@
 /**
- * RoomAmbience — أجواء الغرفة: هالات بنفسجية/تركوازية تسبح ببطء + وهج منصة علوي.
+ * RoomAmbience — خلفية الغرفة: غلاف الغرفة كامل الشاشة + هالات تسبح ببطء + وهج منصة.
+ * الغلاف يمنح كل غرفة هوية بصرية خاصة (تخصيص الغرفة)، والهالات تُضيف حياة.
  * كل الحركة على السائق الأصلي وتُعطَّل تلقائيًا مع reduceMotion.
  */
 import React, { useEffect } from 'react';
@@ -23,7 +24,6 @@ function Orb({
   drift,
   duration,
   reduceMotion,
-  delay = 0,
 }: {
   size: number;
   color: string;
@@ -32,7 +32,6 @@ function Orb({
   drift: number;
   duration: number;
   reduceMotion: boolean;
-  delay?: number;
 }) {
   const progress = useSharedValue(0);
 
@@ -56,13 +55,15 @@ function Orb({
         { translateY: drift * 0.6 * (1 - p) },
         { scale: 0.92 + p * 0.16 },
       ],
-      opacity: 0.55 + p * 0.35,
+      opacity: 0.45 + p * 0.3,
     };
   });
 
   return (
     <Animated.View
       pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
       style={[
         {
           position: 'absolute',
@@ -75,10 +76,6 @@ function Orb({
         },
         animatedStyle,
       ]}
-      // تأخير بصري بسيط بين الهالات
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      key={delay}
     />
   );
 }
@@ -88,48 +85,37 @@ export function RoomAmbience({ coverUrl }: { coverUrl?: string | null }) {
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {/* غلاف الغرفة: يمنح كل غرفة هوية بصرية خاصة */}
+      {/* غلاف الغرفة كامل الشاشة: هوية بصرية خاصة لكل غرفة */}
       {coverUrl ? (
-        <Image
-          source={{ uri: coverUrl }}
-          style={styles.cover}
-          blurRadius={18}
-          resizeMode="cover"
-        />
-      ) : null}
+        <Image source={{ uri: coverUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+      ) : (
+        <LinearGradient colors={gradients.screen} locations={[0, 0.38, 1]} style={StyleSheet.absoluteFill} />
+      )}
+
+      {/* تعتيم متدرّج: خفيف في المنتصف كي يظهر الغلاف، أقوى أعلى وأسفل لوضوح النصوص */}
       <LinearGradient
-        colors={gradients.screen}
-        locations={[0, 0.38, 1]}
+        colors={['rgba(6,4,10,0.72)', 'rgba(6,4,10,0.28)', 'rgba(6,4,10,0.55)', 'rgba(6,4,10,0.92)']}
+        locations={[0, 0.22, 0.52, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <LinearGradient
-        colors={['rgba(10,7,18,0.35)', 'rgba(10,7,18,0.72)', 'rgba(10,7,18,0.94)']}
-        style={StyleSheet.absoluteFill}
-      />
+
       {/* وهج المنصة */}
       <LinearGradient
-        colors={[colors.primaryHaze, 'rgba(169,71,245,0.05)', 'rgba(10,7,18,0)']}
+        colors={[colors.primaryHaze, 'rgba(169,71,245,0.04)', 'rgba(10,7,18,0)']}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={styles.stageGlow}
       />
+
       <Orb size={230} color="rgba(169,71,245,0.16)" top={-70} left={-70} drift={34} duration={9000} reduceMotion={reduceMotion} />
-      <Orb size={190} color="rgba(88,214,193,0.10)" top={150} left={250} drift={-28} duration={11000} reduceMotion={reduceMotion} delay={1} />
-      <Orb size={260} color="rgba(169,71,245,0.09)" top={430} left={-90} drift={26} duration={13000} reduceMotion={reduceMotion} delay={2} />
-      <Orb size={170} color="rgba(244,189,85,0.07)" top={620} left={230} drift={-22} duration={10000} reduceMotion={reduceMotion} delay={3} />
+      <Orb size={190} color="rgba(88,214,193,0.10)" top={150} left={250} drift={-28} duration={11000} reduceMotion={reduceMotion} />
+      <Orb size={260} color="rgba(169,71,245,0.09)" top={430} left={-90} drift={26} duration={13000} reduceMotion={reduceMotion} />
+      <Orb size={170} color="rgba(244,189,85,0.07)" top={620} left={230} drift={-22} duration={10000} reduceMotion={reduceMotion} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  cover: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 420,
-    opacity: 0.5,
-  },
   stageGlow: {
     position: 'absolute',
     top: 0,

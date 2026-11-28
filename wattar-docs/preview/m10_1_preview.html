@@ -230,7 +230,7 @@
   }
   .voicechip{display:flex;align-items:center;gap:3px;padding:2px 6px;border-radius:8px;background:var(--roomTeal);color:var(--inkDark);font-size:9px;font-weight:700;line-height:13px;}
 
-  .seats{padding:12px 14px 14px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.016);}
+  .seats{padding:10px 12px 12px;}
   .seatshead{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
   .sectitle2{display:flex;align-items:center;gap:7px;}
   .accent2{width:3px;height:16px;border-radius:2px;background:var(--gold);}
@@ -239,37 +239,36 @@
     font-size:10px;line-height:15px;font-weight:600;color:var(--roomMuted);
     background:var(--glass);border:1px solid var(--borderSoft);border-radius:999px;padding:3px 9px;
   }
-  .grid{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;}
+  .grid{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;}
   .seat{
-    position:relative;width:74px;height:96px;border-radius:18px;
-    background:rgba(255,255,255,.032);border:1px solid var(--borderSoft);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px;gap:2px;
+    position:relative;width:76px;height:92px;border-radius:0;
+    background:transparent;border:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;gap:1px;
   }
-  .seat.occ{background:rgba(255,255,255,.055);border-color:var(--border);}
-  .seat.owner{border-color:var(--goldEdge);background:rgba(244,189,85,.07);}
-  .seat.speaking{border-color:var(--tealEdge);}
-  .avatarwrap{width:54px;height:54px;display:flex;align-items:center;justify-content:center;position:relative;}
-  .halo{position:absolute;width:54px;height:54px;border-radius:50%;border:2px solid var(--roomTeal);opacity:.45;}
+  .seat.occ,.seat.owner,.seat.speaking{background:transparent;border:0;}
+  .avatarwrap{width:58px;height:58px;display:flex;align-items:center;justify-content:center;position:relative;}
+  .halo{position:absolute;width:56px;height:56px;border-radius:50%;border:2px solid var(--roomTeal);opacity:.45;}
   .aring{
-    width:50px;height:50px;border-radius:25px;border:1.5px solid var(--borderSoft);
-    background:var(--surfaceMuted);display:flex;align-items:center;justify-content:center;overflow:hidden;
+    width:56px;height:56px;border-radius:28px;border:2px solid rgba(255,255,255,.30);
+    background:rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center;overflow:hidden;
+    box-shadow:0 4px 14px rgba(0,0,0,.45);
   }
-  .aring.live{border-color:var(--teal);background:var(--tealHaze);}
-  .aring.own{border-color:var(--gold);}
-  .aring .ph{width:44px;height:44px;border-radius:22px;background:linear-gradient(135deg,#5A3180,#2C1A45);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#F0E4FF;}
-  .crown{position:absolute;top:-3px;right:-3px;width:16px;height:16px;border-radius:8px;background:var(--gold);border:1px solid rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--inkGold);}
-  .seatlvl{position:absolute;top:-5px;left:-7px;height:16px;padding:0 5px;border-radius:6px;background:linear-gradient(135deg,#FFD98A,#E8A93F);color:#2A1704;font-size:8px;font-weight:900;line-height:16px;}
-  .seatname{font-size:10px;line-height:16px;font-weight:500;color:var(--roomText);max-width:66px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px;}
-  .micbadge{position:absolute;bottom:3px;left:3px;width:15px;height:15px;border-radius:8px;display:flex;align-items:center;justify-content:center;}
+  .aring.live{border-color:var(--roomTeal);box-shadow:0 0 12px rgba(88,214,193,.55),0 4px 14px rgba(0,0,0,.45);}
+  .aring.own{border-color:var(--gold);box-shadow:0 0 14px rgba(244,189,85,.55),0 4px 14px rgba(0,0,0,.45);}
+  .aring .ph{width:100%;height:100%;border-radius:28px;background:linear-gradient(135deg,#6B3E92,#33204F);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#F3E8FF;}
+  .crown{position:absolute;top:-4px;right:-4px;width:17px;height:17px;border-radius:9px;background:var(--gold);border:1px solid rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--inkGold);}
+  .seatlvl{position:absolute;top:-6px;left:-8px;height:16px;padding:0 5px;border-radius:6px;background:linear-gradient(135deg,#FFD98A,#E8A93F);color:#2A1704;font-size:8px;font-weight:900;line-height:16px;box-shadow:0 2px 6px rgba(0,0,0,.4);}
+  .seatname{font-size:10px;line-height:16px;font-weight:600;color:#fff;max-width:70px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px;text-shadow:0 1px 4px rgba(0,0,0,.85);}
+  .micbadge{position:absolute;bottom:0;left:2px;width:15px;height:15px;border-radius:8px;display:flex;align-items:center;justify-content:center;}
   .micbadge.on{background:var(--roomTeal);}
-  .micbadge.off{background:var(--glassStrong);}
+  .micbadge.off{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);}
   .micbadge svg{width:8px;height:8px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round;}
-  .micbadge.on svg{stroke:var(--inkTeal);} .micbadge.off svg{stroke:var(--roomMuted);}
+  .micbadge.on svg{stroke:var(--inkTeal);} .micbadge.off svg{stroke:rgba(255,255,255,.75);}
   .seatempty{display:flex;flex-direction:column;align-items:center;gap:5px;}
-  .addicon{width:34px;height:34px;border-radius:12px;background:var(--primarySoft);border:1px solid var(--borderSoft);display:flex;align-items:center;justify-content:center;}
-  .addicon.dim{background:var(--glass);}
-  .emptytxt{font-size:10px;line-height:15px;font-weight:600;color:var(--roomPrimary);}
-  .lockedtxt{font-size:10px;line-height:15px;font-weight:500;color:var(--roomMuted);}
+  .addicon{width:50px;height:50px;border-radius:25px;background:rgba(255,255,255,.09);
+    border:1.5px dashed rgba(255,255,255,.24);display:flex;align-items:center;justify-content:center;}
+  .addicon.dim{background:rgba(255,255,255,.05);border-style:solid;border-color:rgba(255,255,255,.14);}
+  .emptytxt,.lockedtxt{font-size:10px;line-height:15px;font-weight:600;color:#fff;opacity:.85;text-shadow:0 1px 4px rgba(0,0,0,.85);}
 
   .chat{padding:10px 14px 2px;flex:1;overflow:hidden;display:flex;flex-direction:column;position:relative;}
   .chat::after{
@@ -289,6 +288,10 @@
   .msg.me .bubble{background:rgba(169,71,245,.18);border-color:rgba(169,71,245,.30);border-bottom-left-radius:15px;border-bottom-right-radius:5px;}
   .mmeta{display:flex;align-items:center;justify-content:space-between;gap:12px;}
   .muser{font-size:10px;line-height:15px;font-weight:600;color:var(--roomTeal);}
+  .muserow{display:flex;align-items:center;gap:4px;min-width:0;}
+  .mlvl{height:13px;padding:0 4px;border-radius:4px;background:linear-gradient(135deg,#FFD98A,#E8A93F);
+    color:#2A1704;font-size:7px;font-weight:900;line-height:13px;flex:none;}
+  .mflag{font-size:9px;line-height:13px;flex:none;}
   .msg.me .muser{color:var(--primaryLight);}
   .mtime{font-size:8px;line-height:13px;color:var(--textMuted);}
   .mtext{font-size:13px;line-height:21px;color:var(--roomText);margin-top:3px;}
@@ -330,6 +333,25 @@
   @keyframes sheen{0%{transform:translateX(-120%)}100%{transform:translateX(220%)}}
 
   .amb{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+  /* غلاف الغرفة: خلفية كاملة الشاشة تمنح كل غرفة هوية بصرية خاصة */
+  .coverphoto{position:absolute;inset:0;pointer-events:none;overflow:hidden;
+    background:
+      radial-gradient(circle at 22% 18%, rgba(120,60,200,.55), transparent 45%),
+      radial-gradient(circle at 82% 30%, rgba(200,120,60,.34), transparent 42%),
+      radial-gradient(circle at 50% 72%, rgba(40,120,140,.34), transparent 48%),
+      radial-gradient(circle at 12% 88%, rgba(160,70,200,.30), transparent 40%),
+      linear-gradient(160deg,#2A1740 0%,#1A1030 38%,#141024 62%,#0C0A18 100%);}
+  .coverphoto::before{content:'';position:absolute;inset:-10%;
+    background:
+      radial-gradient(circle at 18% 22%, rgba(255,214,150,.30), transparent 18%),
+      radial-gradient(circle at 34% 16%, rgba(255,226,180,.20), transparent 12%),
+      radial-gradient(circle at 66% 24%, rgba(190,150,255,.24), transparent 16%),
+      radial-gradient(circle at 78% 14%, rgba(255,200,140,.18), transparent 11%),
+      radial-gradient(circle at 46% 44%, rgba(255,235,200,.14), transparent 14%),
+      radial-gradient(circle at 88% 46%, rgba(140,220,220,.16), transparent 15%);
+    filter:blur(18px);}
+  .coverphoto::after{content:'';position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(6,4,10,.78) 0%,rgba(6,4,10,.30) 22%,rgba(6,4,10,.46) 54%,rgba(6,4,10,.93) 100%);}
   .amb .orb{position:absolute;border-radius:50%;filter:blur(1px);}
   .amb .o1{width:230px;height:230px;top:-70px;left:-70px;background:rgba(169,71,245,.18);animation:drift1 9s ease-in-out infinite;}
   .amb .o2{width:190px;height:190px;top:150px;left:250px;background:rgba(88,214,193,.11);animation:drift2 11s ease-in-out infinite;}
@@ -394,6 +416,39 @@
   .confetti{position:absolute;left:50%;top:50%;}
   .confetti span{position:absolute;font-size:13px;font-weight:700;animation:sparkFly 1.35s cubic-bezier(.2,.7,.4,1) both;}
 
+  /* ============ SHIP GIFT SCENE ============ */
+  .shipscene{position:absolute;inset:0;overflow:hidden;
+    background:linear-gradient(180deg,#060A16 0%,#0A1226 34%,#0C1B33 58%,#071426 100%);}
+  .shiprays{position:absolute;top:-60px;left:-40px;right:-40px;height:70%;
+    background:linear-gradient(180deg,rgba(255,236,180,.34),rgba(255,236,180,0));
+    animation:raySway 5.2s ease-in-out infinite;transform-origin:50% 0;}
+  @keyframes raySway{0%,100%{opacity:.22;transform:rotate(-16deg) scaleX(1)}50%{opacity:.42;transform:rotate(10deg) scaleX(1.08)}}
+  .shipstars{position:absolute;inset:0;}
+  .shipstars i{position:absolute;color:#fff;font-style:normal;animation:starTwinkle 2.2s ease-in-out infinite;
+    text-shadow:0 0 8px rgba(244,189,85,.9);}
+  @keyframes starTwinkle{0%,100%{opacity:0;transform:translateY(6px) scale(.5)}50%{opacity:.95;transform:translateY(-8px) scale(1.1)}}
+  .seabg{position:absolute;left:0;right:0;bottom:0;height:46%;
+    background:linear-gradient(180deg,rgba(72,158,214,.42),rgba(24,74,124,.72) 45%,rgba(8,26,48,.94));}
+  .seabg::before{content:'';position:absolute;top:0;left:0;right:0;height:1.5px;background:rgba(190,240,255,.4);}
+  .seabg::after{content:'';position:absolute;top:20px;left:12%;right:20%;height:1px;background:rgba(190,240,255,.20);}
+  .shipwrap{position:absolute;left:0;right:0;bottom:16%;display:flex;justify-content:center;
+    animation:sailAcross 4.6s cubic-bezier(.42,0,.58,1) both, bobShip 2.2s ease-in-out infinite .1s;}
+  @keyframes sailAcross{from{transform:translateX(52%)}to{transform:translateX(-52%)}}
+  @keyframes bobShip{0%,100%{margin-bottom:0}50%{margin-bottom:10px}}
+  .shipwrap svg{filter:drop-shadow(0 0 26px rgba(127,200,255,.55));}
+  .shipbanner{position:absolute;top:16%;left:50%;transform:translateX(-50%);max-width:86%;
+    animation:bannerIn 4.2s cubic-bezier(.2,.9,.3,1) both;}
+  @keyframes bannerIn{0%{opacity:0;transform:translateX(-50%) translateY(-16px) scale(.92)}
+    12%,76%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+    100%{opacity:0;transform:translateX(-50%) translateY(-10px) scale(.96)}}
+  .shipbanner .inner{display:flex;align-items:center;gap:9px;padding:9px 14px;border-radius:999px;
+    background:rgba(12,18,34,.78);border:1px solid var(--goldLine);
+    box-shadow:0 0 22px rgba(244,189,85,.35),0 10px 24px rgba(0,0,0,.5);}
+  .shipbanner .be{font-size:21px;line-height:1.2;}
+  .shipbanner .bt{font-size:13px;font-weight:900;color:var(--gold);line-height:1.5;white-space:nowrap;}
+  .shipbanner .bs{font-size:10px;font-weight:600;color:var(--textSecondary);line-height:1.4;}
+  .shipbanner .bc{padding:2px 8px;border-radius:999px;background:var(--primarySoft);border:1px solid var(--borderStrong);
+    color:var(--primaryLight);font-size:11px;font-weight:900;}
   /* ============ GIFT SHEET ============ */
   .sheet{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 18px;border-radius:26px 26px 0 0;
     background:linear-gradient(180deg,#1C1330,#120C20);border:1px solid var(--borderStrong);border-bottom:0;
@@ -591,6 +646,7 @@
 <!-- ============ ROOM ============ -->
 <div class="phone room">
   <div class="screen"></div>
+  <div class="coverphoto"></div>
   <div class="amb"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div><div class="orb o4"></div></div>
   <div class="stageglow"></div>
   <div class="scroll">
@@ -599,7 +655,7 @@
     <div class="rheader">
       <div class="iconbtn"><svg class="icon" style="width:18px;height:18px;stroke:var(--roomMuted)" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></div>
       <div class="rinfo">
-        <div class="rnameRow"><div class="rnameRow"><div class="rname">جلسة هادئة مع وتر</div></div><div class="liveBadgeH"><div class="eqbars"><i></i><i></i><i></i><i></i></div></div></div>
+        <div class="rnameRow"><div class="rname">جلسة هادئة مع وتر</div><div class="liveBadgeH"><div class="eqbars"><i></i><i></i><i></i><i></i></div></div></div>
         <div class="rmeta">
           <div class="lchip"><span class="sstack"><span class="sav">ن</span><span class="sav">ر</span><span class="sav">خ</span></span>86 مستمع · 4 متحدث</div>
           <div class="voicechip">صوت مباشر</div>
@@ -691,7 +747,7 @@
       <div class="msglist">
       <div class="msg me">
         <div class="bubble">
-          <div class="mmeta"><div class="muser">أنت</div><div class="mtime">9:34</div></div>
+          <div class="mmeta"><div class="muserow"><span class="muser">أنت</span><span class="mlvl">LV 8</span><span class="mflag">🇸🇦</span></div><div class="mtime">9:34</div></div>
           <div class="mtext">أنا معكم، خلونا نبدأ بأغنية هادئة</div>
         </div>
         <div class="mavatar">س</div>
@@ -700,7 +756,7 @@
       <div class="msg">
         <div class="mavatar">خ</div>
         <div class="bubble">
-          <div class="mmeta"><div class="muser">خالد</div><div class="mtime">9:35</div></div>
+          <div class="mmeta"><div class="muserow"><span class="muser">خالد</span><span class="mlvl">LV 9</span><span class="mflag">🇯🇴</span></div><div class="mtime">9:35</div></div>
           <div class="mtext">جاهزين 🙌</div>
         </div>
       </div>
@@ -708,7 +764,7 @@
       <div class="msg">
         <div class="mavatar">ل</div>
         <div class="bubble">
-          <div class="mmeta"><div class="muser">لمى</div><div class="mtime">9:35</div></div>
+          <div class="mmeta"><div class="muserow"><span class="muser">لمى</span><span class="mlvl">LV 6</span><span class="mflag">🇪🇬</span></div><div class="mtime">9:35</div></div>
           <div class="mtext">يلا بينا 🎶</div>
         </div>
       </div>
@@ -734,6 +790,7 @@
 <!-- ============ GIFT MOMENT ============ -->
 <div class="phone room">
   <div class="screen"></div>
+  <div class="coverphoto"></div>
   <div class="amb"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
   <div class="stageglow"></div>
   <div class="scroll" style="opacity:.55;filter:saturate(.85)">
@@ -801,6 +858,7 @@
 <!-- ============ GIFT SHEET ============ -->
 <div class="phone room">
   <div class="screen"></div>
+  <div class="coverphoto"></div>
   <div class="amb"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
   <div class="stageglow"></div>
   <div class="scroll" style="opacity:.5;filter:saturate(.8)">
@@ -858,6 +916,557 @@
     <div class="cta"><span class="sh"></span>إرسال الهدية الآن 🎁</div>
   </div>
   <div class="caption-note">M10.1 · لوحة الهدايا</div>
+</div>
+
+<!-- ============ SHIP GIFT SCENE ============ -->
+<div class="phone room">
+  <div class="shipscene">
+    <div class="shiprays"></div>
+    <div class="shipstars">
+      <i style="left:8%;top:12%;font-size:9px;animation-delay:.1s">&#10022;</i>
+      <i style="left:22%;top:26%;font-size:12px;animation-delay:.5s;color:#F4BD55">&#10022;</i>
+      <i style="left:38%;top:8%;font-size:8px;animation-delay:.9s">&#10022;</i>
+      <i style="left:54%;top:20%;font-size:11px;animation-delay:.3s;color:#BFEFFF">&#10022;</i>
+      <i style="left:70%;top:10%;font-size:9px;animation-delay:1.2s">&#10022;</i>
+      <i style="left:84%;top:24%;font-size:13px;animation-delay:.7s;color:#F4BD55">&#10022;</i>
+      <i style="left:14%;top:40%;font-size:10px;animation-delay:1.5s;color:#F7C7E8">&#10022;</i>
+      <i style="left:62%;top:38%;font-size:8px;animation-delay:1.1s">&#10022;</i>
+      <i style="left:90%;top:44%;font-size:10px;animation-delay:.4s;color:#BFEFFF">&#10022;</i>
+      <i style="left:30%;top:52%;font-size:9px;animation-delay:1.8s">&#10022;</i>
+      <i style="left:48%;top:48%;font-size:12px;animation-delay:.2s;color:#F4BD55">&#10022;</i>
+      <i style="left:76%;top:56%;font-size:9px;animation-delay:1.4s">&#10022;</i>
+    </div>
+
+    <div class="shipbanner">
+      <div class="inner">
+        <span class="be">&#128681;</span>
+        <div>
+          <div class="bt">سالم أهدى سفينة وتر</div>
+          <div class="bs">إلى ريم</div>
+        </div>
+        <span class="bc">&times;3</span>
+      </div>
+    </div>
+
+    <div class="seabg"></div>
+
+    <div class="shipwrap">
+      <svg width="260" height="247" viewBox="0 0 200 190" fill="none">
+        <defs>
+          <linearGradient id="sail" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#F2FBFF"/><stop offset=".3" stop-color="#B6DDF7"/>
+            <stop offset=".62" stop-color="#F6C9E9"/><stop offset="1" stop-color="#A6EFDD"/>
+          </linearGradient>
+          <linearGradient id="sailShade" x1="1" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#C9B6E8"/><stop offset="1" stop-color="#8FB6D8"/>
+          </linearGradient>
+          <linearGradient id="hull" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#AFC3E4"/><stop offset=".5" stop-color="#63739F"/><stop offset="1" stop-color="#242C4C"/>
+          </linearGradient>
+          <linearGradient id="deck" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#E0C994"/><stop offset="1" stop-color="#8A6A3A"/>
+          </linearGradient>
+        </defs>
+        <path d="M58 40 L58 134" stroke="#EAF1FF" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M100 20 L100 138" stroke="#F7FAFF" stroke-width="3" stroke-linecap="round"/>
+        <path d="M142 44 L142 134" stroke="#EAF1FF" stroke-width="2.6" stroke-linecap="round"/>
+        <path d="M58 42 C34 62 30 100 40 128 L58 128 Z" fill="url(#sail)"/>
+        <path d="M58 42 C80 64 84 102 74 128 L58 128 Z" fill="url(#sailShade)" opacity=".88"/>
+        <path d="M100 22 C66 52 58 102 70 134 L100 134 Z" fill="url(#sail)"/>
+        <path d="M100 22 C134 52 142 102 130 134 L100 134 Z" fill="url(#sailShade)" opacity=".92"/>
+        <path d="M142 46 C122 66 118 102 126 130 L142 130 Z" fill="url(#sail)"/>
+        <path d="M142 46 C160 68 164 104 156 130 L142 130 Z" fill="url(#sailShade)" opacity=".82"/>
+        <path d="M100 20 L120 27 L100 34 Z" fill="#F4BD55"/>
+        <path d="M28 134 L172 134 L164 144 L36 144 Z" fill="url(#deck)"/>
+        <path d="M24 145 C38 172 76 184 100 184 C126 184 162 172 176 145 Z" fill="url(#hull)"/>
+        <path d="M38 150 C56 162 80 168 100 168 C120 168 146 162 162 150" stroke="#D6E8FF" stroke-width="1.5" stroke-opacity=".6"/>
+        <polygon points="64,152 71,152 70,159 65,159" fill="#FFE6A6"/>
+        <polygon points="95,154 102,154 101,162 96,162" fill="#FFE6A6"/>
+        <polygon points="127,152 134,152 133,159 128,159" fill="#FFE6A6"/>
+      </svg>
+    </div></div>
+        </div>
+        <div class="iconbtn active">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="balancerow">
+      <div class="balancepill">
+        <div class="coin">C</div>
+        <div class="val">12,450</div>
+        <div class="micro muted" style="color:var(--textMuted)">Coin</div>
+      </div>
+      <div class="lvl">LV 7</div>
+    </div>
+
+    <div class="hero">
+      <div class="grad"></div>
+      <div class="orb1"></div><div class="orb2"></div>
+      <div class="herotop">
+        <div class="livepill"><span class="dot"></span><span class="micro">مباشر الآن</span></div>
+        <span class="micro">6 غرفة · 214 مستمع</span>
+      </div>
+      <div class="display herotitle">صوتك يلاقي مجتمعه</div>
+      <div class="caption herocaption">انضم إلى جلسة حيّة، أو افتح غرفتك وخلي أصحابك يسمعوك.</div>
+      <div class="heroactions">
+        <div class="btn gold">استكشف الغرف <svg class="chev" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+        <div class="btn ghost" style="width:46px;padding:0"><svg class="chev" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="numeric success">6</div><div class="micro">غرف مباشرة</div></div>
+      <div class="sdiv"></div>
+      <div class="stat"><div class="numeric teal">18</div><div class="micro">على المنصة</div></div>
+      <div class="sdiv"></div>
+      <div class="stat"><div class="numeric primary">214</div><div class="micro">مستمع</div></div>
+    </div>
+
+    <div class="card stories">
+      <div class="storiesrow">
+        <div class="goldicon"><svg class="chev" style="width:20px;height:20px;stroke:#25140A" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 9l5 3-5 3V9z"/></svg></div>
+        <div style="flex:1">
+          <div class="bodyStrong">قصص المجتمع</div>
+          <div class="caption" style="margin-top:1px">صور تختفي بعد ٢٤ ساعة</div>
+        </div>
+        <svg class="chev" style="stroke:#7D6E93" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      </div>
+    </div>
+
+    <div class="featrow">
+      <div class="card feat"><div class="featinner">
+        <div class="featicon" style="background:var(--goldSoft)"><svg class="icon" style="stroke:var(--gold);width:16px;height:16px" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div>
+        <div style="flex:1;min-width:0"><div class="bodyStrong" style="font-size:13px">متجر الهدايا</div><div class="micro" style="color:var(--textMuted)">أرسل دعمك للمجتمع</div></div>
+      </div></div>
+      <div class="card feat"><div class="featinner">
+        <div class="featicon" style="background:var(--primarySoft)"><svg class="icon" style="stroke:var(--primary);width:16px;height:16px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></div>
+        <div style="flex:1;min-width:0"><div class="bodyStrong" style="font-size:13px">مهمات اليوم</div><div class="micro" style="color:var(--textMuted)">اجمع Coin وXP</div></div>
+      </div></div>
+    </div>
+
+    <div class="secthead">
+      <div class="secttitle"><div class="accent"></div><div>
+        <div class="h2">الغرف الآن</div>
+        <div class="caption">6 جلسة متاحة للانضمام</div>
+      </div></div>
+    </div>
+
+    <div class="chips">
+      <div class="chip on">الكل</div>
+      <div class="chip">موسيقى</div>
+      <div class="chip">دردشة</div>
+      <div class="chip">ألعاب</div>
+      <div class="chip">شعر</div>
+    </div>
+
+    <div class="card roomcard"><div class="roomrow">
+      <div class="cover">
+        <svg class="icon" style="width:26px;height:26px;stroke:#C88CFF;position:relative;z-index:1" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg>
+        <div class="shade"></div>
+        <div class="livedot"><i></i>مباشر</div>
+      </div>
+      <div class="roombody">
+        <div class="roomtitlerow"><div class="title" style="flex:1">جلسة هادئة مع وتر</div></div>
+        <div class="ownerrow"><div class="av">ن</div><div class="caption" style="font-size:11px">نور الدين</div><div class="lvl" style="height:16px;font-size:8px;padding:0 5px;border-radius:6px">LV 12</div></div>
+        <div class="roomstats">
+          <div class="statChip"><svg class="mini" style="stroke:var(--teal)" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg><span class="micro">5/8</span></div>
+          <div class="statChip"><svg class="mini" style="stroke:var(--primary)" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg><span class="micro">86</span></div>
+          <div class="tag">موسيقى</div>
+        </div>
+      </div>
+    </div></div>
+
+    <div class="card roomcard"><div class="roomrow">
+      <div class="cover" style="background:linear-gradient(135deg,rgba(88,214,193,.5),rgba(169,71,245,.24))">
+        <svg class="icon" style="width:26px;height:26px;stroke:#8CF0DC;position:relative;z-index:1" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg>
+        <div class="shade"></div>
+        <div class="livedot"><i></i>مباشر</div>
+      </div>
+      <div class="roombody">
+        <div class="roomtitlerow"><div class="title" style="flex:1">قهوة وسوالف</div>
+          <svg class="mini" style="stroke:var(--gold);width:13px;height:13px" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div class="ownerrow"><div class="av">ر</div><div class="caption" style="font-size:11px">ريم</div><div class="lvl" style="height:16px;font-size:8px;padding:0 5px;border-radius:6px">LV 4</div></div>
+        <div class="roomstats">
+          <div class="statChip"><svg class="mini" style="stroke:var(--teal)" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg><span class="micro">3/6</span></div>
+          <div class="statChip"><svg class="mini" style="stroke:var(--primary)" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="micro">42</span></div>
+          <div class="tag">دردشة</div>
+        </div>
+      </div>
+    </div></div>
+
+    <div class="card roomcard"><div class="roomrow">
+      <div class="cover" style="background:linear-gradient(135deg,rgba(244,189,85,.45),rgba(169,71,245,.26))">
+        <svg class="icon" style="width:26px;height:26px;stroke:#FFDFA0;position:relative;z-index:1" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+        <div class="shade"></div>
+      </div>
+      <div class="roombody">
+        <div class="roomtitlerow"><div class="title" style="flex:1">ليلة شعر ونبط</div></div>
+        <div class="ownerrow"><div class="av">خ</div><div class="caption" style="font-size:11px">خالد</div></div>
+        <div class="roomstats">
+          <div class="statChip"><svg class="mini" style="stroke:var(--teal)" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg><span class="micro">8/10</span></div>
+          <div class="statChip"><svg class="mini" style="stroke:var(--primary)" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="micro">31</span></div>
+          <div class="tag">شعر</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tab on"><div class="tico"><svg class="icon" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/></svg></div>الرئيسية</div>
+    <div class="tab"><div class="tico"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="11" rx="4"/><path d="M7 11v3M5.5 12.5h3M16 11.5h.01M18.5 13.5h.01"/></svg></div>الألعاب</div>
+    <div class="tab"><div class="tico"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div>الأصدقاء</div>
+    <div class="tab"><div class="tico"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="3"/><path d="M2 11h20"/></svg></div>المحفظة</div>
+    <div class="tab"><div class="tico"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg></div>حسابي</div>
+  </div>
+  <div class="caption-note">M10.1 · الرئيسية</div>
+</div>
+
+<!-- ============ ROOM ============ -->
+<div class="phone room">
+  <div class="screen"></div>
+  <div class="coverphoto"></div>
+  <div class="amb"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div><div class="orb o4"></div></div>
+  <div class="stageglow"></div>
+  <div class="scroll">
+    <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+
+    <div class="rheader">
+      <div class="iconbtn"><svg class="icon" style="width:18px;height:18px;stroke:var(--roomMuted)" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></div>
+      <div class="rinfo">
+        <div class="rnameRow"><div class="rname">جلسة هادئة مع وتر</div><div class="liveBadgeH"><div class="eqbars"><i></i><i></i><i></i><i></i></div></div></div>
+        <div class="rmeta">
+          <div class="lchip"><span class="sstack"><span class="sav">ن</span><span class="sav">ر</span><span class="sav">خ</span></span>86 مستمع · 4 متحدث</div>
+          <div class="voicechip">صوت مباشر</div>
+        </div>
+      </div>
+      <div class="iconbtn"><svg class="icon" style="width:18px;height:18px;stroke:var(--roomPrimary)" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg></div>
+      <div class="iconbtn"><svg class="icon" style="width:18px;height:18px;stroke:var(--roomPrimary)" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <div class="badge" style="background:var(--danger)">2</div>
+      </div>
+    </div>
+
+    <div class="ticker">
+      <div class="trow"><span class="tem">&#127801;</span><span class="tcopy"><b class="ts">سالم</b><span class="tm"> أهدى </span><b class="tg">وردة وتر</b><span class="tm"> إلى </span><b class="tr">ريم</b></span></div>
+    </div>
+
+    <div class="seats">
+      <div class="seatshead">
+        <div class="sectitle2"><div class="accent2"></div><div class="t">المنصة الصوتية</div></div>
+        <div class="countpill">4/8</div>
+      </div>
+      <div class="grid">
+        <div class="seat owner occ speaking" style="--d:40ms">
+          <div class="avatarwrap">
+            <div class="halo"></div><div class="halo b"></div>
+            <div class="aring own"><div class="ph">ن</div></div>
+            <div class="crown">♛</div>
+            <div class="seatlvl">LV 12</div>
+          </div>
+          <div class="seatname">نور الدين</div>
+          <div class="wave"><i></i><i></i><i></i></div>
+        </div>
+        <div class="seat occ speaking" style="--d:100ms">
+          <div class="avatarwrap">
+            <div class="halo"></div><div class="halo b"></div>
+            <div class="aring live"><div class="ph">ر</div></div>
+            <div class="seatlvl">LV 4</div>
+          </div>
+          <div class="seatname">ريم</div>
+          <div class="wave"><i></i><i></i><i></i></div>
+        </div>
+        <div class="seat occ" style="--d:160ms">
+          <div class="avatarwrap">
+            <div class="aring"><div class="ph">خ</div></div>
+            <div class="seatlvl">LV 9</div>
+          </div>
+          <div class="seatname">خالد</div>
+          <div class="micbadge off"><svg viewBox="0 0 24 24"><path d="M2 2l20 20M9 9v3a3 3 0 0 0 6 0v-1M12 2a3 3 0 0 1 3 3v4"/><path d="M19 10v2a7 7 0 0 1-10.6 6"/></svg></div>
+        </div>
+        <div class="seat occ" style="--d:160ms">
+          <div class="avatarwrap"><div class="aring"><div class="ph">ل</div></div></div>
+          <div class="seatname">لمى</div>
+          <div class="micbadge off"><svg viewBox="0 0 24 24"><path d="M2 2l20 20M9 9v3a3 3 0 0 0 6 0v-1M12 2a3 3 0 0 1 3 3v4"/><path d="M19 10v2a7 7 0 0 1-10.6 6"/></svg></div>
+        </div>
+        <div class="seat" style="--d:240ms">
+          <div class="seatempty">
+            <div class="addicon dim"><svg class="mini" style="width:14px;height:14px;stroke:var(--textMuted)" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+            <div class="lockedtxt">مقفل</div>
+          </div>
+        </div>
+        <div class="seat" style="--d:240ms">
+          <div class="seatempty">
+            <div class="addicon"><svg class="mini" style="width:14px;height:14px;stroke:var(--roomPrimary)" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg></div>
+            <div class="emptytxt">انضم</div>
+          </div>
+        </div>
+        <div class="seat" style="--d:240ms">
+          <div class="seatempty">
+            <div class="addicon"><svg class="mini" style="width:14px;height:14px;stroke:var(--roomPrimary)" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg></div>
+            <div class="emptytxt">انضم</div>
+          </div>
+        </div>
+        <div class="seat" style="--d:240ms">
+          <div class="seatempty">
+            <div class="addicon"><svg class="mini" style="width:14px;height:14px;stroke:var(--roomPrimary)" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg></div>
+            <div class="emptytxt">انضم</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat">
+      <div class="chathead">
+        <div class="sectitle2"><div class="accent2" style="background:var(--roomPrimary)"></div><div class="t">محادثة الغرفة</div></div>
+        <div class="hint">تواصل بأدب واحترام</div>
+      </div>
+
+      <div class="sysmsg"><div class="rule"></div><div class="txt">انضم ريم إلى المنصة</div><div class="rule"></div></div>
+
+      <div class="msglist">
+      <div class="msg me">
+        <div class="bubble">
+          <div class="mmeta"><div class="muserow"><span class="muser">أنت</span><span class="mlvl">LV 8</span><span class="mflag">🇸🇦</span></div><div class="mtime">9:34</div></div>
+          <div class="mtext">أنا معكم، خلونا نبدأ بأغنية هادئة</div>
+        </div>
+        <div class="mavatar">س</div>
+      </div>
+
+      <div class="msg">
+        <div class="mavatar">خ</div>
+        <div class="bubble">
+          <div class="mmeta"><div class="muserow"><span class="muser">خالد</span><span class="mlvl">LV 9</span><span class="mflag">🇯🇴</span></div><div class="mtime">9:35</div></div>
+          <div class="mtext">جاهزين 🙌</div>
+        </div>
+      </div>
+
+      <div class="msg">
+        <div class="mavatar">ل</div>
+        <div class="bubble">
+          <div class="mmeta"><div class="muserow"><span class="muser">لمى</span><span class="mlvl">LV 6</span><span class="mflag">🇪🇬</span></div><div class="mtime">9:35</div></div>
+          <div class="mtext">يلا بينا 🎶</div>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <div class="inputbar">
+      <div class="giftbtn"><svg class="mini" style="width:18px;height:18px;stroke:var(--gold)" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M3 12h18M12 8v13"/><path d="M12 8S9 3 6.5 4.5 12 8 12 8zM12 8s3-5 5.5-3.5S12 8 12 8z"/></svg></div>
+      <div class="emojibtn"><svg class="mini" style="width:17px;height:17px;stroke:var(--roomMuted)" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg></div>
+      <div class="field">اكتب رسالة...</div>
+      <div class="sendbtn"><svg class="mini" style="width:16px;height:16px;stroke:#fff" viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></div>
+    </div>
+
+    <div class="micbar">
+      <div class="micbtn"><svg class="mini" style="width:18px;height:18px;stroke:var(--inkDark)" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg> تتحدث</div>
+      <div class="leavebtn">ترك المقعد</div>
+    </div>
+  </div>
+  <div class="caption-note">M10.1 · الغرفة</div>
+</div>
+
+</body>
+<!-- ============ GIFT MOMENT ============ -->
+<div class="phone room">
+  <div class="screen"></div>
+  <div class="coverphoto"></div>
+  <div class="amb"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
+  <div class="stageglow"></div>
+  <div class="scroll" style="opacity:.55;filter:saturate(.85)">
+    <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+    <div class="rheader">
+      <div class="iconbtn"><svg class="icon" style="width:18px;height:18px;stroke:var(--roomMuted)" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></div>
+      <div class="rinfo">
+        <div class="rnameRow"><div class="rname">جلسة هادئة مع وتر</div></div>
+        <div class="rmeta"><div class="lchip">86 مستمع · 4 متحدث</div></div>
+      </div>
+      <div class="iconbtn"></div>
+    </div>
+    <div class="ticker">
+      <div class="trow"><span class="tem">&#127801;</span><span class="tcopy"><b class="ts">سالم</b><span class="tm"> أهدى </span><b class="tg">وردة وتر</b><span class="tm"> إلى </span><b class="tr">ريم</b></span></div>
+    </div>
+
+    <div class="seats">
+      <div class="seatshead">
+        <div class="sectitle2"><div class="accent2"></div><div class="t">المنصة الصوتية</div></div>
+        <div class="countpill">4/8</div>
+      </div>
+      <div class="grid">
+        <div class="seat owner occ speaking" style="--d:40ms"><div class="avatarwrap"><div class="halo"></div><div class="aring own"><div class="ph">ن</div></div><div class="crown">♛</div><div class="seatlvl">LV 12</div></div><div class="seatname">نور الدين</div><div class="wave"><i></i><i></i><i></i></div></div>
+        <div class="seat occ speaking" style="--d:100ms"><div class="avatarwrap"><div class="halo"></div><div class="aring live"><div class="ph">ر</div></div><div class="seatlvl">LV 4</div></div><div class="seatname">ريم</div><div class="wave"><i></i><i></i><i></i></div></div>
+        <div class="seat occ" style="--d:160ms"><div class="avatarwrap"><div class="aring"><div class="ph">خ</div></div></div><div class="seatname">خالد</div><div class="micbadge off"><svg viewBox="0 0 24 24"><path d="M2 2l20 20M9 9v3a3 3 0 0 0 6 0v-1M12 2a3 3 0 0 1 3 3v4"/></svg></div></div>
+        <div class="seat" style="--d:240ms"><div class="seatempty"><div class="addicon"><svg class="mini" style="width:14px;height:14px;stroke:var(--roomPrimary)" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg></div><div class="emptytxt">انضم</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dim"></div>
+  <div class="celebrate">
+    <div class="rings"><div class="r r1"></div><div class="r r2"></div><div class="r r3"></div></div>
+    <div class="aura"></div>
+    <div class="giftcard">
+      <div class="sheen"></div>
+      <div class="top"><span class="tagNew">سالم أهدى</span><span class="tagCombo">×3 كومبو</span></div>
+      <span class="bigemoji">🌹</span>
+      <div class="gname">وردة وتر</div>
+      <div class="gto"><span class="av">ر</span>إلى ريم</div>
+      <div class="sparkrow"><span class="ln"></span><span class="sp">✦ ✦ ✦</span><span class="ln"></span></div>
+    </div>
+    <div class="confetti">
+      <span style="--dx:-96px;--dy:-84px;--rot:220deg;color:#F4BD55;animation-delay:0ms">✦</span>
+      <span style="--dx:88px;--dy:-70px;--rot:-200deg;color:#A947F5;animation-delay:40ms">●</span>
+      <span style="--dx:-40px;--dy:-118px;--rot:160deg;color:#58D6C1;animation-delay:80ms">◆</span>
+      <span style="--dx:120px;--dy:-18px;--rot:-260deg;color:#FF718E;animation-delay:120ms">✦</span>
+      <span style="--dx:-124px;--dy:-8px;--rot:240deg;color:#FFFFFF;animation-delay:60ms">✧</span>
+      <span style="--dx:44px;--dy:-126px;--rot:-150deg;color:#FFD98A;animation-delay:150ms">✦</span>
+      <span style="--dx:-72px;--dy:56px;--rot:190deg;color:#F4BD55;animation-delay:100ms">◆</span>
+      <span style="--dx:78px;--dy:66px;--rot:-230deg;color:#58D6C1;animation-delay:170ms">●</span>
+      <span style="--dx:0px;--dy:-140px;--rot:300deg;color:#A947F5;animation-delay:30ms">✦</span>
+      <span style="--dx:140px;--dy:-96px;--rot:-180deg;color:#FFD98A;animation-delay:200ms">✧</span>
+      <span style="--dx:-142px;--dy:-66px;--rot:210deg;color:#FF718E;animation-delay:130ms">●</span>
+      <span style="--dx:26px;--dy:108px;--rot:-280deg;color:#FFFFFF;animation-delay:220ms">◆</span>
+      <span style="--dx:-30px;--dy:112px;--rot:250deg;color:#F4BD55;animation-delay:180ms">✦</span>
+      <span style="--dx:108px;--dy:34px;--rot:-210deg;color:#A947F5;animation-delay:90ms">✧</span>
+      <span style="--dx:-108px;--dy:30px;--rot:230deg;color:#58D6C1;animation-delay:110ms">●</span>
+      <span style="--dx:64px;--dy:-104px;--rot:-240deg;color:#FFD98A;animation-delay:70ms">✦</span>
+    </div>
+  </div>
+  <div class="caption-note">M10.1 · لحظة الإهداء</div>
+</div>
+
+<!-- ============ GIFT SHEET ============ -->
+<div class="phone room">
+  <div class="screen"></div>
+  <div class="coverphoto"></div>
+  <div class="amb"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
+  <div class="stageglow"></div>
+  <div class="scroll" style="opacity:.5;filter:saturate(.8)">
+    <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+    <div class="rheader">
+      <div class="iconbtn"></div>
+      <div class="rinfo"><div class="rnameRow"><div class="rname">جلسة هادئة مع وتر</div></div><div class="rmeta"><div class="lchip">86 مستمع · 4 متحدث</div></div></div>
+      <div class="iconbtn"></div>
+    </div>
+    <div class="ticker">
+      <div class="trow"><span class="tem">&#127801;</span><span class="tcopy"><b class="ts">سالم</b><span class="tm"> أهدى </span><b class="tg">وردة وتر</b><span class="tm"> إلى </span><b class="tr">ريم</b></span></div>
+    </div>
+
+    <div class="seats">
+      <div class="seatshead"><div class="sectitle2"><div class="accent2"></div><div class="t">المنصة الصوتية</div></div><div class="countpill">4/8</div></div>
+      <div class="grid">
+        <div class="seat owner occ speaking"><div class="avatarwrap"><div class="halo"></div><div class="aring own"><div class="ph">ن</div></div><div class="crown">♛</div><div class="seatlvl">LV 12</div></div><div class="seatname">نور الدين</div><div class="wave"><i></i><i></i><i></i></div></div>
+        <div class="seat occ speaking"><div class="avatarwrap"><div class="halo"></div><div class="aring live"><div class="ph">ر</div></div><div class="seatlvl">LV 4</div></div><div class="seatname">ريم</div><div class="wave"><i></i><i></i><i></i></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dim" style="background:rgba(6,4,10,.72)"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="sheethead">
+      <div>
+        <div class="h2" style="font-size:17px">هدايا الغرفة</div>
+        <div class="caption" style="margin-top:2px">اختر هدية ثم حدد المستلم</div>
+      </div>
+      <svg class="mini" style="width:18px;height:18px;stroke:var(--textMuted)" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </div>
+
+    <div class="balcard">
+      <div><div class="lbl">رصيد Coin المتاح</div><div class="val">12,450</div></div>
+      <div class="coin" style="width:26px;height:26px;font-size:11px">C</div>
+    </div>
+
+    <div class="gsearch"><svg class="mini" style="width:14px;height:14px;stroke:var(--roomMuted)" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>ابحث عن هدية...</div>
+
+    <div class="ggrid">
+      <div class="gcard on"><span class="ge">🌹</span><span class="gn">وردة وتر</span><span class="gp">500</span></div>
+      <div class="gcard"><span class="ge">🎁</span><span class="gn">صندوق</span><span class="gp">1,200</span></div>
+      <div class="gcard"><span class="ge">👑</span><span class="gn">تاج</span><span class="gp">5,000</span></div>
+      <div class="gcard"><span class="ge">🚀</span><span class="gn">صاروخ</span><span class="gp">9,900</span></div>
+    </div>
+
+    <div class="steprow"><span class="t">اختر المستلم من المنصة</span><span class="combo">أرسل هدايا متتالية لتفعيل الكومبو</span></div>
+    <div class="recips">
+      <div class="recip on"><span class="av">ر</span>ريم</div>
+      <div class="recip"><span class="av">ن</span>نور الدين</div>
+      <div class="recip"><span class="av">خ</span>خالد</div>
+    </div>
+
+    <div class="cta"><span class="sh"></span>إرسال الهدية الآن 🎁</div>
+  </div>
+  <div class="caption-note">M10.1 · لوحة الهدايا</div>
+</div>
+
+<!-- ============ SHIP GIFT SCENE ============ -->
+<div class="phone room">
+  <div class="shipscene">
+    <div class="shiprays"></div>
+    <div class="shipstars">
+      <i style="left:8%;top:12%;font-size:9px;animation-delay:.1s">&#10022;</i>
+      <i style="left:22%;top:26%;font-size:12px;animation-delay:.5s;color:#F4BD55">&#10022;</i>
+      <i style="left:38%;top:8%;font-size:8px;animation-delay:.9s">&#10022;</i>
+      <i style="left:54%;top:20%;font-size:11px;animation-delay:.3s;color:#BFEFFF">&#10022;</i>
+      <i style="left:70%;top:10%;font-size:9px;animation-delay:1.2s">&#10022;</i>
+      <i style="left:84%;top:24%;font-size:13px;animation-delay:.7s;color:#F4BD55">&#10022;</i>
+      <i style="left:14%;top:40%;font-size:10px;animation-delay:1.5s;color:#F7C7E8">&#10022;</i>
+      <i style="left:62%;top:38%;font-size:8px;animation-delay:1.1s">&#10022;</i>
+      <i style="left:90%;top:44%;font-size:10px;animation-delay:.4s;color:#BFEFFF">&#10022;</i>
+      <i style="left:30%;top:52%;font-size:9px;animation-delay:1.8s">&#10022;</i>
+      <i style="left:48%;top:48%;font-size:12px;animation-delay:.2s;color:#F4BD55">&#10022;</i>
+      <i style="left:76%;top:56%;font-size:9px;animation-delay:1.4s">&#10022;</i>
+    </div>
+
+    <div class="shipbanner">
+      <div class="inner">
+        <span class="be">&#128681;</span>
+        <div>
+          <div class="bt">سالم أهدى سفينة وتر</div>
+          <div class="bs">إلى ريم</div>
+        </div>
+        <span class="bc">&times;3</span>
+      </div>
+    </div>
+
+    <div class="seabg"></div>
+
+    <div class="shipwrap">
+      <svg width="250" height="238" viewBox="0 0 200 190" fill="none">
+        <defs>
+          <linearGradient id="sail" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#EAF7FF" stop-opacity=".98"/>
+            <stop offset=".35" stop-color="#A9D8F5" stop-opacity=".95"/>
+            <stop offset=".7" stop-color="#F7C7E8" stop-opacity=".92"/>
+            <stop offset="1" stop-color="#9EEBD8" stop-opacity=".95"/>
+          </linearGradient>
+          <linearGradient id="hull" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#9FB4D8"/><stop offset=".55" stop-color="#5E6E9E"/><stop offset="1" stop-color="#2A3358"/>
+          </linearGradient>
+          <linearGradient id="deck" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#D9C08A"/><stop offset="1" stop-color="#8A6A3A"/>
+          </linearGradient>
+        </defs>
+        <path d="M62 44 L62 132" stroke="#E8EEFF" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M100 26 L100 136" stroke="#F3F7FF" stroke-width="2.8" stroke-linecap="round"/>
+        <path d="M138 50 L138 132" stroke="#E8EEFF" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M62 48 C44 70 40 96 52 122 C62 118 62 96 62 48 Z" fill="url(#sail)" opacity=".94"/>
+        <path d="M62 48 C80 70 84 96 72 122 C64 118 62 96 62 48 Z" fill="url(#sail)" opacity=".72"/>
+        <path d="M100 30 C76 62 70 100 86 130 C98 126 100 96 100 30 Z" fill="url(#sail)"/>
+        <path d="M100 30 C124 62 130 100 114 130 C102 126 100 96 100 30 Z" fill="url(#sail)" opacity=".8"/>
+        <path d="M138 54 C122 76 118 100 128 122 C137 118 138 96 138 54 Z" fill="url(#sail)" opacity=".9"/>
+        <path d="M138 54 C154 76 158 100 148 122 C140 118 138 96 138 54 Z" fill="url(#sail)" opacity=".66"/>
+        <path d="M100 26 L118 32 L100 38 Z" fill="#F4BD55"/>
+        <path d="M30 132 L170 132 L162 142 L38 142 Z" fill="url(#deck)"/>
+        <path d="M26 143 C40 170 78 182 100 182 C124 182 160 170 174 143 Z" fill="url(#hull)"/>
+        <path d="M40 148 C58 160 82 166 100 166 C120 166 144 160 160 148" stroke="#CFE4FF" stroke-width="1.4" stroke-opacity=".55"/>
+        <polygon points="66,150 72,150 71,157 67,157" fill="#FFE6A6" opacity=".9"/>
+        <polygon points="96,152 102,152 101,160 97,160" fill="#FFE6A6" opacity=".9"/>
+        <polygon points="126,150 132,150 131,157 127,157" fill="#FFE6A6" opacity=".9"/>
+      </svg>
+    </div>
+  </div>
+  <div class="caption-note">M10.1 · هدية السفينة</div>
 </div>
 
 <script>

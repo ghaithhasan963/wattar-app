@@ -28,6 +28,8 @@ export interface GiftCelebrationData {
   recipient: string;
   recipientAvatar?: string | null;
   sender?: string | null;
+  /** هدية كبيرة: تُعرض بمشهد سينمائي كامل الشاشة بدل بطاقة الاحتفال. */
+  premium?: boolean;
 }
 
 const PARTICLE_COUNT = 16;
