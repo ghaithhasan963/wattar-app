@@ -142,6 +142,9 @@ export default function RoomScreen() {
   const [giftCombo, setGiftCombo] = useState(1);
   const [giftFeed, setGiftFeed] = useState<GiftFeedEntry[]>([]);
   const lastGiftAtRef = useRef(0);
+  // مواقع المقاعد على الشاشة (حسب user_id) — تُستخدم لتحريك الهدية نحو المستلم عند انتهاء المشهد.
+  const seatPositionsRef = useRef<Record<string, { x: number; y: number }>>({});
+  const [giftTarget, setGiftTarget] = useState<{ x: number; y: number } | null>(null);
   useEffect(() => {
     myRoleRef.current = myRole;
   }, [myRole]);
@@ -164,6 +167,36 @@ export default function RoomScreen() {
     ], { cancelable: false });
   }, [room?.status, router]);
 
+  // رسائل نظام دورية: تذكير بالاحترام والمراقبة، محلية للعرض (لا تُكتب في قاعدة البيانات).
+  useEffect(() => {
+    const notices = [
+      'تواصلوا باحترام ولطف — مجتمع وتر يرحّب بالجميع 🤍',
+      'فريق وتر يراقب الغرف على مدار الساعة لضمان بيئة آمنة.',
+      'أي إساءة أو مخالفة؟ استخدم الإبلاغ وسنتعامل معها فورًا.',
+      'استمتعوا بوقّتكم، وخلّوا الحوار راقياً وممتعاً للجميع.',
+    ];
+    let index = 0;
+    const pushNotice = () => {
+      const text = notices[index % notices.length];
+      index += 1;
+      const localNotice: Message = {
+        id: `sys-local-${Date.now()}-${index}`,
+        user_id: 'system',
+        message: text,
+        is_system: true,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((previous) => {
+        const next = [...previous, localNotice];
+        return next.length > 120 ? next.slice(next.length - 120) : next;
+      });
+    };
+    // أول رسالة بعد دقيقة، ثم كل 8 دقائق.
+    const first = setTimeout(pushNotice, 60_000);
+    const interval = setInterval(pushNotice, 8 * 60_000);
+    return () => { clearTimeout(first); clearInterval(interval); };
+  }, []);
+
   /** إضافة هدية إلى الشريط الحيّ وإزالتها تلقائيًا بعد ٨ ثوانٍ. */
   const pushGiftFeed = (entry: Omit<GiftFeedEntry, 'id'>) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -179,6 +212,8 @@ export default function RoomScreen() {
     const withinCombo = now - lastGiftAtRef.current < 5000;
     lastGiftAtRef.current = now;
     setGiftCombo((previous) => (withinCombo ? Math.min(previous + 1, 99) : 1));
+    // هدف الحركة: مقعد المستلم إن وُجد، وإلا وسط الشاشة.
+    setGiftTarget(gift.recipientId ? seatPositionsRef.current[gift.recipientId] ?? null : null);
     setGiftCelebration(gift);
     const sender = profile?.display_name ?? profile?.username ?? null;
     pushGiftFeed({
@@ -615,10 +650,13 @@ export default function RoomScreen() {
           ({ payload }) => {
             const incoming = payload as Partial<GiftCelebrationData> | null;
             if (!incoming || typeof incoming.emoji !== 'string') return;
+            const incomingRecipientId = typeof incoming.recipientId === 'string' ? incoming.recipientId : null;
+            setGiftTarget(incomingRecipientId ? seatPositionsRef.current[incomingRecipientId] ?? null : null);
             setGiftCelebration({
               emoji: incoming.emoji,
               name: typeof incoming.name === 'string' ? incoming.name : 'هدية',
               recipient: typeof incoming.recipient === 'string' ? incoming.recipient : '',
+              recipientId: incomingRecipientId,
               sender: typeof incoming.sender === 'string' ? incoming.sender : null,
               premium: Boolean(incoming.premium),
             });
@@ -1470,6 +1508,7 @@ export default function RoomScreen() {
               }}
               onModerate={() => openMemberActions(seat)}
               moderationDisabled={moderatingUserId === seat.user_id}
+              onSeatPosition={(userId, pos) => { seatPositionsRef.current[userId] = pos; }}
             />
           ))}
         </ScrollView>
@@ -1682,12 +1721,14 @@ export default function RoomScreen() {
           <GiftScene
             gift={giftCelebration}
             combo={giftCombo}
+            target={giftTarget}
             onDone={() => setGiftCelebration(null)}
           />
         ) : (
           <GiftCelebration
             gift={giftCelebration}
             combo={giftCombo}
+            target={giftTarget}
             onDone={() => setGiftCelebration(null)}
           />
         )
@@ -1915,6 +1956,7 @@ function SeatView({
   onProfile,
   onModerate,
   moderationDisabled,
+  onSeatPosition,
 }: {
   seat: Seat;
   mySeat: number | null;
@@ -1926,11 +1968,30 @@ function SeatView({
   onProfile: () => void;
   onModerate: () => void;
   moderationDisabled: boolean;
+  onSeatPosition?: (userId: string, pos: { x: number; y: number }) => void;
 }) {
   const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
   const isOccupied = seat.status === 'occupied' && seat.user_id;
   const isLocked = seat.status === 'locked';
   const canTake = !isOccupied && (!isLocked || isFullManager) && (mySeat === null || mySeat === seat.seat_index);
+  const seatRef = useRef<View>(null);
+
+  const reportSeatPosition = () => {
+    if (!seat.user_id || !onSeatPosition) return;
+    // قياس موقع المقعد على الشاشة لتحريك الهدية نحوه عند نهاية المشهد.
+    requestAnimationFrame(() => {
+      seatRef.current?.measureInWindow((x, y, width, height) => {
+        if (width > 0 && height > 0) {
+          onSeatPosition(seat.user_id!, { x: x + width / 2, y: y + height / 2 });
+        }
+      });
+    });
+  };
+
+  useEffect(() => {
+    reportSeatPosition();
+    // نُعيد القياس عند تغيّر الإشغال لأن المكان قد يتبدّل بصريًا.
+  }, [seat.user_id, seat.status]);
 
   /* دخول المقاعد واحدًا بعد الآخر */
   const appear = useSharedValue(reduceMotion ? 1 : 0);
@@ -1980,7 +2041,12 @@ function SeatView({
   }));
 
   return (
-    <Reanimated.View style={[styles.seatWrap, appearStyle]}>
+    <Reanimated.View
+      ref={seatRef}
+      collapsable={false}
+      onLayout={reportSeatPosition}
+      style={[styles.seatWrap, appearStyle]}
+    >
       <TouchableOpacity
         style={[
           styles.seat,
@@ -2171,6 +2237,7 @@ function GiftsModal({
         emoji: selectedGiftRecord?.icon_emoji ?? '🎁',
         name: selectedGiftRecord?.name_ar ?? selectedGiftRecord?.name ?? 'هدية',
         recipient: receiver.name,
+        recipientId: receiver.id,
         premium: Boolean(selectedGiftRecord?.is_premium) || Number(selectedGiftRecord?.price_gold ?? 0) >= 5000,
       });
       let profileRefreshFailed = false;

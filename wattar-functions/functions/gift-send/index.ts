@@ -72,12 +72,38 @@ Deno.serve(async (req: Request) => {
     }
 
     const result = data as Record<string, unknown>;
+
+    // إدراج حدث الهدية في شات الغرفة حتى يراه الجميع ويظهر في سجل المحادثة.
+    // نتخطى التكرار إذا كانت العملية مُعادَة (idempotent replay).
+    if (body.room_id && !result.already_processed) {
+      try {
+        const giftName = String(result.gift_name ?? 'هدية');
+        const [senderProfile, receiverProfile] = await Promise.all([
+          supabase.from('users').select('username, display_name').eq('id', ctx.user_id).maybeSingle(),
+          supabase.from('users').select('username, display_name').eq('id', body.to_user_id).maybeSingle(),
+        ]);
+        const senderName = senderProfile.data?.display_name ?? senderProfile.data?.username ?? 'عضو';
+        const receiverName = receiverProfile.data?.display_name ?? receiverProfile.data?.username ?? 'عضو';
+        const giftLabel = quantity > 1 ? `${quantity}x ${giftName}` : giftName;
+        await supabase.from('room_messages').insert({
+          room_id: body.room_id,
+          user_id: ctx.user_id,
+          message: `🎁 ${senderName} أهدى ${giftLabel} إلى ${receiverName}`,
+          is_system: true,
+          gift_id: body.gift_id,
+        });
+      } catch (chatErr) {
+        console.error('[Wattar] Gift room message insert failed:', chatErr);
+      }
+    }
+
     return jsonResponse({
       success: true,
       gift_transaction: result.gift_transaction,
       message: `تم إرسال ${quantity}x ${String(result.gift_name ?? 'هدية')}`,
       sent_coins: result.sent_coins,
       received_diamonds: result.received_diamonds,
+      already_processed: Boolean(result.already_processed),
     });
   } catch (err) {
     return errorResponse(err);

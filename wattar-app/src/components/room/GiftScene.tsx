@@ -160,10 +160,13 @@ function Ship({ size }: { size: number }) {
 export function GiftScene({
   gift,
   combo = 1,
+  target,
   onDone,
 }: {
   gift: GiftSceneData;
   combo?: number;
+  /** موقع مقعد المستلم على الشاشة؛ عند الانتهاء تنكمش الهدية وتتحرك نحوه. */
+  target?: { x: number; y: number } | null;
   onDone: () => void;
 }) {
   const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
@@ -176,6 +179,7 @@ export function GiftScene({
   const sweep = useSharedValue(0);
   const stars = useSharedValue(0);
   const banner = useSharedValue(reduceMotion ? 1 : 0);
+  const exitProgress = useSharedValue(0);
 
   const shipSize = Math.min(width * 0.66, 300);
   const starsArr = useMemo(() => Array.from({ length: STAR_COUNT }), []);
@@ -214,18 +218,30 @@ export function GiftScene({
       false,
     );
     stars.value = withTiming(1, { duration: 2000, easing: Easing.out(Easing.cubic) });
+    exitProgress.value = withDelay(
+      3900,
+      withTiming(1, { duration: 950, easing: Easing.inOut(Easing.cubic) }),
+    );
 
-    const timeout = setTimeout(() => doneRef.current(), 5200);
+    const timeout = setTimeout(() => doneRef.current(), 5000);
     return () => clearTimeout(timeout);
-  }, [banner, bob, reduceMotion, stars, sweep, travel]);
+  }, [banner, bob, exitProgress, reduceMotion, stars, sweep, travel]);
 
-  const shipStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: (0.5 - travel.value) * (width + shipSize) },
-      { translateY: Math.sin(bob.value * Math.PI) * 9 - 6 },
-      { rotate: `${Math.sin(bob.value * Math.PI) * 2.4}deg` },
-    ],
-  }));
+  const targetX = (target?.x ?? width / 2) - width / 2;
+  const targetY = (target?.y ?? height * 0.45) - (height * 0.62);
+
+  const shipStyle = useAnimatedStyle(() => {
+    const exit = exitProgress.value;
+    return {
+      opacity: 1 - exit * 0.12,
+      transform: [
+        { translateX: (0.5 - travel.value) * (width + shipSize) * (1 - exit) + targetX * exit },
+        { translateY: (Math.sin(bob.value * Math.PI) * 9 - 6) * (1 - exit) + targetY * exit },
+        { scale: 1 - exit * 0.88 },
+        { rotate: `${Math.sin(bob.value * Math.PI) * 2.4 * (1 - exit)}deg` },
+      ],
+    };
+  });
 
   const sweepStyle = useAnimatedStyle(() => ({
     opacity: 0.18 + Math.sin(sweep.value * Math.PI) * 0.22,
@@ -233,11 +249,15 @@ export function GiftScene({
   }));
 
   const bannerStyle = useAnimatedStyle(() => ({
-    opacity: banner.value,
+    opacity: banner.value * (1 - exitProgress.value),
     transform: [
       { translateY: (1 - banner.value) * -14 },
       { scale: 0.94 + banner.value * 0.06 },
     ],
+  }));
+
+  const exitFadeStyle = useAnimatedStyle(() => ({
+    opacity: 1 - exitProgress.value,
   }));
 
   return (
@@ -248,7 +268,7 @@ export function GiftScene({
       />
 
       {/* أشعة ضوء من الأعلى */}
-      <Animated.View style={[styles.rays, sweepStyle]}>
+      <Animated.View style={[styles.rays, sweepStyle, exitFadeStyle]}>
         <LinearGradient
           colors={['rgba(255,236,180,0.42)', 'rgba(255,236,180,0)']}
           start={{ x: 0.5, y: 0 }}
@@ -258,11 +278,11 @@ export function GiftScene({
       </Animated.View>
 
       {/* النجوم */}
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, exitFadeStyle]}>
         {starsArr.map((_, index) => (
           <Star key={index} index={index} progress={stars} width={width} height={height} />
         ))}
-      </View>
+      </Animated.View>
 
       {/* شريط الرسالة */}
       <Animated.View style={[styles.banner, bannerStyle]}>
@@ -283,14 +303,14 @@ export function GiftScene({
       </Animated.View>
 
       {/* الموج */}
-      <View style={styles.water} pointerEvents="none">
+      <Animated.View style={[styles.water, exitFadeStyle]} pointerEvents="none">
         <LinearGradient
           colors={['rgba(72,158,214,0.42)', 'rgba(24,74,124,0.72)', 'rgba(8,26,48,0.92)']}
           style={StyleSheet.absoluteFill}
         />
         <View style={styles.waterLine1} />
         <View style={styles.waterLine2} />
-      </View>
+      </Animated.View>
 
       {/* السفينة */}
       <Animated.View style={[styles.ship, shipStyle]}>

@@ -26,6 +26,7 @@ export interface GiftCelebrationData {
   emoji: string;
   name: string;
   recipient: string;
+  recipientId?: string | null;
   recipientAvatar?: string | null;
   sender?: string | null;
   /** هدية كبيرة: تُعرض بمشهد سينمائي كامل الشاشة بدل بطاقة الاحتفال. */
@@ -108,23 +109,27 @@ function Ring({ progress, delay, color }: { progress: SharedValue<number>; delay
 export function GiftCelebration({
   gift,
   combo = 1,
+  target,
   onDone,
 }: {
   gift: GiftCelebrationData;
   combo?: number;
+  /** موقع مقعد المستلم على الشاشة؛ عند الانتهاء تنكمش الهدية وتتحرك نحوه. */
+  target?: { x: number; y: number } | null;
   onDone: () => void;
 }) {
   const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
-  const { width } = useWindowDimensions();
+  const { width: sw, height: sh } = useWindowDimensions();
   const cardProgress = useSharedValue(reduceMotion ? 1 : 0);
   const emojiProgress = useSharedValue(reduceMotion ? 1 : 0);
   const particleProgress = useSharedValue(reduceMotion ? 1 : 0);
   const ringProgress = useSharedValue(reduceMotion ? 1 : 0);
   const glowPulse = useSharedValue(0);
+  const exitProgress = useSharedValue(0);
   const doneRef = useRef(onDone);
   doneRef.current = onDone;
 
-  const spread = Math.min(width * 0.42, 190);
+  const spread = Math.min(sw * 0.42, 190);
   const particles = useMemo(() => Array.from({ length: PARTICLE_COUNT }), []);
 
   useEffect(() => {
@@ -157,27 +162,44 @@ export function GiftCelebration({
         -1,
         true,
       );
+      // الخروج: بعد الذروة تنكمش الهدية وتتحرك نحو مقعد المستلم ثم تختفي.
+      exitProgress.value = withDelay(
+        3900,
+        withTiming(1, { duration: 900, easing: Easing.inOut(Easing.cubic) }),
+      );
     }
 
-    const timeout = setTimeout(() => doneRef.current(), reduceMotion ? 1400 : 2600);
+    const timeout = setTimeout(() => doneRef.current(), reduceMotion ? 1400 : 5000);
     return () => clearTimeout(timeout);
-  }, [cardProgress, emojiProgress, particleProgress, reduceMotion, ringProgress, glowPulse]);
+  }, [cardProgress, emojiProgress, exitProgress, particleProgress, reduceMotion, ringProgress, glowPulse]);
 
-  const cardStyle = useAnimatedStyle(() => ({
-    opacity: cardProgress.value,
-    transform: [
-      { scale: 0.72 + cardProgress.value * 0.28 },
-      { translateY: (1 - cardProgress.value) * 26 },
-    ],
-  }));
+  const tx = (target?.x ?? sw / 2) - sw / 2;
+  const ty = (target?.y ?? sh * 0.45) - sh / 2;
+
+  const cardStyle = useAnimatedStyle(() => {
+    const enter = cardProgress.value;
+    const exit = exitProgress.value;
+    return {
+      opacity: enter * (1 - exit * 0.15),
+      transform: [
+        { translateX: tx * exit },
+        { translateY: (1 - enter) * 26 + ty * exit },
+        { scale: (0.72 + enter * 0.28) * (1 - exit * 0.88) },
+      ],
+    };
+  });
 
   const emojiStyle = useAnimatedStyle(() => ({
     transform: [{ scale: emojiProgress.value }],
   }));
 
   const auraStyle = useAnimatedStyle(() => ({
-    opacity: 0.35 + glowPulse.value * 0.45,
+    opacity: (0.35 + glowPulse.value * 0.45) * (1 - exitProgress.value),
     transform: [{ scale: 1 + glowPulse.value * 0.12 }],
+  }));
+
+  const exitFadeStyle = useAnimatedStyle(() => ({
+    opacity: 1 - exitProgress.value,
   }));
 
   return (
@@ -189,11 +211,11 @@ export function GiftCelebration({
       />
 
       <View style={styles.stage}>
-        <View style={styles.ringsWrap}>
+        <Animated.View style={[styles.ringsWrap, exitFadeStyle]}>
           <Ring progress={ringProgress} delay={0} color={colors.gold} />
           <Ring progress={ringProgress} delay={14} color={colors.primary} />
           <Ring progress={ringProgress} delay={28} color={colors.teal} />
-        </View>
+        </Animated.View>
 
         <Animated.View style={[styles.aura, auraStyle]} />
 
@@ -241,11 +263,11 @@ export function GiftCelebration({
         </Animated.View>
 
         {/* الشظايا تنطلق من مركز البطاقة */}
-        <View style={styles.particles} pointerEvents="none">
+        <Animated.View style={[styles.particles, exitFadeStyle]} pointerEvents="none">
           {particles.map((_, index) => (
             <Particle key={index} index={index} progress={particleProgress} spread={spread} />
           ))}
-        </View>
+        </Animated.View>
       </View>
     </View>
   );
