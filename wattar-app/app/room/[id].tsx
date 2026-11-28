@@ -22,7 +22,7 @@ import Reanimated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { supabase, callFunction } from '@/lib/supabase';
+import { supabase, callFunction, uploadImage } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
@@ -41,8 +41,9 @@ import { StatusBar } from 'expo-status-bar';
 import { joinVoice, leaveVoice, setMicEnabled } from '@/lib/livekit';
 import type { Room } from 'livekit-client';
 import {
-  Mic, MicOff, X, Send, Gift, Crown, Lock, Shield, LogOut, Users, Volume2, VolumeX, UserPlus, Smile, Search,
+  Mic, MicOff, X, Send, Gift, Crown, Lock, Shield, LogOut, Users, Volume2, VolumeX, UserPlus, Smile, Search, ImagePlus,
 } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 
 const VOICE_OFF = 'off' as const;
 const VOICE_CONNECTING = 'connecting' as const;
@@ -105,6 +106,7 @@ export default function RoomScreen() {
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordChecking, setPasswordChecking] = useState(false);
   const [manageSheetVisible, setManageSheetVisible] = useState(false);
+  const [changingCover, setChangingCover] = useState(false);
   const [requestsSheetVisible, setRequestsSheetVisible] = useState(false);
   const [auditSheetVisible, setAuditSheetVisible] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<Array<{
@@ -1214,6 +1216,60 @@ export default function RoomScreen() {
     void loadAttendance();
   };
 
+  const changeRoomCover = async () => {
+    if (!room || changingCover) return;
+    setManageSheetVisible(false);
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('صلاحية مطلوبة', 'نحتاج صلاحية الوصول للصور لتغيير خلفية الغرفة.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [9, 16],
+        quality: 0.85,
+      });
+      if (result.canceled || !result.assets?.[0]?.uri) return;
+      setChangingCover(true);
+      const publicUrl = await uploadImage(result.assets[0].uri, 'room-covers', `room-${room.id}`);
+      const { error } = await supabase.from('rooms').update({ cover_url: publicUrl }).eq('id', room.id);
+      if (error) throw error;
+      setRoom((prev: any) => (prev ? { ...prev, cover_url: publicUrl } : prev));
+      Alert.alert('تم', 'تم تحديث خلفية الغرفة.');
+    } catch (e: unknown) {
+      console.warn('[Wattar] Room cover change failed:', e);
+      Alert.alert('تعذّر تغيير الخلفية', e instanceof Error ? e.message : 'حاول مرة أخرى لاحقًا.');
+    } finally {
+      setChangingCover(false);
+    }
+  };
+
+  const removeRoomCover = async () => {
+    if (!room || changingCover) return;
+    setManageSheetVisible(false);
+    Alert.alert('إزالة الخلفية', 'هل تريد إزالة خلفية الغرفة والعودة للخلفية الافتراضية؟', [
+      { text: 'إلغاء', style: 'cancel' },
+      {
+        text: 'إزالة',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            setChangingCover(true);
+            const { error } = await supabase.from('rooms').update({ cover_url: null }).eq('id', room.id);
+            if (error) throw error;
+            setRoom((prev: any) => (prev ? { ...prev, cover_url: null } : prev));
+          } catch (e: unknown) {
+            Alert.alert('خطأ', e instanceof Error ? e.message : 'تعذّر إزالة الخلفية.');
+          } finally {
+            setChangingCover(false);
+          }
+        },
+      },
+    ]);
+  };
+
   // إجراءات على حاضر (متحدث أو مستمع) من قائمة الحضور
   const openAttendeeActions = (attendee: typeof attendees[number]) => {
     if (attendee.user_id === profile?.id || attendee.is_owner) return;
@@ -1792,6 +1848,16 @@ export default function RoomScreen() {
               <Lock size={18} color={room.has_password ? colors.gold : colors.roomMuted} />
               <Text style={styles.manageRowText}>{room.has_password ? 'إدارة كلمة المرور' : 'تعيين كلمة مرور'}</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={styles.manageRow} onPress={changeRoomCover} activeOpacity={0.8} disabled={changingCover}>
+              {changingCover ? <ActivityIndicator size="small" color={colors.roomPrimary} /> : <ImagePlus size={18} color={colors.roomPrimary} />}
+              <Text style={styles.manageRowText}>تغيير خلفية الغرفة</Text>
+            </TouchableOpacity>
+            {room.cover_url ? (
+              <TouchableOpacity style={styles.manageRow} onPress={removeRoomCover} activeOpacity={0.8} disabled={changingCover}>
+                <X size={18} color={colors.roomMuted} />
+                <Text style={styles.manageRowText}>إزالة خلفية الغرفة</Text>
+              </TouchableOpacity>
+            ) : null}
             <TouchableOpacity style={styles.manageRow} onPress={openAttendance} activeOpacity={0.8}>
               <Users size={18} color={colors.roomTeal} />
               <Text style={styles.manageRowText}>الحضور في الغرفة</Text>
