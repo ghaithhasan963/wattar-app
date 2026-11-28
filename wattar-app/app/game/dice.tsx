@@ -1,7 +1,7 @@
-/**
- * Wattar App — نرد (M9.4)
- * حد التوقع واتجاهه من المستخدم، والنتيجة والمضاعف من الخادم.
- * المضاعف المعروض = (1 ÷ احتمال الفوز) × RTP المعلن.
+﻿/**
+ * Wattar App â€” ظ†ط±ط¯ (M9.4)
+ * ط­ط¯ ط§ظ„طھظˆظ‚ط¹ ظˆط§طھط¬ط§ظ‡ظ‡ ظ…ظ† ط§ظ„ظ…ط³طھط®ط¯ظ…طŒ ظˆط§ظ„ظ†طھظٹط¬ط© ظˆط§ظ„ظ…ط¶ط§ط¹ظپ ظ…ظ† ط§ظ„ط®ط§ط¯ظ….
+ * ط§ظ„ظ…ط¶ط§ط¹ظپ ط§ظ„ظ…ط¹ط±ظˆط¶ = (1 أ· ط§ط­طھظ…ط§ظ„ ط§ظ„ظپظˆط²) أ— RTP ط§ظ„ظ…ط¹ظ„ظ†.
  */
 import React, { useRef, useState } from 'react';
 import {
@@ -11,7 +11,7 @@ import { callFunction } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 import { Dice5, Minus, Plus, TrendingUp, TrendingDown } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
-import { colors } from '@/lib/theme';
+import { colors, fonts } from '@/lib/theme';
 import { usePreferencesStore } from '@/store/preferences';
 import { GameHeader } from '@/components/GameHeader';
 import { GameBetControl, parseValidGameBet } from '@/components/GameBetControl';
@@ -65,11 +65,11 @@ export default function DiceGame() {
       || loading
     ) return;
     if (game && !game.available) {
-      Alert.alert('اللعبة غير متاحة', 'هذه اللعبة غير متاحة لحسابك حالياً.');
+      Alert.alert('ط§ظ„ظ„ط¹ط¨ط© ط؛ظٹط± ظ…طھط§ط­ط©', 'ظ‡ط°ظ‡ ط§ظ„ظ„ط¹ط¨ط© ط؛ظٹط± ظ…طھط§ط­ط© ظ„ط­ط³ط§ط¨ظƒ ط­ط§ظ„ظٹط§ظ‹.');
       return;
     }
     if (game && (bet < game.min_bet || bet > game.max_bet)) {
-      Alert.alert('الرهان خارج الحدود', `الحد المسموح من ${game.min_bet} إلى ${game.max_bet} Coin.`);
+      Alert.alert('ط§ظ„ط±ظ‡ط§ظ† ط®ط§ط±ط¬ ط§ظ„ط­ط¯ظˆط¯', `ط§ظ„ط­ط¯ ط§ظ„ظ…ط³ظ…ظˆط­ ظ…ظ† ${game.min_bet} ط¥ظ„ظ‰ ${game.max_bet} Coin.`);
       return;
     }
     setLoading(true);
@@ -109,7 +109,7 @@ export default function DiceGame() {
         || !Number.isFinite(response.multiplier)
         || response.multiplier < 0
       ) {
-        throw new Error('لم تصل نتيجة النرد بشكل صحيح.');
+        throw new Error('ظ„ظ… طھطµظ„ ظ†طھظٹط¬ط© ط§ظ„ظ†ط±ط¯ ط¨ط´ظƒظ„ طµط­ظٹط­.');
       }
 
       rollAnimation.stop();
@@ -133,7 +133,7 @@ export default function DiceGame() {
         console.warn('[Wattar] Failed to refresh Coin balance after dice:', error);
       });
     } catch (err: unknown) {
-      Alert.alert('خطأ', err instanceof Error ? err.message : 'تعذر إكمال الجولة.');
+      Alert.alert('ط®ط·ط£', err instanceof Error ? err.message : 'طھط¹ط°ط± ط¥ظƒظ…ط§ظ„ ط§ظ„ط¬ظˆظ„ط©.');
     } finally {
       rollAnimation.stop();
       dieRotation.stopAnimation();
@@ -149,8 +149,8 @@ export default function DiceGame() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <StatusBar style="light" />
       <GameHeader
-        title={game?.display_name ?? 'نرد'}
-        subtitle={game?.description ?? 'توقع أن تكون النتيجة أعلى أو أدنى من حدّك. المضاعف يُحسب على الخادم من RTP.'}
+        title={game?.display_name ?? 'ظ†ط±ط¯'}
+        subtitle={game?.description ?? 'طھظˆظ‚ط¹ ط£ظ† طھظƒظˆظ† ط§ظ„ظ†طھظٹط¬ط© ط£ط¹ظ„ظ‰ ط£ظˆ ط£ط¯ظ†ظ‰ ظ…ظ† ط­ط¯ظ‘ظƒ. ط§ظ„ظ…ط¶ط§ط¹ظپ ظٹظڈط­ط³ط¨ ط¹ظ„ظ‰ ط§ظ„ط®ط§ط¯ظ… ظ…ظ† RTP.'}
         balance={profile?.balance_gold ?? 0}
       />
 
@@ -192,16 +192,16 @@ export default function DiceGame() {
         <View style={[styles.resultBanner, result.won ? styles.winBanner : styles.loseBanner]}>
           <Text style={styles.resultText}>
             {result.won
-              ? `🎉 الرقم ${result.roll} — ربحت ${result.payout.toLocaleString()} Coin (×${result.mult})`
-              : `الرقم ${result.roll} — خسرت`}
+              ? `ًںژ‰ ط§ظ„ط±ظ‚ظ… ${result.roll} â€” ط±ط¨ط­طھ ${result.payout.toLocaleString()} Coin (أ—${result.mult})`
+              : `ط§ظ„ط±ظ‚ظ… ${result.roll} â€” ط®ط³ط±طھ`}
           </Text>
         </View>
       )}
 
       <View style={styles.targetCard}>
         <View style={styles.targetHeading}>
-          <Text style={styles.targetLabel}>حدّ التوقع</Text>
-          <Text style={styles.targetRange}>من 2 إلى 98</Text>
+          <Text style={styles.targetLabel}>ط­ط¯ظ‘ ط§ظ„طھظˆظ‚ط¹</Text>
+          <Text style={styles.targetRange}>ظ…ظ† 2 ط¥ظ„ظ‰ 98</Text>
         </View>
         <View style={styles.targetStepper}>
           <TouchableOpacity
@@ -209,28 +209,28 @@ export default function DiceGame() {
             onPress={() => changeTarget(-1)}
             disabled={Number(target) <= 2 || loading}
             accessibilityRole="button"
-            accessibilityLabel="خفض حد التوقع"
+            accessibilityLabel="ط®ظپط¶ ط­ط¯ ط§ظ„طھظˆظ‚ط¹"
           >
             <Minus size={18} color={colors.roomText} />
           </TouchableOpacity>
           <View style={styles.targetValueCard}>
             <Text style={styles.targetValue}>{Number(target)}</Text>
-            <Text style={styles.targetValueCaption}>من 100</Text>
+            <Text style={styles.targetValueCaption}>ظ…ظ† 100</Text>
           </View>
           <TouchableOpacity
             style={styles.stepButton}
             onPress={() => changeTarget(1)}
             disabled={Number(target) >= 98 || loading}
             accessibilityRole="button"
-            accessibilityLabel="رفع حد التوقع"
+            accessibilityLabel="ط±ظپط¹ ط­ط¯ ط§ظ„طھظˆظ‚ط¹"
           >
             <Plus size={18} color={colors.roomText} />
           </TouchableOpacity>
         </View>
         <Text style={styles.targetSummary}>
           {direction === 'under'
-            ? `تربح إذا كانت النتيجة من 1 إلى ${Number(target) - 1}`
-            : `تربح إذا كانت النتيجة من ${Number(target) + 1} إلى 100`}
+            ? `طھط±ط¨ط­ ط¥ط°ط§ ظƒط§ظ†طھ ط§ظ„ظ†طھظٹط¬ط© ظ…ظ† 1 ط¥ظ„ظ‰ ${Number(target) - 1}`
+            : `طھط±ط¨ط­ ط¥ط°ط§ ظƒط§ظ†طھ ط§ظ„ظ†طھظٹط¬ط© ظ…ظ† ${Number(target) + 1} ط¥ظ„ظ‰ 100`}
         </Text>
         <View style={styles.targetPresets}>
           {[25, 50, 75].map((preset) => (
@@ -256,25 +256,25 @@ export default function DiceGame() {
             style={[styles.dirBtn, direction === 'under' && styles.dirBtnActive]}
             onPress={() => setDirection('under')}
           >
-            <TrendingDown size={18} color={direction === 'under' ? '#fff' : '#9CA3AF'} />
-            <Text style={[styles.dirText, direction === 'under' && styles.dirTextActive]}>تحت {Number(target) - 1}</Text>
+            <TrendingDown size={18} color={direction === 'under' ? colors.text : colors.textMuted} />
+            <Text style={[styles.dirText, direction === 'under' && styles.dirTextActive]}>طھط­طھ {Number(target) - 1}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.dirBtn, direction === 'over' && styles.dirBtnActive]}
             onPress={() => setDirection('over')}
           >
-            <TrendingUp size={18} color={direction === 'over' ? '#fff' : '#9CA3AF'} />
-            <Text style={[styles.dirText, direction === 'over' && styles.dirTextActive]}>فوق {Number(target)}</Text>
+            <TrendingUp size={18} color={direction === 'over' ? colors.text : colors.textMuted} />
+            <Text style={[styles.dirText, direction === 'over' && styles.dirTextActive]}>ظپظˆظ‚ {Number(target)}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>احتمال الفوز</Text>
+            <Text style={styles.statLabel}>ط§ط­طھظ…ط§ظ„ ط§ظ„ظپظˆط²</Text>
             <Text style={styles.statValue}>{formatPercent(quote.pWin * 100)}</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>المضاعف المعلن</Text>
+            <Text style={styles.statLabel}>ط§ظ„ظ…ط¶ط§ط¹ظپ ط§ظ„ظ…ط¹ظ„ظ†</Text>
             <Text style={styles.statValue}>{quote.multiplier.toFixed(2)}x</Text>
           </View>
           <View style={styles.statBox}>
@@ -291,7 +291,7 @@ export default function DiceGame() {
         />
         {game ? (
           <Text style={styles.limitHint}>
-            الحد: {game.min_bet.toLocaleString()} – {game.max_bet.toLocaleString()} Coin
+            ط§ظ„ط­ط¯: {game.min_bet.toLocaleString()} â€“ {game.max_bet.toLocaleString()} Coin
           </Text>
         ) : null}
 
@@ -301,7 +301,7 @@ export default function DiceGame() {
           disabled={rolling || loading || validBet === null}
         >
           <Text style={styles.playButtonText}>
-            {rolling ? '🎲 يدور...' : loading ? 'جاري...' : 'ارمِ النرد'}
+            {rolling ? 'ًںژ² ظٹط¯ظˆط±...' : loading ? 'ط¬ط§ط±ظٹ...' : 'ط§ط±ظ…ظگ ط§ظ„ظ†ط±ط¯'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -325,17 +325,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 3,
   },
-  diceWin: { backgroundColor: '#159C9C30', borderColor: colors.roomTeal },
-  diceLose: { backgroundColor: '#C94D6030', borderColor: colors.danger },
-  diceNumber: { fontSize: 56, fontWeight: '900', color: colors.roomText },
+  diceWin: { backgroundColor: colors.tealGlow, borderColor: colors.roomTeal },
+  diceLose: { backgroundColor: colors.dangerGlow, borderColor: colors.danger },
+  diceNumber: { fontSize: 56, fontFamily: fonts.black, color: colors.roomText },
   resultBanner: { padding: 12, borderRadius: 10, alignItems: 'center', marginBottom: 12 },
-  winBanner: { backgroundColor: '#159C9C20', borderWidth: 1, borderColor: colors.roomTeal },
-  loseBanner: { backgroundColor: '#C94D6020', borderWidth: 1, borderColor: colors.danger },
-  resultText: { color: colors.roomText, fontSize: 14, fontWeight: 'bold' },
+  winBanner: { backgroundColor: colors.tealHaze, borderWidth: 1, borderColor: colors.roomTeal },
+  loseBanner: { backgroundColor: colors.dangerGlow, borderWidth: 1, borderColor: colors.danger },
+  resultText: { color: colors.roomText, fontSize: 14, fontFamily: fonts.bold },
   targetCard: { backgroundColor: colors.roomSurface, borderRadius: 14, padding: 16, marginBottom: 12 },
   targetHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  targetLabel: { color: colors.roomText, fontSize: 13, fontWeight: '800' },
-  targetRange: { color: colors.roomMuted, fontSize: 10, fontWeight: '700' },
+  targetLabel: { color: colors.roomText, fontSize: 13, fontFamily: fonts.bold },
+  targetRange: { color: colors.roomMuted, fontSize: 10, fontFamily: fonts.semibold },
   targetStepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 13 },
   stepButton: {
     width: 42,
@@ -348,13 +348,13 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   targetValueCard: { minWidth: 92, alignItems: 'center', paddingVertical: 6 },
-  targetValue: { color: colors.gold, fontSize: 32, fontWeight: '900' },
-  targetValueCaption: { color: colors.roomMuted, fontSize: 10, fontWeight: '700' },
-  targetSummary: { color: colors.roomText, fontSize: 11, fontWeight: '700', textAlign: 'center', marginTop: 12 },
+  targetValue: { color: colors.gold, fontSize: 32, fontFamily: fonts.black },
+  targetValueCaption: { color: colors.roomMuted, fontSize: 10, fontFamily: fonts.semibold },
+  targetSummary: { color: colors.roomText, fontSize: 11, fontFamily: fonts.semibold, textAlign: 'center', marginTop: 12 },
   targetPresets: { flexDirection: 'row', gap: 8, marginTop: 12 },
   targetPreset: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 9, backgroundColor: colors.roomElevated },
   targetPresetActive: { backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary },
-  targetPresetText: { color: colors.roomMuted, fontSize: 11, fontWeight: '800' },
+  targetPresetText: { color: colors.roomMuted, fontSize: 11, fontFamily: fonts.bold },
   targetPresetTextActive: { color: colors.roomText },
   controlsCard: { backgroundColor: colors.roomSurface, borderRadius: 16, padding: 16 },
   directionRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
@@ -369,12 +369,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.roomElevated,
   },
   dirBtnActive: { backgroundColor: colors.roomPrimary },
-  dirText: { color: colors.roomMuted, fontSize: 14, fontWeight: '600' },
+  dirText: { color: colors.roomMuted, fontSize: 14, fontFamily: fonts.semibold },
   dirTextActive: { color: colors.roomText },
   statsRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   statBox: { flex: 1, backgroundColor: colors.roomElevated, borderRadius: 8, padding: 9, alignItems: 'center' },
   statLabel: { color: colors.roomMuted, fontSize: 10 },
-  statValue: { color: colors.gold, fontSize: 14, fontWeight: '900', marginTop: 4 },
+  statValue: { color: colors.gold, fontSize: 14, fontFamily: fonts.black, marginTop: 4 },
   limitHint: { color: colors.roomMuted, fontSize: 10, textAlign: 'right', marginTop: 8 },
   playButton: {
     backgroundColor: colors.roomTeal,
@@ -385,5 +385,5 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   playButtonDisabled: { opacity: 0.5 },
-  playButtonText: { color: colors.background, fontSize: 16, fontWeight: '900' },
+  playButtonText: { color: colors.background, fontSize: 16, fontFamily: fonts.black },
 });

@@ -12,7 +12,7 @@ import { callFunction } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
 import { StatusBar } from 'expo-status-bar';
-import { colors } from '@/lib/theme';
+import { colors, fonts } from '@/lib/theme';
 import { GameHeader } from '@/components/GameHeader';
 import { GameBetControl, parseValidGameBet } from '@/components/GameBetControl';
 import { GameHistoryCard, GameOddsCard, GameTestModeRow } from '@/components/GamePanels';
@@ -39,10 +39,10 @@ const RISK_LABELS: Record<RiskLevel, string> = {
 };
 
 const SLOT_COLORS = {
-  high: '#EF4444',
+  high: colors.danger,
   mid: colors.gold,
   low: colors.roomTeal,
-  zero: '#6B7280',
+  zero: colors.textMuted,
 };
 
 function getColor(mult: number): string {
@@ -319,13 +319,13 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.roomBackground },
   content: { padding: 16, paddingTop: 58, paddingBottom: 32 },
   boardContainer: {
-    backgroundColor: '#120D1C',
+    backgroundColor: colors.roomSurface,
     borderRadius: 24,
     padding: 16,
     alignItems: 'center',
     marginVertical: 14,
     borderWidth: 1,
-    borderColor: '#382A4B',
+    borderColor: colors.borderStrong,
     overflow: 'hidden',
   },
   pegsBoard: {
@@ -344,8 +344,8 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#AE7BDF',
-    shadowColor: '#B550FF',
+    backgroundColor: colors.primaryLight,
+    shadowColor: colors.primary,
     shadowOpacity: 0.6,
     shadowRadius: 4,
     elevation: 3,
@@ -356,9 +356,9 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#FFE7A3',
+    backgroundColor: colors.gold,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: colors.text,
     shadowColor: colors.gold,
     shadowOpacity: 0.9,
     shadowRadius: 8,
@@ -376,11 +376,11 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: 'center',
   },
-  slotText: { fontSize: 7.5, fontWeight: '900' },
+  slotText: { fontSize: 7.5, fontFamily: fonts.black },
   resultBanner: { padding: 12, borderRadius: 10, alignItems: 'center', marginBottom: 12 },
-  winBanner: { backgroundColor: '#50D3C520', borderWidth: 1, borderColor: colors.roomTeal },
-  loseBanner: { backgroundColor: '#EF444420', borderWidth: 1, borderColor: '#EF4444' },
-  resultText: { color: colors.roomText, fontSize: 14, fontWeight: 'bold' },
+  winBanner: { backgroundColor: colors.tealHaze, borderWidth: 1, borderColor: colors.roomTeal },
+  loseBanner: { backgroundColor: colors.dangerGlow, borderWidth: 1, borderColor: colors.danger },
+  resultText: { color: colors.roomText, fontSize: 14, fontFamily: fonts.bold },
   controlsCard: { backgroundColor: colors.roomSurface, borderRadius: 16, padding: 16 },
   label: { color: colors.roomMuted, fontSize: 13, marginBottom: 8 },
   riskRow: { flexDirection: 'row', gap: 8 },
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   riskBtnActive: { backgroundColor: colors.roomPrimary },
-  riskText: { color: colors.roomMuted, fontSize: 13, fontWeight: '600' },
+  riskText: { color: colors.roomMuted, fontSize: 13, fontFamily: fonts.semibold },
   riskTextActive: { color: colors.roomText },
   riskHint: { color: colors.roomMuted, fontSize: 10, textAlign: 'right', marginTop: 8, lineHeight: 15 },
   limitHint: { color: colors.roomMuted, fontSize: 10, textAlign: 'right', marginTop: 8 },
@@ -405,5 +405,5 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   playButtonDisabled: { opacity: 0.5 },
-  playButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  playButtonText: { color: colors.inkGold, fontSize: 16, fontFamily: fonts.bold },
 });

@@ -1,7 +1,7 @@
-/**
- * Wattar App — طيارة المضاعفات (M9.4)
- * المستخدم يحدد مضاعف السحب، والخادم يحدد نقطة الانهيار:
- *   P(crash > x) = RTP ÷ x  →  E[x · 1(crash>x)] = RTP
+﻿/**
+ * Wattar App â€” ط·ظٹط§ط±ط© ط§ظ„ظ…ط¶ط§ط¹ظپط§طھ (M9.4)
+ * ط§ظ„ظ…ط³طھط®ط¯ظ… ظٹط­ط¯ط¯ ظ…ط¶ط§ط¹ظپ ط§ظ„ط³ط­ط¨طŒ ظˆط§ظ„ط®ط§ط¯ظ… ظٹط­ط¯ط¯ ظ†ظ‚ط·ط© ط§ظ„ط§ظ†ظ‡ظٹط§ط±:
+ *   P(crash > x) = RTP أ· x  â†’  E[x آ· 1(crash>x)] = RTP
  */
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -11,7 +11,7 @@ import { callFunction } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 import { Plane } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
-import { colors } from '@/lib/theme';
+import { colors, fonts } from '@/lib/theme';
 import { usePreferencesStore } from '@/store/preferences';
 import { GameHeader } from '@/components/GameHeader';
 import { GameBetControl, parseValidGameBet } from '@/components/GameBetControl';
@@ -70,15 +70,15 @@ export default function AviatorGame() {
     const target = Number(cashoutMult);
     if (bet === null || !Number.isFinite(target) || target <= 1 || loading || isFlying) return;
     if (target > maxMultiplier) {
-      Alert.alert('مضاعف كبير', `أقصى مضاعف سحب هو ${maxMultiplier}x.`);
+      Alert.alert('ظ…ط¶ط§ط¹ظپ ظƒط¨ظٹط±', `ط£ظ‚طµظ‰ ظ…ط¶ط§ط¹ظپ ط³ط­ط¨ ظ‡ظˆ ${maxMultiplier}x.`);
       return;
     }
     if (game && !game.available) {
-      Alert.alert('اللعبة غير متاحة', 'هذه اللعبة غير متاحة لحسابك حالياً.');
+      Alert.alert('ط§ظ„ظ„ط¹ط¨ط© ط؛ظٹط± ظ…طھط§ط­ط©', 'ظ‡ط°ظ‡ ط§ظ„ظ„ط¹ط¨ط© ط؛ظٹط± ظ…طھط§ط­ط© ظ„ط­ط³ط§ط¨ظƒ ط­ط§ظ„ظٹط§ظ‹.');
       return;
     }
     if (game && (bet < game.min_bet || bet > game.max_bet)) {
-      Alert.alert('الرهان خارج الحدود', `الحد المسموح من ${game.min_bet} إلى ${game.max_bet} Coin.`);
+      Alert.alert('ط§ظ„ط±ظ‡ط§ظ† ط®ط§ط±ط¬ ط§ظ„ط­ط¯ظˆط¯', `ط§ظ„ط­ط¯ ط§ظ„ظ…ط³ظ…ظˆط­ ظ…ظ† ${game.min_bet} ط¥ظ„ظ‰ ${game.max_bet} Coin.`);
       return;
     }
     setLoading(true);
@@ -101,7 +101,7 @@ export default function AviatorGame() {
         || response.crash_point < 1
         || response.payout < 0
       ) {
-        throw new Error('لم تصل نتيجة الجولة بشكل صحيح.');
+        throw new Error('ظ„ظ… طھطµظ„ ظ†طھظٹط¬ط© ط§ظ„ط¬ظˆظ„ط© ط¨ط´ظƒظ„ طµط­ظٹط­.');
       }
 
       setLoading(false);
@@ -141,7 +141,7 @@ export default function AviatorGame() {
     } catch (err: unknown) {
       setLoading(false);
       setIsFlying(false);
-      Alert.alert('خطأ', err instanceof Error ? err.message : 'تعذر إكمال الجولة.');
+      Alert.alert('ط®ط·ط£', err instanceof Error ? err.message : 'طھط¹ط°ط± ط¥ظƒظ…ط§ظ„ ط§ظ„ط¬ظˆظ„ط©.');
     }
   };
 
@@ -154,8 +154,8 @@ export default function AviatorGame() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <StatusBar style="light" />
       <GameHeader
-        title={game?.display_name ?? 'طيارة المضاعفات'}
-        subtitle={game?.description ?? 'حدّد مضاعف السحب قبل الإقلاع. الطيارة تطير حتى نقطة انهيار يحددها الخادم.'}
+        title={game?.display_name ?? 'ط·ظٹط§ط±ط© ط§ظ„ظ…ط¶ط§ط¹ظپط§طھ'}
+        subtitle={game?.description ?? 'ط­ط¯ظ‘ط¯ ظ…ط¶ط§ط¹ظپ ط§ظ„ط³ط­ط¨ ظ‚ط¨ظ„ ط§ظ„ط¥ظ‚ظ„ط§ط¹. ط§ظ„ط·ظٹط§ط±ط© طھط·ظٹط± ط­طھظ‰ ظ†ظ‚ط·ط© ط§ظ†ظ‡ظٹط§ط± ظٹط­ط¯ط¯ظ‡ط§ ط§ظ„ط®ط§ط¯ظ….'}
         balance={profile?.balance_gold ?? 0}
       />
 
@@ -187,13 +187,13 @@ export default function AviatorGame() {
               {multiplier.toFixed(2)}x
             </Text>
           ) : (
-            <Text style={styles.placeholder}>ضع رهانك وابدأ الرحلة</Text>
+            <Text style={styles.placeholder}>ط¶ط¹ ط±ظ‡ط§ظ†ظƒ ظˆط§ط¨ط¯ط£ ط§ظ„ط±ط­ظ„ط©</Text>
           )}
           {result && (
             <Text style={[styles.resultText, result.won ? styles.winText : styles.loseText]}>
               {result.won
-                ? `ربحت ${result.payout.toLocaleString()} Coin!`
-                : `انهارت عند ${result.crash.toFixed(2)}x`}
+                ? `ط±ط¨ط­طھ ${result.payout.toLocaleString()} Coin!`
+                : `ط§ظ†ظ‡ط§ط±طھ ط¹ظ†ط¯ ${result.crash.toFixed(2)}x`}
             </Text>
           )}
         </View>
@@ -208,15 +208,15 @@ export default function AviatorGame() {
         />
         {game ? (
           <Text style={styles.limitHint}>
-            الحد: {game.min_bet.toLocaleString()} – {game.max_bet.toLocaleString()} Coin
+            ط§ظ„ط­ط¯: {game.min_bet.toLocaleString()} â€“ {game.max_bet.toLocaleString()} Coin
           </Text>
         ) : null}
 
         <View style={styles.inputGroup}>
           <View style={styles.inputHeading}>
-            <Text style={styles.inputLabel}>السحب التلقائي عند (x)</Text>
+            <Text style={styles.inputLabel}>ط§ظ„ط³ط­ط¨ ط§ظ„طھظ„ظ‚ط§ط¦ظٹ ط¹ظ†ط¯ (x)</Text>
             <Text style={styles.probability}>
-              احتمال الوصول {formatPercent(targetProbability * 100)}
+              ط§ط­طھظ…ط§ظ„ ط§ظ„ظˆطµظˆظ„ {formatPercent(targetProbability * 100)}
             </Text>
           </View>
           <TextInput
@@ -225,7 +225,7 @@ export default function AviatorGame() {
             onChangeText={setCashoutMult}
             keyboardType="decimal-pad"
             placeholder="2.0"
-            placeholderTextColor="#666"
+            placeholderTextColor={colors.textMuted}
             editable={!loading && !isFlying}
           />
           <View style={styles.targetPresets}>
@@ -245,7 +245,7 @@ export default function AviatorGame() {
             ))}
           </View>
           <Text style={styles.targetHint}>
-            RTP المعلن {formatPercent(rtp)} — تُحدد نقطة الانهيار على الخادم قبل عرض المسار.
+            RTP ط§ظ„ظ…ط¹ظ„ظ† {formatPercent(rtp)} â€” طھظڈط­ط¯ط¯ ظ†ظ‚ط·ط© ط§ظ„ط§ظ†ظ‡ظٹط§ط± ط¹ظ„ظ‰ ط§ظ„ط®ط§ط¯ظ… ظ‚ط¨ظ„ ط¹ط±ط¶ ط§ظ„ظ…ط³ط§ط±.
           </Text>
         </View>
 
@@ -254,9 +254,9 @@ export default function AviatorGame() {
           onPress={play}
           disabled={loading || isFlying || validBet === null}
         >
-          <Plane size={20} color="#fff" />
+          <Plane size={20} color={colors.inkDark} />
           <Text style={styles.playButtonText}>
-            {loading ? 'جاري...' : isFlying ? 'تطير...' : 'إقلاع 🚀'}
+            {loading ? 'ط¬ط§ط±ظٹ...' : isFlying ? 'طھط·ظٹط±...' : 'ط¥ظ‚ظ„ط§ط¹ ًںڑ€'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -271,26 +271,26 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.roomBackground },
   content: { padding: 16, paddingTop: 58, paddingBottom: 32 },
   gameArea: {
-    backgroundColor: '#0E1724',
+    backgroundColor: colors.roomBackground,
     borderRadius: 24,
     padding: 24,
     alignItems: 'center',
     minHeight: 280,
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#25434A',
+    borderColor: colors.borderStrong,
     overflow: 'hidden',
     marginTop: 12,
   },
   flightGrid: { ...StyleSheet.absoluteFill, opacity: 0.6 },
-  gridLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: '#1C3944' },
-  gridVertical: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: '#1C3944' },
+  gridLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: colors.borderSoft },
+  gridVertical: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: colors.borderSoft },
   plane: { position: 'absolute', left: '50%', bottom: 60, zIndex: 2 },
   multDisplay: { alignItems: 'center', zIndex: 3, minHeight: 88, justifyContent: 'center' },
-  multiplier: { color: colors.roomTeal, fontSize: 60, fontWeight: '900', textShadowColor: '#38D9C055', textShadowRadius: 18 },
+  multiplier: { color: colors.roomTeal, fontSize: 60, fontFamily: fonts.black, textShadowColor: colors.tealEdge, textShadowRadius: 18 },
   multiplierCrash: { color: colors.danger },
   placeholder: { color: colors.roomMuted, fontSize: 16 },
-  resultText: { fontSize: 14, marginTop: 8, fontWeight: '700' },
+  resultText: { fontSize: 14, marginTop: 8, fontFamily: fonts.semibold },
   winText: { color: colors.roomTeal },
   loseText: { color: colors.danger },
   controlsCard: { backgroundColor: colors.roomSurface, borderRadius: 16, padding: 16, marginTop: 16 },
@@ -298,12 +298,12 @@ const styles = StyleSheet.create({
   inputGroup: { marginTop: 14 },
   inputHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 },
   inputLabel: { color: colors.roomMuted, fontSize: 12 },
-  probability: { color: colors.teal, fontSize: 10, fontWeight: '800' },
+  probability: { color: colors.teal, fontSize: 10, fontFamily: fonts.bold },
   targetHint: { color: colors.roomMuted, fontSize: 10, lineHeight: 15, marginTop: 7, textAlign: 'right' },
   targetPresets: { flexDirection: 'row', gap: 7, marginTop: 9 },
   targetPreset: { flex: 1, minHeight: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 9, backgroundColor: colors.roomElevated },
   targetPresetActive: { backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.primary },
-  targetPresetText: { color: colors.roomMuted, fontSize: 11, fontWeight: '800' },
+  targetPresetText: { color: colors.roomMuted, fontSize: 11, fontFamily: fonts.bold },
   targetPresetTextActive: { color: colors.roomText },
   input: {
     backgroundColor: colors.roomElevated,
@@ -324,5 +324,5 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   playButtonDisabled: { opacity: 0.5 },
-  playButtonText: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  playButtonText: { color: colors.inkDark, fontSize: 16, fontFamily: fonts.black },
 });

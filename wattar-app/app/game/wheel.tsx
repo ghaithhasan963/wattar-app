@@ -1,7 +1,7 @@
-/**
- * Wattar App — عجلة الحظ (M9.4)
- * الخانات والاحتمالات والعائد تأتي من الخادم؛ المستخدم يختار خانته فقط،
- * والخادم يختار الخانة الفائزة وفق الأوزان المعلنة.
+﻿/**
+ * Wattar App â€” ط¹ط¬ظ„ط© ط§ظ„ط­ط¸ (M9.4)
+ * ط§ظ„ط®ط§ظ†ط§طھ ظˆط§ظ„ط§ط­طھظ…ط§ظ„ط§طھ ظˆط§ظ„ط¹ط§ط¦ط¯ طھط£طھظٹ ظ…ظ† ط§ظ„ط®ط§ط¯ظ…ط› ط§ظ„ظ…ط³طھط®ط¯ظ… ظٹط®طھط§ط± ط®ط§ظ†طھظ‡ ظپظ‚ط·طŒ
+ * ظˆط§ظ„ط®ط§ط¯ظ… ظٹط®طھط§ط± ط§ظ„ط®ط§ظ†ط© ط§ظ„ظپط§ط¦ط²ط© ظˆظپظ‚ ط§ظ„ط£ظˆط²ط§ظ† ط§ظ„ظ…ط¹ظ„ظ†ط©.
  */
 import React, { useMemo, useRef, useState } from 'react';
 import {
@@ -12,7 +12,7 @@ import { callFunction } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
 import { StatusBar } from 'expo-status-bar';
-import { colors } from '@/lib/theme';
+import { colors, fonts } from '@/lib/theme';
 import { GameHeader } from '@/components/GameHeader';
 import { GameBetControl, parseValidGameBet } from '@/components/GameBetControl';
 import { GameHistoryCard, GameOddsCard, GameTestModeRow } from '@/components/GamePanels';
@@ -60,11 +60,11 @@ export default function WheelGame() {
     const bet = parseValidGameBet(betAmount, profile?.balance_gold ?? 0);
     if (bet === null || spinning || loading) return;
     if (game && !game.available) {
-      Alert.alert('اللعبة غير متاحة', 'هذه اللعبة غير متاحة لحسابك حالياً.');
+      Alert.alert('ط§ظ„ظ„ط¹ط¨ط© ط؛ظٹط± ظ…طھط§ط­ط©', 'ظ‡ط°ظ‡ ط§ظ„ظ„ط¹ط¨ط© ط؛ظٹط± ظ…طھط§ط­ط© ظ„ط­ط³ط§ط¨ظƒ ط­ط§ظ„ظٹط§ظ‹.');
       return;
     }
     if (game && (bet < game.min_bet || bet > game.max_bet)) {
-      Alert.alert('الرهان خارج الحدود', `الحد المسموح من ${game.min_bet} إلى ${game.max_bet} Coin.`);
+      Alert.alert('ط§ظ„ط±ظ‡ط§ظ† ط®ط§ط±ط¬ ط§ظ„ط­ط¯ظˆط¯', `ط§ظ„ط­ط¯ ط§ظ„ظ…ط³ظ…ظˆط­ ظ…ظ† ${game.min_bet} ط¥ظ„ظ‰ ${game.max_bet} Coin.`);
       return;
     }
     setLoading(true);
@@ -86,7 +86,7 @@ export default function WheelGame() {
         || !Number.isFinite(response.payout)
         || response.payout < 0
       ) {
-        throw new Error('لم تصل نتيجة العجلة بشكل صحيح.');
+        throw new Error('ظ„ظ… طھطµظ„ ظ†طھظٹط¬ط© ط§ظ„ط¹ط¬ظ„ط© ط¨ط´ظƒظ„ طµط­ظٹط­.');
       }
 
       setLoading(false);
@@ -117,7 +117,7 @@ export default function WheelGame() {
       });
     } catch (err: unknown) {
       setLoading(false);
-      Alert.alert('خطأ', err instanceof Error ? err.message : 'تعذر إكمال الجولة.');
+      Alert.alert('ط®ط·ط£', err instanceof Error ? err.message : 'طھط¹ط°ط± ط¥ظƒظ…ط§ظ„ ط§ظ„ط¬ظˆظ„ط©.');
     }
   };
 
@@ -140,8 +140,8 @@ export default function WheelGame() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <StatusBar style="light" />
       <GameHeader
-        title={game?.display_name ?? 'عجلة الحظ'}
-        subtitle={game?.description ?? 'اختر خانتك، ثم أدر العجلة. كل خانة لها احتمال وعائد معلن.'}
+        title={game?.display_name ?? 'ط¹ط¬ظ„ط© ط§ظ„ط­ط¸'}
+        subtitle={game?.description ?? 'ط§ط®طھط± ط®ط§ظ†طھظƒطŒ ط«ظ… ط£ط¯ط± ط§ظ„ط¹ط¬ظ„ط©. ظƒظ„ ط®ط§ظ†ط© ظ„ظ‡ط§ ط§ط­طھظ…ط§ظ„ ظˆط¹ط§ط¦ط¯ ظ…ط¹ظ„ظ†.'}
         balance={profile?.balance_gold ?? 0}
       />
 
@@ -161,11 +161,11 @@ export default function WheelGame() {
               const labelY = WHEEL_CENTER + (WHEEL_RADIUS - 46) * Math.sin(labelAngle);
               return (
                 <React.Fragment key={`${segment.label}-${index}`}>
-                  <Path d={sectorPath(index)} fill={segment.color} stroke="#11172A" strokeWidth={2} />
+                  <Path d={sectorPath(index)} fill={segment.color} stroke={colors.backgroundDeep} strokeWidth={2} />
                   <SvgText
                     x={labelX}
                     y={labelY}
-                    fill="#FFFFFF"
+                    fill={colors.text}
                     fontSize={segments.length > 6 ? 11 : 14}
                     fontWeight="bold"
                     textAnchor="middle"
@@ -176,7 +176,7 @@ export default function WheelGame() {
                 </React.Fragment>
               );
             })}
-            <Circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={32} fill="#11172A" stroke={colors.gold} strokeWidth={4} />
+            <Circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={32} fill={colors.backgroundDeep} stroke={colors.gold} strokeWidth={4} />
             <SvgText x={WHEEL_CENTER} y={WHEEL_CENTER + 8} fill={colors.gold} fontSize={22} fontWeight="bold" textAnchor="middle">
               W
             </SvgText>
@@ -188,17 +188,17 @@ export default function WheelGame() {
         <View style={[styles.resultBanner, result.won ? styles.winBanner : styles.loseBanner]}>
           <Text style={styles.resultText}>
             {result.won
-              ? `🎉 ربحت ${result.payout.toLocaleString()} Coin!`
-              : `خسرت — وقفت على ${segments[result.segment]?.label ?? ''}`}
+              ? `ًںژ‰ ط±ط¨ط­طھ ${result.payout.toLocaleString()} Coin!`
+              : `ط®ط³ط±طھ â€” ظˆظ‚ظپطھ ط¹ظ„ظ‰ ${segments[result.segment]?.label ?? ''}`}
           </Text>
         </View>
       )}
 
       <View style={styles.controlsCard}>
         <View style={styles.segmentHeading}>
-          <Text style={styles.label}>اختر خانتك</Text>
+          <Text style={styles.label}>ط§ط®طھط± ط®ط§ظ†طھظƒ</Text>
           <Text style={styles.labelHint}>
-            RTP المعلن {formatPercent(game?.declared_rtp ?? 0)}
+            RTP ط§ظ„ظ…ط¹ظ„ظ† {formatPercent(game?.declared_rtp ?? 0)}
           </Text>
         </View>
         <View style={styles.segmentsRow}>
@@ -229,7 +229,7 @@ export default function WheelGame() {
         />
         {game ? (
           <Text style={styles.limitHint}>
-            الحد: {game.min_bet.toLocaleString()} – {game.max_bet.toLocaleString()} Coin
+            ط§ظ„ط­ط¯: {game.min_bet.toLocaleString()} â€“ {game.max_bet.toLocaleString()} Coin
           </Text>
         ) : null}
 
@@ -239,7 +239,7 @@ export default function WheelGame() {
           disabled={spinning || loading || validBet === null}
         >
           <Text style={styles.spinButtonText}>
-            {loading ? 'جاري...' : spinning ? 'يدور...' : '🎡 أدر العجلة'}
+            {loading ? 'ط¬ط§ط±ظٹ...' : spinning ? 'ظٹط¯ظˆط±...' : 'ًںژ، ط£ط¯ط± ط§ظ„ط¹ط¬ظ„ط©'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -277,13 +277,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   resultBanner: { padding: 14, borderRadius: 12, alignItems: 'center', marginBottom: 12 },
-  winBanner: { backgroundColor: '#159C9C20', borderWidth: 1, borderColor: colors.roomTeal },
-  loseBanner: { backgroundColor: '#C94D6020', borderWidth: 1, borderColor: colors.danger },
-  resultText: { color: colors.roomText, fontSize: 15, fontWeight: 'bold' },
+  winBanner: { backgroundColor: colors.tealHaze, borderWidth: 1, borderColor: colors.roomTeal },
+  loseBanner: { backgroundColor: colors.dangerGlow, borderWidth: 1, borderColor: colors.danger },
+  resultText: { color: colors.roomText, fontSize: 15, fontFamily: fonts.bold },
   controlsCard: { backgroundColor: colors.roomSurface, borderRadius: 16, padding: 16 },
   segmentHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   label: { color: colors.roomMuted, fontSize: 13 },
-  labelHint: { color: colors.teal, fontSize: 11, fontWeight: '800' },
+  labelHint: { color: colors.teal, fontSize: 11, fontFamily: fonts.bold },
   segmentsRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   segmentBtn: {
     flexBasis: '30%',
@@ -302,8 +302,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  segmentBtnText: { color: '#fff', fontSize: 12, fontWeight: '900' },
-  segmentProb: { color: '#ffffffB0', fontSize: 9, marginTop: 3, fontWeight: '700' },
+  segmentBtnText: { color: colors.text, fontSize: 12, fontFamily: fonts.black },
+  segmentProb: { color: colors.textSecondary, fontSize: 9, marginTop: 3, fontFamily: fonts.semibold },
   limitHint: { color: colors.roomMuted, fontSize: 10, textAlign: 'right', marginTop: 8 },
   spinButton: {
     backgroundColor: colors.gold,
@@ -314,5 +314,5 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   spinButtonDisabled: { opacity: 0.5 },
-  spinButtonText: { color: colors.background, fontSize: 16, fontWeight: '900' },
+  spinButtonText: { color: colors.background, fontSize: 16, fontFamily: fonts.black },
 });
