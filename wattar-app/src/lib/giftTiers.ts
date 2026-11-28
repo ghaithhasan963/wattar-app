@@ -2,7 +2,11 @@
  * تصنيف الهدايا حسب القيمة — يحدد شدة المشهد السينمائي وتأثيراته.
  * كل الهدايا تشترك بنفس السلوك: مشهد ~5s، ثم انكماش/تحرك نحو المستلم، ثم ظهور بالشات.
  * الاختلاف يكون في شكل المشهد، كثافة الجسيمات، الألوان، وحجم الأثر.
+ *
+ * الألوان تأتي من نظام التصميم الموحّد (`theme.ts`) — لا ألوان محلية هنا.
  */
+
+import { colors as themeColors } from './theme';
 
 export type GiftTier = 'common' | 'special' | 'rare' | 'epic' | 'legendary';
 
@@ -30,7 +34,7 @@ export const GIFT_TIER_CONFIGS: GiftTierConfig[] = [
     minPrice: 0,
     maxPrice: 499,
     durationMs: 5000,
-    colors: ['#C9B8E0', '#A78BFA', '#7C3AED'],
+    colors: [themeColors.textSecondary, themeColors.primaryLight, themeColors.primary],
     particleCount: 10,
     intensity: 0.35,
   },
@@ -40,7 +44,7 @@ export const GIFT_TIER_CONFIGS: GiftTierConfig[] = [
     minPrice: 500,
     maxPrice: 1999,
     durationMs: 5000,
-    colors: ['#67E8F9', '#22D3EE', '#06B6D4'],
+    colors: [themeColors.teal, themeColors.tealDeep, themeColors.tealEdge],
     particleCount: 16,
     intensity: 0.5,
   },
@@ -50,7 +54,7 @@ export const GIFT_TIER_CONFIGS: GiftTierConfig[] = [
     minPrice: 2000,
     maxPrice: 4999,
     durationMs: 5000,
-    colors: ['#F9A8D4', '#EC4899', '#A855F7'],
+    colors: [themeColors.primaryLight, themeColors.primary, themeColors.primaryPressed],
     particleCount: 22,
     intensity: 0.68,
   },
@@ -60,7 +64,7 @@ export const GIFT_TIER_CONFIGS: GiftTierConfig[] = [
     minPrice: 5000,
     maxPrice: 9999,
     durationMs: 5000,
-    colors: ['#FDE68A', '#F59E0B', '#F97316'],
+    colors: [themeColors.gold, themeColors.goldDeep, themeColors.danger],
     particleCount: 28,
     intensity: 0.85,
   },
@@ -70,7 +74,7 @@ export const GIFT_TIER_CONFIGS: GiftTierConfig[] = [
     minPrice: 10000,
     maxPrice: Infinity,
     durationMs: 5000,
-    colors: ['#FDE68A', '#F4BD55', '#FFF1C1'],
+    colors: [themeColors.gold, themeColors.goldDeep, themeColors.goldHaze],
     particleCount: 34,
     intensity: 1,
   },
