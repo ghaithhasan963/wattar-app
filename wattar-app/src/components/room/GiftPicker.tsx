@@ -57,7 +57,7 @@ export function GiftCard({
       >
         {selected && (
           <LinearGradient
-            colors={['rgba(244,189,85,0.26)', 'rgba(169,71,245,0.10)', 'rgba(0,0,0,0)']}
+            colors={gradients.spotlight}
             style={StyleSheet.absoluteFill}
           />
         )}

@@ -81,6 +81,54 @@ export const colors = {
   inkShadow: 'rgba(0, 0, 0, 0.25)',
   shadowInk: '#000000',
   primaryLight: '#DDB6FF',
+
+  /* — هالات الغرف (كرات ضوئية متحركة) — */
+  primaryOrb: 'rgba(169, 71, 245, 0.16)',
+  primaryOrbFaint: 'rgba(169, 71, 245, 0.09)',
+  tealOrb: 'rgba(88, 214, 193, 0.10)',
+  goldOrb: 'rgba(244, 189, 85, 0.07)',
+} as const;
+
+/**
+ * ألوان الرسوم التوضيحية (SVG) لمشاهد الهدايا.
+ * ليست ألوان واجهة عامة، لكنها تُوحّد هنا كي لا تبقى ألوان محلية داخل المكوّنات.
+ */
+export const art = {
+  sailTop: '#F2FBFF',
+  sailMid: '#B6DDF7',
+  sailRose: '#F6C9E9',
+  sailMint: '#A6EFDD',
+  sailShadeHigh: '#C9B6E8',
+  sailShadeLow: '#8FB6D8',
+  mast: '#EAF1FF',
+  mastMain: '#F7FAFF',
+  hullHigh: '#AFC3E4',
+  hullMid: '#63739F',
+  hullLow: '#242C4C',
+  deckHigh: '#E0C994',
+  deckLow: '#8A6A3A',
+  hullHighlight: '#D6E8FF',
+  portholes: '#FFE6A6',
+  gem: '#FFF6D5',
+  waterTop: 'rgba(72, 158, 214, 0.42)',
+  waterMid: 'rgba(24, 74, 124, 0.72)',
+  waterLow: 'rgba(8, 26, 48, 0.92)',
+  waterLine: 'rgba(190, 240, 255, 0.35)',
+  waterLineFaint: 'rgba(190, 240, 255, 0.18)',
+  starCool: '#BFEFFF',
+  starWarm: '#FFFFFF',
+  sceneSky: 'rgba(6, 10, 22, 0.55)',
+  sceneSkyMid: 'rgba(8, 14, 30, 0.78)',
+  sceneSkyLow: 'rgba(4, 8, 18, 0.9)',
+  bannerGlass: 'rgba(12, 18, 34, 0.72)',
+  outline: '#FFFFFF',
+} as const;
+
+/** ألوان العملات — هوية بصرية ثابتة للنقاط/الذهب/الألماس (تُستهلك في CurrencyIcon). */
+export const currency = {
+  point: { background: '#2A1B50', border: '#8757E8', icon: '#C4A5FF' },
+  coin: { background: '#3B2A12', border: '#B9862F', icon: '#FFD36B' },
+  diamond: { background: '#123A3D', border: '#3D9D9A', icon: '#78E4D7' },
 } as const;
 
 /** تدرجات جاهزة — تُستخدم بدل الألوان المسطحة في العناصر البطلة. */
@@ -96,6 +144,9 @@ export const gradients = {
   cover: ['rgba(10, 7, 18, 0)', 'rgba(10, 7, 18, 0.55)', 'rgba(8, 5, 14, 0.96)'] as const,
   hero: ['rgba(169, 71, 245, 0.34)', 'rgba(88, 214, 193, 0.08)', 'rgba(10, 7, 18, 0)'] as const,
   sheet: ['#1C1330', '#120C20'] as const,
+  scrim: ['rgba(6, 4, 10, 0.72)', 'rgba(6, 4, 10, 0.28)', 'rgba(6, 4, 10, 0.55)', 'rgba(6, 4, 10, 0.92)'] as const,
+  stageGlow: ['rgba(169, 71, 245, 0.20)', 'rgba(169, 71, 245, 0.04)', 'rgba(10, 7, 18, 0)'] as const,
+  spotlight: ['rgba(244, 189, 85, 0.26)', 'rgba(169, 71, 245, 0.10)', 'rgba(0, 0, 0, 0)'] as const,
 } as const;
 
 export const radius = {

@@ -20,7 +20,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { colors, fonts, glow, radius } from '@/lib/theme';
+import { art, colors, fonts, glow, radius } from '@/lib/theme';
 import { getGiftTier, type GiftTierConfig } from '@/lib/giftTiers';
 import { usePreferencesStore } from '@/store/preferences';
 import type { GiftCelebrationData } from './GiftCelebration';
@@ -76,7 +76,7 @@ function Star({
           left: x,
           top: y,
           fontSize: size + 5,
-          color: index % 3 === 0 ? tint : index % 3 === 1 ? '#BFEFFF' : '#FFFFFF',
+          color: index % 3 === 0 ? tint : index % 3 === 1 ? art.starCool : art.starWarm,
           fontFamily: fonts.bold,
           textShadowColor: tint,
           textShadowRadius: 7,
@@ -94,28 +94,28 @@ function Ship({ size }: { size: number }) {
     <Svg width={size} height={size * 0.95} viewBox="0 0 200 190">
       <Defs>
         <SvgGradient id="sail" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#F2FBFF" stopOpacity="0.99" />
-          <Stop offset="0.3" stopColor="#B6DDF7" stopOpacity="0.97" />
-          <Stop offset="0.62" stopColor="#F6C9E9" stopOpacity="0.95" />
-          <Stop offset="1" stopColor="#A6EFDD" stopOpacity="0.97" />
+          <Stop offset="0" stopColor={art.sailTop} stopOpacity="0.99" />
+          <Stop offset="0.3" stopColor={art.sailMid} stopOpacity="0.97" />
+          <Stop offset="0.62" stopColor={art.sailRose} stopOpacity="0.95" />
+          <Stop offset="1" stopColor={art.sailMint} stopOpacity="0.97" />
         </SvgGradient>
         <SvgGradient id="sailShade" x1="1" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#C9B6E8" stopOpacity="0.95" />
-          <Stop offset="1" stopColor="#8FB6D8" stopOpacity="0.92" />
+          <Stop offset="0" stopColor={art.sailShadeHigh} stopOpacity="0.95" />
+          <Stop offset="1" stopColor={art.sailShadeLow} stopOpacity="0.92" />
         </SvgGradient>
         <SvgGradient id="hull" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#AFC3E4" stopOpacity="0.98" />
-          <Stop offset="0.5" stopColor="#63739F" stopOpacity="0.98" />
-          <Stop offset="1" stopColor="#242C4C" stopOpacity="1" />
+          <Stop offset="0" stopColor={art.hullHigh} stopOpacity="0.98" />
+          <Stop offset="0.5" stopColor={art.hullMid} stopOpacity="0.98" />
+          <Stop offset="1" stopColor={art.hullLow} stopOpacity="1" />
         </SvgGradient>
         <SvgGradient id="deck" x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0" stopColor="#E0C994" stopOpacity="0.98" />
-          <Stop offset="1" stopColor="#8A6A3A" stopOpacity="0.98" />
+          <Stop offset="0" stopColor={art.deckHigh} stopOpacity="0.98" />
+          <Stop offset="1" stopColor={art.deckLow} stopOpacity="0.98" />
         </SvgGradient>
       </Defs>
-      <Path d="M58 40 L58 134" stroke="#EAF1FF" strokeWidth="2.6" strokeLinecap="round" />
-      <Path d="M100 20 L100 138" stroke="#F7FAFF" strokeWidth="3" strokeLinecap="round" />
-      <Path d="M142 44 L142 134" stroke="#EAF1FF" strokeWidth="2.6" strokeLinecap="round" />
+      <Path d="M58 40 L58 134" stroke={art.mast} strokeWidth="2.6" strokeLinecap="round" />
+      <Path d="M100 20 L100 138" stroke={art.mastMain} strokeWidth="3" strokeLinecap="round" />
+      <Path d="M142 44 L142 134" stroke={art.mast} strokeWidth="2.6" strokeLinecap="round" />
       <Path d="M58 42 C34 62 30 100 40 128 L58 128 Z" fill="url(#sail)" opacity="0.95" />
       <Path d="M58 42 C80 64 84 102 74 128 L58 128 Z" fill="url(#sailShade)" opacity="0.85" />
       <Path d="M100 22 C66 52 58 102 70 134 L100 134 Z" fill="url(#sail)" />
@@ -125,10 +125,10 @@ function Ship({ size }: { size: number }) {
       <Path d="M100 20 L120 27 L100 34 Z" fill={colors.gold} />
       <Path d="M28 134 L172 134 L164 144 L36 144 Z" fill="url(#deck)" />
       <Path d="M24 145 C38 172 76 184 100 184 C126 184 162 172 176 145 Z" fill="url(#hull)" />
-      <Path d="M38 150 C56 162 80 168 100 168 C120 168 146 162 162 150" stroke="#D6E8FF" strokeWidth="1.5" strokeOpacity="0.6" fill="none" />
-      <Polygon points="64,152 71,152 70,159 65,159" fill="#FFE6A6" opacity="0.92" />
-      <Polygon points="95,154 102,154 101,162 96,162" fill="#FFE6A6" opacity="0.92" />
-      <Polygon points="127,152 134,152 133,159 128,159" fill="#FFE6A6" opacity="0.92" />
+      <Path d="M38 150 C56 162 80 168 100 168 C120 168 146 162 162 150" stroke={art.hullHighlight} strokeWidth="1.5" strokeOpacity="0.6" fill="none" />
+      <Polygon points="64,152 71,152 70,159 65,159" fill={art.portholes} opacity="0.92" />
+      <Polygon points="95,154 102,154 101,162 96,162" fill={art.portholes} opacity="0.92" />
+      <Polygon points="127,152 134,152 133,159 128,159" fill={art.portholes} opacity="0.92" />
     </Svg>
   );
 }
@@ -254,8 +254,8 @@ function ProceduralGift({
   const exitFadeStyle = useAnimatedStyle(() => ({ opacity: 1 - exitProgress.value }));
 
   const bg = tier.tier === 'legendary' || tier.tier === 'epic'
-    ? ['rgba(6,10,22,0.55)', 'rgba(8,14,30,0.78)', 'rgba(4,8,18,0.9)']
-    : [`${tier.colors[2]}22`, `${tier.colors[1]}33`, 'rgba(4,8,18,0.88)'];
+    ? [art.sceneSky, art.sceneSkyMid, art.sceneSkyLow]
+    : [`${tier.colors[2]}22`, `${tier.colors[1]}33`, art.sceneSkyLow];
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
@@ -277,7 +277,7 @@ function ProceduralGift({
       {isShip && (
         <Animated.View style={[styles.water, exitFadeStyle]} pointerEvents="none">
           <LinearGradient
-            colors={['rgba(72,158,214,0.42)', 'rgba(24,74,124,0.72)', 'rgba(8,26,48,0.92)']}
+            colors={[art.waterTop, art.waterMid, art.waterLow]}
             style={StyleSheet.absoluteFill}
           />
           <View style={styles.waterLine1} />
@@ -305,7 +305,7 @@ function TierHero({ gift, tier }: { gift: GiftSceneData; tier: GiftTierConfig })
       {tier.tier === 'rare' ? <CrownShape size={size} c={tier.colors} /> :
        tier.tier === 'special' ? <CrystalShape size={size} c={tier.colors} /> :
        <OrbShape size={size} emoji={gift.emoji || '🎁'} c={tier.colors} />}
-      <Text style={{ color: '#FFFFFF', fontFamily: fonts.black, fontSize: 13, marginTop: 14, textShadowColor: glowColor, textShadowRadius: 10 }}>
+      <Text style={{ color: colors.text, fontFamily: fonts.black, fontSize: 13, marginTop: 14, textShadowColor: glowColor, textShadowRadius: 10 }}>
         {gift.name}
       </Text>
     </View>
@@ -335,7 +335,7 @@ function CrystalShape({ size, c }: { size: number; c: [string, string, string] }
       </Defs>
       <Polygon points="50,5 90,35 75,90 25,90 10,35" fill="url(#crys)" stroke={c[0]} strokeWidth="1.5" />
       <Polygon points="50,5 75,90 25,90" fill={`${c[1]}55`} />
-      <Path d="M50 5 L50 90 M10 35 L90 35 M25 90 L50 35 L75 90" stroke="#FFFFFF" strokeOpacity="0.35" strokeWidth="1" />
+      <Path d="M50 5 L50 90 M10 35 L90 35 M25 90 L50 35 L75 90" stroke={art.outline} strokeOpacity="0.35" strokeWidth="1" />
     </Svg>
   );
 }
@@ -352,10 +352,10 @@ function CrownShape({ size, c }: { size: number; c: [string, string, string] }) 
       </Defs>
       <Path d="M12 74 L22 28 L42 50 L60 18 L78 50 L98 28 L108 74 Z" fill="url(#crwn)" stroke={`${c[0]}CC`} strokeWidth="1.5" />
       <Path d="M16 74 L104 74 L100 86 L20 86 Z" fill={c[1]} stroke={`${c[0]}99`} strokeWidth="1" />
-      <Circle cx="22" cy="26" r="4" fill="#FFF6D5" />
-      <Circle cx="60" cy="16" r="5" fill="#FFF6D5" />
-      <Circle cx="98" cy="26" r="4" fill="#FFF6D5" />
-      <Circle cx="60" cy="58" r="6" fill={`${c[0]}88`} stroke="#FFF6D5" strokeWidth="1" />
+      <Circle cx="22" cy="26" r="4" fill={art.gem} />
+      <Circle cx="60" cy="16" r="5" fill={art.gem} />
+      <Circle cx="98" cy="26" r="4" fill={art.gem} />
+      <Circle cx="60" cy="58" r="6" fill={`${c[0]}88`} stroke={art.gem} strokeWidth="1" />
     </Svg>
   );
 }
@@ -424,7 +424,7 @@ function VideoGiftScene({
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <LinearGradient colors={['rgba(6,10,22,0.55)', 'rgba(8,14,30,0.78)', 'rgba(4,8,18,0.9)']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[art.sceneSky, art.sceneSkyMid, art.sceneSkyLow]} style={StyleSheet.absoluteFill} />
       <Animated.View style={[StyleSheet.absoluteFill, containerStyle]}>
         <VideoView player={player} style={StyleSheet.absoluteFill} nativeControls={false} contentFit="contain" />
       </Animated.View>
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(12,18,34,0.72)',
+    backgroundColor: art.bannerGlass,
     borderWidth: 1,
     borderColor: colors.goldLine,
     ...glow(colors.gold, 22),
@@ -480,8 +480,8 @@ const styles = StyleSheet.create({
   },
   comboText: { color: colors.primaryLight, fontFamily: fonts.black, fontSize: 11, lineHeight: 16 },
   water: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '46%' },
-  waterLine1: { position: 'absolute', top: 6, left: 0, right: 0, height: 1.5, backgroundColor: 'rgba(190,240,255,0.35)' },
-  waterLine2: { position: 'absolute', top: 22, left: '12%', right: '20%', height: 1, backgroundColor: 'rgba(190,240,255,0.18)' },
+  waterLine1: { position: 'absolute', top: 6, left: 0, right: 0, height: 1.5, backgroundColor: art.waterLine },
+  waterLine2: { position: 'absolute', top: 22, left: '12%', right: '20%', height: 1, backgroundColor: art.waterLineFaint },
   hero: { position: 'absolute', bottom: '20%', alignSelf: 'center' },
-  ship: { position: 'absolute', bottom: '20%', alignSelf: 'center', ...glow('#7FC8FF', 30) },
+  ship: { position: 'absolute', bottom: '20%', alignSelf: 'center', ...glow(colors.roomTeal, 30) },
 });

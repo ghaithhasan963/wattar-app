@@ -94,23 +94,23 @@ export function RoomAmbience({ coverUrl }: { coverUrl?: string | null }) {
 
       {/* تعتيم متدرّج: خفيف في المنتصف كي يظهر الغلاف، أقوى أعلى وأسفل لوضوح النصوص */}
       <LinearGradient
-        colors={['rgba(6,4,10,0.72)', 'rgba(6,4,10,0.28)', 'rgba(6,4,10,0.55)', 'rgba(6,4,10,0.92)']}
+        colors={gradients.scrim}
         locations={[0, 0.22, 0.52, 1]}
         style={StyleSheet.absoluteFill}
       />
 
       {/* وهج المنصة */}
       <LinearGradient
-        colors={[colors.primaryHaze, 'rgba(169,71,245,0.04)', 'rgba(10,7,18,0)']}
+        colors={gradients.stageGlow}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={styles.stageGlow}
       />
 
-      <Orb size={230} color="rgba(169,71,245,0.16)" top={-70} left={-70} drift={34} duration={9000} reduceMotion={reduceMotion} />
-      <Orb size={190} color="rgba(88,214,193,0.10)" top={150} left={250} drift={-28} duration={11000} reduceMotion={reduceMotion} />
-      <Orb size={260} color="rgba(169,71,245,0.09)" top={430} left={-90} drift={26} duration={13000} reduceMotion={reduceMotion} />
-      <Orb size={170} color="rgba(244,189,85,0.07)" top={620} left={230} drift={-22} duration={10000} reduceMotion={reduceMotion} />
+      <Orb size={230} color={colors.primaryOrb} top={-70} left={-70} drift={34} duration={9000} reduceMotion={reduceMotion} />
+      <Orb size={190} color={colors.tealOrb} top={150} left={250} drift={-28} duration={11000} reduceMotion={reduceMotion} />
+      <Orb size={260} color={colors.primaryOrbFaint} top={430} left={-90} drift={26} duration={13000} reduceMotion={reduceMotion} />
+      <Orb size={170} color={colors.goldOrb} top={620} left={230} drift={-22} duration={10000} reduceMotion={reduceMotion} />
     </View>
   );
 }

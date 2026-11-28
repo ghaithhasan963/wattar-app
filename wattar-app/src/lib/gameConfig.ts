@@ -7,8 +7,9 @@
  * للعرض فقط عند تعذّر التحميل، ولا تُستخدم في أي حساب مالي.
  */
 
-export type GameType = 'wheel' | 'dice' | 'aviator' | 'plinko' | 'slots';
+import { colors } from './theme';
 
+export type GameType = 'wheel' | 'dice' | 'aviator' | 'plinko' | 'slots';
 export const GAME_TYPES: readonly GameType[] = ['wheel', 'dice', 'aviator', 'plinko', 'slots'];
 
 export interface GameSegment {
@@ -60,12 +61,12 @@ export interface PlinkoTable {
 }
 
 export const DEFAULT_WHEEL_SEGMENTS: GameSegment[] = [
-  { value: 0.66, probability: 0.45, color: '#6B7280', label: 'x0.66' },
-  { value: 1.2, probability: 0.25, color: '#10B981', label: 'x1.2' },
-  { value: 2, probability: 0.15, color: '#3B82F6', label: 'x2' },
-  { value: 3.75, probability: 0.08, color: '#A78BFA', label: 'x3.75' },
-  { value: 6, probability: 0.05, color: '#F59E0B', label: 'x6' },
-  { value: 15, probability: 0.02, color: '#EF4444', label: 'x15' },
+  { value: 0.66, probability: 0.45, color: colors.textMuted, label: 'x0.66' },
+  { value: 1.2, probability: 0.25, color: colors.success, label: 'x1.2' },
+  { value: 2, probability: 0.15, color: colors.primaryLight, label: 'x2' },
+  { value: 3.75, probability: 0.08, color: colors.primary, label: 'x3.75' },
+  { value: 6, probability: 0.05, color: colors.gold, label: 'x6' },
+  { value: 15, probability: 0.02, color: colors.danger, label: 'x15' },
 ];
 
 export const DEFAULT_PLINKO_TABLE: PlinkoTable = {
@@ -129,7 +130,7 @@ export function parsePublicGames(data: unknown): PublicGame[] {
       display_name: asString(item.display_name, gameType),
       description: typeof item.description === 'string' ? item.description : null,
       icon: asString(item.icon, 'gamepad'),
-      accent_color: asString(item.accent_color, '#A947F5'),
+      accent_color: asString(item.accent_color, colors.primary),
       sort_order: asNumber(item.sort_order, 0),
       is_enabled: item.is_enabled === true,
       available: item.available === true,
@@ -174,7 +175,7 @@ export function toWheelSegments(settings: Record<string, unknown>): GameSegment[
     segments.push({
       value,
       probability,
-      color: asString(item.color, '#6B7280'),
+      color: asString(item.color, colors.textMuted),
       label: asString(item.label, `x${value}`),
     });
   }

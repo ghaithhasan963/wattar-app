@@ -1,13 +1,14 @@
 import React from 'react';
 import { Coins, Gem, Sparkles } from 'lucide-react-native';
 import { View, StyleSheet } from 'react-native';
+import { currency as currencyTheme } from '@/lib/theme';
 
 type Currency = 'point' | 'coin' | 'diamond';
 
 const currencyStyles = {
-  point: { background: '#2A1B50', border: '#8757E8', icon: '#C4A5FF' },
-  coin: { background: '#3B2A12', border: '#B9862F', icon: '#FFD36B' },
-  diamond: { background: '#123A3D', border: '#3D9D9A', icon: '#78E4D7' },
+  point: currencyTheme.point,
+  coin: currencyTheme.coin,
+  diamond: currencyTheme.diamond,
 } as const;
 
 const currencyIcons = {

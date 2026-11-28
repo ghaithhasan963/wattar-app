@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, Image, StyleSheet, Text, View } from 'react-native';
 import { useAudioPlayer } from 'expo-audio';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { colors } from '@/lib/theme';
+import { colors, fonts } from '@/lib/theme';
 
 export interface GiftEffectPayload {
   giftId: string;
@@ -26,11 +26,11 @@ interface Props {
 }
 
 const rarityColors: Record<string, string> = {
-  common: '#C9B8E0',
-  uncommon: '#4ADE80',
-  rare: '#60A5FA',
-  epic: '#C084FC',
-  legendary: '#FBBF24',
+  common: colors.textSecondary,
+  uncommon: colors.success,
+  rare: colors.primaryLight,
+  epic: colors.primary,
+  legendary: colors.gold,
 };
 
 function isVideoUrl(url: string) {
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     left: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#05000866',
+    backgroundColor: colors.overlay,
     zIndex: 50,
   },
   card: {
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     borderRadius: 28,
     alignItems: 'center',
-    backgroundColor: '#160B24F2',
+    backgroundColor: colors.sheet,
     borderWidth: 1.5,
     overflow: 'hidden',
   },
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   mediaBox: { width: 116, height: 116, alignItems: 'center', justifyContent: 'center' },
   mediaImage: { width: 116, height: 116 },
   mediaEmoji: { fontSize: 66 },
-  giftName: { color: colors.text, fontSize: 17, fontWeight: '900', textAlign: 'center', marginTop: 10 },
+  giftName: { color: colors.text, fontSize: 17, fontFamily: fonts.black, textAlign: 'center', marginTop: 10 },
   route: { color: colors.textSecondary, fontSize: 12, marginTop: 7, textAlign: 'center' },
-  price: { fontSize: 14, fontWeight: '900', marginTop: 6 },
+  price: { fontSize: 14, fontFamily: fonts.black, marginTop: 6 },
 });

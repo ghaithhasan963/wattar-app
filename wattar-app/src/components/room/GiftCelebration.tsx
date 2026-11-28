@@ -38,7 +38,7 @@ export interface GiftCelebrationData {
 }
 
 const PARTICLE_COUNT = 16;
-const PARTICLE_COLORS = ['#F4BD55', '#A947F5', '#58D6C1', '#FF718E', '#FFFFFF', '#FFD98A'];
+const PARTICLE_COLORS = [colors.gold, colors.primary, colors.teal, colors.danger, colors.text, colors.goldDeep];
 const PARTICLE_SHAPES = ['✦', '●', '◆', '✧'];
 
 function Particle({
@@ -210,7 +210,7 @@ export function GiftCelebration({
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       {/* عتمة خفيفة تُبرز الاحتفال دون حجب الغرفة */}
       <LinearGradient
-        colors={['rgba(6,4,10,0)', 'rgba(6,4,10,0.45)', 'rgba(6,4,10,0.72)']}
+        colors={gradients.cover}
         style={StyleSheet.absoluteFill}
       />
 
@@ -229,7 +229,7 @@ export function GiftCelebration({
             style={StyleSheet.absoluteFill}
           />
           <LinearGradient
-            colors={['rgba(244,189,85,0.22)', 'rgba(169,71,245,0.10)', 'rgba(0,0,0,0)']}
+            colors={gradients.spotlight}
             style={StyleSheet.absoluteFill}
           />
           <View style={styles.cardTop}>
