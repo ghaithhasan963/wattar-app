@@ -17,6 +17,10 @@ interface LoyaltyBadge {
   days: number;
   key: string;
   label: string;
+  gift_id?: string | null;
+  gift_name?: string | null;
+  gift_emoji?: string | null;
+  gift_quantity?: number | null;
 }
 
 interface LoyaltyState {
@@ -42,6 +46,8 @@ interface ClaimResult {
   streak_days?: number;
   badge_label?: string | null;
   badge_awarded?: boolean;
+  badge_gift_name?: string | null;
+  badge_gift_emoji?: string | null;
 }
 
 const palette = {
@@ -89,10 +95,13 @@ export default function LoyaltyScreen() {
       if (rpcError) throw rpcError;
       const result = data as ClaimResult;
       if (result.status === 'claimed') {
+        const badgeLine = result.badge_awarded && result.badge_label ? `\nشارة جديدة: ${result.badge_label}` : '';
+        const giftLine = result.badge_awarded && result.badge_gift_name
+          ? `\nهدية إلى حقيبتك: ${result.badge_gift_emoji ?? '🎁'} ${result.badge_gift_name}`
+          : '';
         Alert.alert(
           `سلسلة ${result.streak_days ?? 1} أيام`,
-          `+${result.points_awarded ?? 0} نقطة ولاء`
-            + (result.badge_awarded && result.badge_label ? `\nشارة جديدة: ${result.badge_label}` : ''),
+          `+${result.points_awarded ?? 0} نقطة ولاء` + badgeLine + giftLine,
         );
       } else if (result.status === 'already_claimed') {
         Alert.alert('سُجّل اليوم', 'عد غداً لمواصلة السلسلة.');
@@ -189,7 +198,15 @@ export default function LoyaltyScreen() {
               return (
                 <View key={badge.key} style={[styles.badgeRow, unlocked && styles.badgeRowUnlocked]}>
                   <Award size={16} color={unlocked ? palette.gold : palette.muted} />
-                  <Text style={[styles.badgeName, unlocked && styles.badgeNameUnlocked]}>{badge.label}</Text>
+                  <View style={styles.badgeCopy}>
+                    <Text style={[styles.badgeName, unlocked && styles.badgeNameUnlocked]}>{badge.label}</Text>
+                    {badge.gift_name ? (
+                      <Text style={[styles.badgeGift, unlocked && styles.badgeGiftUnlocked]}>
+                        {badge.gift_emoji ?? '🎁'} هدية: {badge.gift_name}
+                        {Number(badge.gift_quantity ?? 1) > 1 ? ` ×${badge.gift_quantity}` : ''}
+                      </Text>
+                    ) : null}
+                  </View>
                   <Text style={styles.badgeDays}>{badge.days} أيام</Text>
                 </View>
               );
@@ -197,7 +214,10 @@ export default function LoyaltyScreen() {
 
             {state.next_badge ? (
               <Text style={styles.nextHint}>
-                التالية: {state.next_badge.label} بعد {Math.max(state.next_badge.days - reached, 1)} يوم متصل.
+                التالية: {state.next_badge.label} بعد {Math.max(state.next_badge.days - reached, 1)} يوم متصل
+                {state.next_badge.gift_name
+                  ? ` — مع ${state.next_badge.gift_emoji ?? '🎁'} ${state.next_badge.gift_name}`
+                  : ''}.
               </Text>
             ) : (
               <Text style={styles.nextHint}>وصلت إلى أعلى شارة متاحة.</Text>
@@ -235,8 +255,11 @@ const styles = StyleSheet.create({
   sectionSubtitle: { color: palette.muted, fontSize: 11, marginTop: 4, textAlign: 'right' },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, marginBottom: 9, borderRadius: 15, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
   badgeRowUnlocked: { backgroundColor: colors.goldSoft, borderColor: colors.goldLine },
-  badgeName: { color: palette.muted, fontSize: 13, fontFamily: fonts.semibold, flex: 1, textAlign: 'right' },
+  badgeCopy: { flex: 1, gap: 3, alignItems: 'flex-end' },
+  badgeName: { color: palette.muted, fontSize: 13, fontFamily: fonts.semibold, textAlign: 'right' },
   badgeNameUnlocked: { color: palette.text },
+  badgeGift: { color: palette.muted, fontSize: 10, textAlign: 'right' },
+  badgeGiftUnlocked: { color: palette.gold },
   badgeDays: { color: palette.muted, fontSize: 11 },
   nextHint: { color: palette.muted, fontSize: 11, textAlign: 'right', marginTop: 4 },
   state: { alignItems: 'center', padding: 25 },

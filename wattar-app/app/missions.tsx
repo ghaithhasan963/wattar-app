@@ -24,6 +24,10 @@ interface DailyMission {
   current_progress: number;
   reward_gold: number;
   reward_xp: number;
+  reward_gift_id: string | null;
+  reward_gift_name: string | null;
+  reward_gift_emoji: string | null;
+  reward_gift_quantity: number | null;
   is_claimed: boolean;
   coin_awarded: number;
   xp_awarded: number;
@@ -65,10 +69,24 @@ export default function MissionsScreen() {
         p_mission_id: mission.mission_id,
       });
       if (claimError) throw claimError;
-      const result = data as { coin_awarded?: number; xp_awarded?: number } | null;
+      const result = data as {
+        coin_awarded?: number;
+        xp_awarded?: number;
+        gift_awarded?: boolean;
+        gift_name?: string | null;
+        gift_emoji?: string | null;
+        gift_quantity?: number | null;
+      } | null;
       const coins = Number(result?.coin_awarded ?? 0);
       const xp = Number(result?.xp_awarded ?? 0);
-      setNotice(`تم استلام المكافأة: ${coins.toLocaleString()} Coin و${xp.toLocaleString()} XP.`);
+      const parts: string[] = [];
+      if (coins > 0) parts.push(`${coins.toLocaleString()} Coin`);
+      if (xp > 0) parts.push(`${xp.toLocaleString()} XP`);
+      if (result?.gift_awarded && result.gift_name) {
+        const qty = Number(result.gift_quantity ?? 1);
+        parts.push(`${result.gift_emoji ?? '🎁'} ${result.gift_name}${qty > 1 ? ` ×${qty}` : ''} إلى حقيبتك`);
+      }
+      setNotice(`تم استلام المكافأة: ${parts.length ? parts.join(' + ') : 'تم التسجيل'}.`);
       await Promise.all([loadMissions(), loadProfile()]);
     } catch (caught: unknown) {
       setError(caught instanceof Error ? caught.message : 'تعذر استلام مكافأة المهمة.');
@@ -138,9 +156,22 @@ export default function MissionsScreen() {
               <View style={styles.rewardRow}>
                 <Text style={styles.rewardLabel}>المكافأة</Text>
                 <Text style={styles.rewardValue}>
-                  {mission.reward_gold.toLocaleString()} Coin · {mission.reward_xp.toLocaleString()} XP
+                  {[
+                    mission.reward_gold > 0 ? `${mission.reward_gold.toLocaleString()} Coin` : null,
+                    mission.reward_xp > 0 ? `${mission.reward_xp.toLocaleString()} XP` : null,
+                  ].filter(Boolean).join(' · ') || '—'}
                 </Text>
               </View>
+
+              {mission.reward_gift_name ? (
+                <View style={styles.giftRow}>
+                  <Text style={styles.giftEmoji}>{mission.reward_gift_emoji ?? '🎁'}</Text>
+                  <Text style={styles.giftText}>
+                    هدية رمزية إلى حقيبتك: {mission.reward_gift_name}
+                    {Number(mission.reward_gift_quantity ?? 1) > 1 ? ` ×${mission.reward_gift_quantity}` : ''}
+                  </Text>
+                </View>
+              ) : null}
 
               <TouchableOpacity
                 style={[styles.claimButton, (!completed || mission.is_claimed || busyMission === mission.mission_id) && styles.claimButtonDisabled]}
@@ -190,6 +221,9 @@ const styles = StyleSheet.create({
   rewardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 13 },
   rewardLabel: { color: colors.textSecondary, fontSize: 11 },
   rewardValue: { color: colors.gold, fontSize: 11, fontFamily: fonts.bold },
+  giftRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 9, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 12, backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.borderStrong },
+  giftEmoji: { fontSize: 15 },
+  giftText: { flex: 1, color: colors.primaryLight, fontSize: 11, lineHeight: 16, textAlign: 'right', fontFamily: fonts.semibold },
   claimButton: { minHeight: 42, marginTop: 13, borderRadius: 13, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center' },
   claimButtonDisabled: { backgroundColor: colors.surfaceMuted },
   claimText: { color: colors.background, fontSize: 12, fontFamily: fonts.black },

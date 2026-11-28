@@ -184,3 +184,20 @@
 - هل هو آمن للإعادة (`IF NOT EXISTS` / `ON CONFLICT`).
 
 بدون هذه الثلاثة لا يُعتمد.
+
+---
+
+## 6) سجل M10 (مطبّق على الإنتاج — إضافات فقط)
+
+| الملف | التاريخ | المحتوى | التحقق |
+|---|---|---|---|
+| `patch_m10_symbolic_gifts.sql` | 2026-11-28 | أعمدة `gifts.is_symbolic`/`earn_source`، جدول `user_gift_bag`، `transfer_symbolic_gift` (نقل بلا تحويل لعملات)، تعديل قيد السعر ليقبل الرمزية بصفر | اختبار داخل rollback + 3 هدايا رمزية مبذورة |
+| `patch_m10_gift_catalog_expand.sql` | 2026-11-28 | 16 هدية موزّعة على الفئات الخمس | استعلام كتالوج |
+| `patch_m10_room_covers_storage.sql` | 2026-11-28 | bucket `room-covers` (قراءة عامة، كتابة للمالك، 5MB، jpeg/png/webp) | فحص bucket/policies |
+| `patch_m10_symbolic_grant.sql` | 2026-11-28 | `symbolic_gift_grants` + `grant_symbolic_gift` + سياسة `is_admin()` | منح إداري تجريبي داخل rollback |
+| `patch_m10_symbolic_auto_grants.sql` | 2026-11-28 | منح رمزي تلقائي: `grant_symbolic_gift_internal` + إعادة توجيه `grant_symbolic_gift`؛ مكافآت المستويات (`level_rewards.free_gift_id` + `free_gift_quantity` وزناد على `user_level_rewards`)؛ مهام اليوم (`daily_missions.reward_gift_id`/`reward_gift_quantity` وزناد على `daily_mission_claims`)؛ شارات الولاء (`gift_id` داخل `loyalty_badges` وزناد على `loyalty_claims`، مرة واحدة عند اكتساب الشارة)؛ نوع إشعار `symbolic_gift` | اختبارات داخل rollback: مستوى 5 منح «وردة سحرية» وأضافها للحقيبة · مهمة رمزية منحت «نجمة الحظ» · شارة silver منحت الهدية — ثم ROLLBACK |
+| `patch_m10_symbolic_rewards_ui.sql` | 2026-11-28 | إظهار الهدايا الرمزية في الواجهات: `loyalty_settings()` تُثري كل شارة بـ`gift_name`/`gift_emoji`/`gift_quantity`؛ `claim_daily_loyalty()` تُرجع `badge_gift_name`/`badge_gift_emoji`؛ `list_daily_missions()` تُرجع `reward_gift_id`/`reward_gift_name`/`reward_gift_emoji`/`reward_gift_quantity`؛ `claim_daily_mission()` تُرجع `gift_awarded`/`gift_name`/`gift_emoji`/`gift_quantity`؛ `admin_upsert_level_reward()` تدعم `free_gift_quantity` وتشترط هدية رمزية مفعّلة | اختبار داخل rollback: شارة silver أعادت «وردة سحرية» ومنحتها للحقيبة · مهمة `symbolic_daily_story` أعادت «نجمة الحظ» ومنحتها · `list_daily_missions` أظهرت أعمدة الهدية |
+| `patch_m10_symbolic_rewards_ui_fix.sql` | 2026-11-28 | تصحيح بيانات: مهمة `symbolic_daily_story` بلا Coin (`reward_gold = 0`) لتكون مكافأتها رمزية بحتة | فحص صف المهمة |
+
+**ملاحظة:** كل المنح تُسجَّل في `symbolic_gift_grants` بمفتاح idempotency (`level:{user}:{level}` / `mission:{claim}` / `loyalty:{claim}`) وتُضاف إلى `user_gift_bag` **ولا تُحوَّل إلى عملات أبدًا**.
+

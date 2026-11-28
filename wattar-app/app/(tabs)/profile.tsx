@@ -45,6 +45,21 @@ interface SocialProgress {
   is_following: boolean;
 }
 
+interface LevelRewardPreview {
+  title: string | null;
+  badge: string | null;
+  coin_reward: number;
+  free_gift_id: string | null;
+  free_gift_quantity: number | null;
+  free_gift: {
+    name_ar: string | null;
+    name: string | null;
+    icon_emoji: string | null;
+    is_symbolic: boolean;
+    is_active: boolean;
+  } | null;
+}
+
 const palette = {
   background: colors.background,
   surface: colors.surface,
@@ -64,6 +79,7 @@ export default function ProfileScreen() {
   const [progress, setProgress] = useState<SocialProgress | null>(null);
   const [progressError, setProgressError] = useState<string | null>(null);
   const [privacyBusy, setPrivacyBusy] = useState(false);
+  const [nextReward, setNextReward] = useState<LevelRewardPreview | null>(null);
 
   const loadProgress = useCallback(async () => {
     if (!profile?.id) return;
@@ -136,6 +152,53 @@ export default function ProfileScreen() {
   const levelStart = (level - 1) ** 2 * 100;
   const nextLevelAt = level ** 2 * 100;
   const levelProgress = Math.max(0, Math.min(1, (experience - levelStart) / (nextLevelAt - levelStart)));
+
+  useEffect(() => {
+    let cancelled = false;
+    const nextLevel = level + 1;
+    (async () => {
+      const { data } = await supabase
+        .from('level_rewards')
+        .select('title,badge,coin_reward,free_gift_id,free_gift_quantity')
+        .eq('level', nextLevel)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (cancelled) return;
+      if (!data) {
+        setNextReward(null);
+        return;
+      }
+      let gift: LevelRewardPreview['free_gift'] = null;
+      if (data.free_gift_id) {
+        const { data: giftRow } = await supabase
+          .from('gifts')
+          .select('name_ar,name,icon_emoji,is_symbolic,is_active')
+          .eq('id', data.free_gift_id)
+          .maybeSingle();
+        if (cancelled) return;
+        gift = (giftRow as LevelRewardPreview['free_gift']) ?? null;
+      }
+      setNextReward({ ...(data as unknown as LevelRewardPreview), free_gift: gift });
+    })().catch(() => {
+      if (!cancelled) setNextReward(null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [level]);
+
+  const nextRewardParts = nextReward
+    ? [
+        nextReward.free_gift && nextReward.free_gift.is_symbolic && nextReward.free_gift.is_active
+          ? `${nextReward.free_gift.icon_emoji ?? '🎁'} ${nextReward.free_gift.name_ar || nextReward.free_gift.name || 'هدية رمزية'}${
+              Number(nextReward.free_gift_quantity ?? 1) > 1 ? ` ×${nextReward.free_gift_quantity}` : ''
+            }`
+          : null,
+        Number(nextReward.coin_reward ?? 0) > 0 ? `${Number(nextReward.coin_reward).toLocaleString()} Coin` : null,
+        nextReward.title ? `لقب «${nextReward.title}»` : null,
+        nextReward.badge ? `شارة «${nextReward.badge}»` : null,
+      ].filter(Boolean)
+    : [];
   const displayName = profile?.display_name || profile?.username || 'مستخدم Wattar';
   const isPrivate = profile?.profile_visibility === 'friends';
   const giftsSent = Number(profile?.total_gifts_sent ?? 0);
@@ -245,6 +308,14 @@ export default function ProfileScreen() {
         <Text style={styles.nextLevelText}>
           {Math.max(0, nextLevelAt - experience).toLocaleString()} XP متبقية للمستوى التالي
         </Text>
+        {nextRewardParts.length ? (
+          <View style={styles.levelReward}>
+            <Gift size={13} color={palette.gold} />
+            <Text style={styles.levelRewardText}>
+              مكافأة المستوى {level + 1}: {nextRewardParts.join(' · ')}
+            </Text>
+          </View>
+        ) : null}
         {progressError ? <Text style={styles.progressError}>{progressError}</Text> : null}
       </View>
 
@@ -423,6 +494,8 @@ const styles = StyleSheet.create({
   progressTrack: { height: 8, overflow: 'hidden', borderRadius: 8, backgroundColor: palette.elevated, marginTop: 13 },
   progressFill: { height: '100%', borderRadius: 8, backgroundColor: palette.gold },
   nextLevelText: { color: palette.muted, fontSize: 9.5, marginTop: 7, textAlign: 'right' },
+  levelReward: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingVertical: 7, paddingHorizontal: 9, borderRadius: radius.sm, backgroundColor: colors.goldSoft },
+  levelRewardText: { flex: 1, color: palette.gold, fontSize: 10, lineHeight: 15, textAlign: 'right', fontFamily: fonts.semibold },
   progressError: { color: palette.danger, fontSize: 10, marginTop: 8, textAlign: 'right' },
   walletCard: { padding: 15, marginTop: 12, borderRadius: 19, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border },
   walletHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
