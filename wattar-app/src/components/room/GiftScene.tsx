@@ -7,7 +7,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Defs, LinearGradient as SvgGradient, Path, Polygon, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, Ellipse, G, LinearGradient as SvgGradient, Path, Polygon, Stop } from 'react-native-svg';
 import Animated, {
   Easing,
   type SharedValue,
@@ -288,53 +288,75 @@ function ProceduralGift({
         {isShip ? (
           <Ship size={shipSize} />
         ) : (
-          <TierOrb gift={gift} tier={tier} />
+          <TierHero gift={gift} tier={tier} />
         )}
       </Animated.View>
     </View>
   );
 }
 
-function TierOrb({ gift, tier }: { gift: GiftSceneData; tier: GiftTierConfig }) {
-  const size = 120 + tier.intensity * 90;
+function TierHero({ gift, tier }: { gift: GiftSceneData; tier: GiftTierConfig }) {
+  const size = 130 + tier.intensity * 90;
+  const glowColor = tier.colors[1];
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-      <View
-        style={{
-          position: 'absolute',
-          width: size * 1.8,
-          height: size * 1.8,
-          borderRadius: size,
-          backgroundColor: tier.colors[1],
-          opacity: 0.18,
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          width: size * 1.25,
-          height: size * 1.25,
-          borderRadius: size,
-          borderWidth: 1.5,
-          borderColor: `${tier.colors[0]}88`,
-          backgroundColor: `${tier.colors[2]}22`,
-        }}
-      />
-      <LinearGradient
-        colors={[`${tier.colors[0]}55`, `${tier.colors[1]}33`, `${tier.colors[2]}11`]}
-        style={{
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderWidth: 1,
-          borderColor: `${tier.colors[0]}99`,
-        }}
-      >
-        <Text style={{ fontSize: size * 0.42, lineHeight: size * 0.5 }}>{gift.emoji || '🎁'}</Text>
-      </LinearGradient>
+      <View style={{ position: 'absolute', width: size * 2, height: size * 2, borderRadius: size, backgroundColor: glowColor, opacity: 0.16 }} />
+      <View style={{ position: 'absolute', width: size * 1.35, height: size * 1.35, borderRadius: size, borderWidth: 1.5, borderColor: `${tier.colors[0]}66`, backgroundColor: `${tier.colors[2]}18` }} />
+      {tier.tier === 'rare' ? <CrownShape size={size} c={tier.colors} /> :
+       tier.tier === 'special' ? <CrystalShape size={size} c={tier.colors} /> :
+       <OrbShape size={size} emoji={gift.emoji || '🎁'} c={tier.colors} />}
+      <Text style={{ color: '#FFFFFF', fontFamily: fonts.black, fontSize: 13, marginTop: 14, textShadowColor: glowColor, textShadowRadius: 10 }}>
+        {gift.name}
+      </Text>
     </View>
+  );
+}
+
+function OrbShape({ size, emoji, c }: { size: number; emoji: string; c: [string, string, string] }) {
+  return (
+    <LinearGradient
+      colors={[`${c[0]}66`, `${c[1]}44`, `${c[2]}22`]}
+      style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: `${c[0]}AA` }}
+    >
+      <Text style={{ fontSize: size * 0.4, lineHeight: size * 0.48 }}>{emoji}</Text>
+    </LinearGradient>
+  );
+}
+
+function CrystalShape({ size, c }: { size: number; c: [string, string, string] }) {
+  const s = size * 0.95;
+  return (
+    <Svg width={s} height={s} viewBox="0 0 100 100">
+      <Defs>
+        <SvgGradient id="crys" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor={c[0]} stopOpacity="0.95" />
+          <Stop offset="1" stopColor={c[2]} stopOpacity="0.9" />
+        </SvgGradient>
+      </Defs>
+      <Polygon points="50,5 90,35 75,90 25,90 10,35" fill="url(#crys)" stroke={c[0]} strokeWidth="1.5" />
+      <Polygon points="50,5 75,90 25,90" fill={`${c[1]}55`} />
+      <Path d="M50 5 L50 90 M10 35 L90 35 M25 90 L50 35 L75 90" stroke="#FFFFFF" strokeOpacity="0.35" strokeWidth="1" />
+    </Svg>
+  );
+}
+
+function CrownShape({ size, c }: { size: number; c: [string, string, string] }) {
+  const s = size * 1.05;
+  return (
+    <Svg width={s} height={s * 0.8} viewBox="0 0 120 96">
+      <Defs>
+        <SvgGradient id="crwn" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={c[0]} stopOpacity="1" />
+          <Stop offset="1" stopColor={c[2]} stopOpacity="0.95" />
+        </SvgGradient>
+      </Defs>
+      <Path d="M12 74 L22 28 L42 50 L60 18 L78 50 L98 28 L108 74 Z" fill="url(#crwn)" stroke={`${c[0]}CC`} strokeWidth="1.5" />
+      <Path d="M16 74 L104 74 L100 86 L20 86 Z" fill={c[1]} stroke={`${c[0]}99`} strokeWidth="1" />
+      <Circle cx="22" cy="26" r="4" fill="#FFF6D5" />
+      <Circle cx="60" cy="16" r="5" fill="#FFF6D5" />
+      <Circle cx="98" cy="26" r="4" fill="#FFF6D5" />
+      <Circle cx="60" cy="58" r="6" fill={`${c[0]}88`} stroke="#FFF6D5" strokeWidth="1" />
+    </Svg>
   );
 }
 
