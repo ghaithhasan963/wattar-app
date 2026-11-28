@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -66,7 +66,7 @@ export default function StoriesScreen() {
       }));
       setStories(signedStories.filter((story): story is Story => story !== null));
     } catch (caught: unknown) {
-      setError(caught instanceof Error ? caught.message : 'طھط¹ط°ط± طھط­ظ…ظٹظ„ ط§ظ„ظ‚طµطµ.');
+      setError(caught instanceof Error ? caught.message : 'تعذر تحميل القصص.');
     } finally {
       setLoading(false);
     }
@@ -84,7 +84,7 @@ export default function StoriesScreen() {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('ط¥ط°ظ† ط§ظ„طµظˆط± ظ…ط·ظ„ظˆط¨', 'ط§ط³ظ…ط­ ط¨ط§ظ„ظˆطµظˆظ„ ط¥ظ„ظ‰ ط§ظ„طµظˆط± ظˆط§ظ„ظپظٹط¯ظٹظˆظ‡ط§طھ ظ„ط§ط®طھظٹط§ط± ظ‚طµط©.');
+        Alert.alert('إذن الصور مطلوب', 'اسمح بالوصول إلى الصور والفيديوهات لاختيار قصة.');
         return;
       }
 
@@ -108,11 +108,11 @@ export default function StoriesScreen() {
       };
       const extension = extensions[contentType];
       if (!extension) {
-        Alert.alert('طµظٹط؛ط© ط؛ظٹط± ظ…ط¯ط¹ظˆظ…ط©', 'ط§ط®طھط± طµظˆط±ط© JPG ط£ظˆ PNG ط£ظˆ WebPطŒ ط£ظˆ ظپظٹط¯ظٹظˆ MP4 ط£ظˆ MOV.');
+        Alert.alert('صيغة غير مدعومة', 'اختر صورة JPG أو PNG أو WebP، أو فيديو MP4 أو MOV.');
         return;
       }
       if (asset.fileSize && asset.fileSize > (isVideo ? VIDEO_LIMIT : IMAGE_LIMIT)) {
-        Alert.alert('ط­ط¬ظ… ط§ظ„ظ…ظ„ظپ ظƒط¨ظٹط±', isVideo ? 'ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰ ظ„ظ„ظپظٹط¯ظٹظˆ 20 ظ…ظٹط؛ط§ط¨ط§ظٹطھ.' : 'ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰ ظ„ظ„طµظˆط±ط© 10 ظ…ظٹط؛ط§ط¨ط§ظٹطھ.');
+        Alert.alert('حجم الملف كبير', isVideo ? 'الحد الأقصى للفيديو 20 ميغابايت.' : 'الحد الأقصى للصورة 10 ميغابايت.');
         return;
       }
 
@@ -136,13 +136,13 @@ export default function StoriesScreen() {
       uploadedPath = null;
       setCaption('');
       await loadStories();
-      Alert.alert('طھظ… ظ†ط´ط± ط§ظ„ظ‚طµط©', 'ط³طھط¨ظ‚ظ‰ ظ‚طµطھظƒ ظ…طھط§ط­ط© ظ„ظ…ط¯ط© 24 ط³ط§ط¹ط©.');
+      Alert.alert('تم نشر القصة', 'ستبقى قصتك متاحة لمدة 24 ساعة.');
     } catch (caught: unknown) {
       if (uploadedPath && !storyCreated) {
         const { error: cleanupError } = await supabase.storage.from(STORY_BUCKET).remove([uploadedPath]);
         if (cleanupError) console.warn('[Wattar] Story upload cleanup failed:', cleanupError.message);
       }
-      Alert.alert('طھط¹ط°ط± ظ†ط´ط± ط§ظ„ظ‚طµط©', caught instanceof Error ? caught.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر نشر القصة', caught instanceof Error ? caught.message : 'حاول مرة أخرى.');
     } finally {
       setUploading(false);
     }
@@ -154,58 +154,58 @@ export default function StoriesScreen() {
         p_story_id: story.story_id,
       });
       if (deleteError) throw deleteError;
-      if (typeof mediaPath !== 'string') throw new Error('ظ„ظ… ظٹطھظ… ط¥ط±ط¬ط§ط¹ ظ…ط³ط§ط± ظ…ظ„ظپ ط§ظ„ظ‚طµط©');
+      if (typeof mediaPath !== 'string') throw new Error('لم يتم إرجاع مسار ملف القصة');
       const { error: storageError } = await supabase.storage.from(STORY_BUCKET).remove([mediaPath]);
       if (storageError) throw storageError;
       setSelectedStory(null);
       await loadStories();
     } catch (caught: unknown) {
-      Alert.alert('طھط¹ط°ط± ط­ط°ظپ ط§ظ„ظ‚طµط©', caught instanceof Error ? caught.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر حذف القصة', caught instanceof Error ? caught.message : 'حاول مرة أخرى.');
     }
   };
 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerButton} accessibilityLabel="ط±ط¬ظˆط¹">
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerButton} accessibilityLabel="رجوع">
           <ArrowLeft size={20} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>ظ‚طµطµ ط§ظ„ظ…ط¬طھظ…ط¹</Text>
+        <Text style={styles.title}>قصص المجتمع</Text>
       </View>
 
       <View style={styles.createCard}>
         <View style={styles.createCopy}>
-          <Text style={styles.createTitle}>ط´ط§ط±ظƒ ظ„ط­ط¸طھظƒ</Text>
-          <Text style={styles.createDescription}>طµظˆط±ط© ط£ظˆ ظپظٹط¯ظٹظˆ ط­طھظ‰ 30 ط«ط§ظ†ظٹط©. طھط®طھظپظٹ ط§ظ„ظ‚طµط© ط¨ط¹ط¯ 24 ط³ط§ط¹ط©.</Text>
+          <Text style={styles.createTitle}>شارك لحظتك</Text>
+          <Text style={styles.createDescription}>صورة أو فيديو حتى 30 ثانية. تختفي القصة بعد 24 ساعة.</Text>
         </View>
         <TextInput
           style={styles.captionInput}
           value={caption}
           onChangeText={setCaption}
-          placeholder="ط£ط¶ظپ طھط¹ظ„ظٹظ‚ظ‹ط§ (ط§ط®طھظٹط§ط±ظٹ)"
+          placeholder="أضف تعليقًا (اختياري)"
           placeholderTextColor={colors.textSecondary}
           maxLength={160}
           textAlign="right"
         />
         <TouchableOpacity style={styles.createButton} onPress={createStory} disabled={uploading}>
           {uploading ? <ActivityIndicator color={colors.background} /> : <Plus size={19} color={colors.background} />}
-          <Text style={styles.createButtonText}>{uploading ? 'ط¬ط§ط±ظٹ ط§ظ„ظ†ط´ط±...' : 'ط§ط®طھظٹط§ط± طµظˆط±ط© ط£ظˆ ظپظٹط¯ظٹظˆ'}</Text>
+          <Text style={styles.createButtonText}>{uploading ? 'جاري النشر...' : 'اختيار صورة أو فيديو'}</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionTitle}>ط§ظ„ظ‚طµطµ ط§ظ„ظ†ط´ط·ط©</Text>
+      <Text style={styles.sectionTitle}>القصص النشطة</Text>
       {loading ? (
         <View style={styles.state}><ActivityIndicator color={colors.primary} /></View>
       ) : error ? (
         <View style={styles.state}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={() => void loadStories()}><Text style={styles.retryText}>ط¥ط¹ط§ط¯ط© ط§ظ„ظ…ط­ط§ظˆظ„ط©</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => void loadStories()}><Text style={styles.retryText}>إعادة المحاولة</Text></TouchableOpacity>
         </View>
       ) : stories.length === 0 ? (
         <View style={styles.empty}>
           <CirclePlay size={30} color={colors.primary} />
-          <Text style={styles.emptyTitle}>ظ„ط§ طھظˆط¬ط¯ ظ‚طµطµ ظ†ط´ط·ط© ط¨ط¹ط¯</Text>
-          <Text style={styles.emptyDescription}>ط§ظ†ط´ط± ط£ظˆظ„ ظ‚طµط© ظ„طھط¨ط¯ط£ ط§ظ„ظ…ط´ط§ط±ظƒط© ظ…ط¹ ط§ظ„ظ…ط¬طھظ…ط¹.</Text>
+          <Text style={styles.emptyTitle}>لا توجد قصص نشطة بعد</Text>
+          <Text style={styles.emptyDescription}>انشر أول قصة لتبدأ المشاركة مع المجتمع.</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.storyList}>
@@ -218,8 +218,8 @@ export default function StoriesScreen() {
               </View>
               <View style={styles.storyCopy}>
                 <Text style={styles.storyName} numberOfLines={1}>{story.display_name || story.username}</Text>
-                <Text style={styles.storyCaption} numberOfLines={2}>{story.caption || 'ط´ط§ط±ظƒ ظ‚طµط© ط¬ط¯ظٹط¯ط©'}</Text>
-                <Text style={styles.storyExpiry}>طھظ†طھظ‡ظٹ {new Date(story.expires_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}</Text>
+                <Text style={styles.storyCaption} numberOfLines={2}>{story.caption || 'شارك قصة جديدة'}</Text>
+                <Text style={styles.storyExpiry}>تنتهي {new Date(story.expires_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}</Text>
               </View>
               {story.media_type === 'video'
                 ? <Video size={18} color={colors.primary} />
@@ -235,14 +235,14 @@ export default function StoriesScreen() {
             <View style={styles.viewerHeader}>
               <View style={styles.viewerUser}>
                 <Text style={styles.viewerName}>{selectedStory.display_name || selectedStory.username}</Text>
-                <Text style={styles.viewerExpiry}>طھظ†طھظ‡ظٹ {new Date(selectedStory.expires_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}</Text>
+                <Text style={styles.viewerExpiry}>تنتهي {new Date(selectedStory.expires_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}</Text>
               </View>
               {selectedStory.user_id === user?.id && (
-                <TouchableOpacity onPress={() => void deleteStory(selectedStory)} style={styles.viewerAction} accessibilityLabel="ط­ط°ظپ ط§ظ„ظ‚طµط©">
+                <TouchableOpacity onPress={() => void deleteStory(selectedStory)} style={styles.viewerAction} accessibilityLabel="حذف القصة">
                   <Trash2 size={19} color={colors.text} />
                 </TouchableOpacity>
               )}
-              <TouchableOpacity onPress={() => setSelectedStory(null)} style={styles.viewerAction} accessibilityLabel="ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظ‚طµط©">
+              <TouchableOpacity onPress={() => setSelectedStory(null)} style={styles.viewerAction} accessibilityLabel="إغلاق القصة">
                 <ArrowLeft size={19} color={colors.text} />
               </TouchableOpacity>
             </View>

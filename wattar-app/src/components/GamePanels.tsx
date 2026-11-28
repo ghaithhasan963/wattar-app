@@ -1,7 +1,7 @@
-﻿/**
- * Wattar â€” ظ„ظˆط­ط§طھ ط§ظ„ط£ظ„ط¹ط§ط¨ ط§ظ„ظ…ط´طھط±ظƒط© (M9.4)
- * ط¹ط±ط¶ ط§ظ„ط§ط­طھظ…ط§ظ„ط§طھ ط§ظ„ظ…ط¹ظ„ظ†ط©طŒ ط§ظ„ط´ط§ط±ط© ط§ظ„طھط±ظˆظٹط¬ظٹط©طŒ ظ…ظپطھط§ط­ ظˆط¶ط¹ ط§ظ„ظ…ط­ط§ظƒط§ط©طŒ
- * ظˆط³ط¬ظ„ ط§ظ„ط¬ظˆظ„ط§طھ ط§ظ„ط´ط®طµظٹط© ظ…ط¹ ط¥ط­طµط§ط،ط§طھ ط§ظ„ظ„ط¹ط¨ط©.
+/**
+ * Wattar — لوحات الألعاب المشتركة (M9.4)
+ * عرض الاحتمالات المعلنة، الشارة الترويجية، مفتاح وضع المحاكاة،
+ * وسجل الجولات الشخصية مع إحصاءات اللعبة.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
@@ -35,7 +35,7 @@ export function GameOddsCard({ game }: { game: PublicGame | null }) {
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>ط§ظ„ط§ط­طھظ…ط§ظ„ط§طھ ط§ظ„ظ…ط¹ظ„ظ†ط©</Text>
+        <Text style={styles.cardTitle}>الاحتمالات المعلنة</Text>
         <View style={styles.rtpBadge}>
           <Text style={styles.rtpLabel}>RTP</Text>
           <Text style={styles.rtpValue}>{formatPercent(game.declared_rtp)}</Text>
@@ -45,9 +45,9 @@ export function GameOddsCard({ game }: { game: PublicGame | null }) {
       {game.promo ? (
         <View style={styles.promo}>
           <Text style={styles.promoText}>
-            {game.promo.label ?? 'ط¹ط±ط¶ طھط±ظˆظٹط¬ظٹ'} آ· أ—{game.promo.multiplier}
+            {game.promo.label ?? 'عرض ترويجي'} · ×{game.promo.multiplier}
           </Text>
-          <Text style={styles.promoHint}>ظ…ظƒط§ظپط£ط© ظ…ط¹ظ„ظ†ط© ط¥ط¶ط§ظپظٹط©طŒ ظ„ط§ طھط؛ظٹظ‘ط± ط§ظ„ط§ط­طھظ…ط§ظ„ط§طھ ط§ظ„ط£ط³ط§ط³ظٹط©.</Text>
+          <Text style={styles.promoHint}>مكافأة معلنة إضافية، لا تغيّر الاحتمالات الأساسية.</Text>
         </View>
       ) : null}
 
@@ -55,7 +55,7 @@ export function GameOddsCard({ game }: { game: PublicGame | null }) {
 
       {game.rules ? <Text style={styles.rules}>{game.rules}</Text> : null}
       <Text style={styles.note}>
-        ط§ظ„ظ†طھظٹط¬ط© طھظڈط­ط³ط¨ ط¹ظ„ظ‰ ط§ظ„ط®ط§ط¯ظ… ظپظ‚ط·طŒ ظˆظƒظ„ ط¬ظˆظ„ط© ظ…ط³ط¬ظ‘ظ„ط© ط¨ط´ظƒظ„ ظ…ط³طھظ‚ظ„.
+        النتيجة تُحسب على الخادم فقط، وكل جولة مسجّلة بشكل مستقل.
       </Text>
     </View>
   );
@@ -73,9 +73,9 @@ function OddsBody({ gameType, odds }: { gameType: GameType; odds: Record<string,
             <View style={[styles.dot, { backgroundColor: String(segment.color ?? colors.primary) }]} />
             <Text style={styles.rowLabel}>{String(segment.label ?? '')}</Text>
             <Text style={styles.rowValue}>
-              ط§ط­طھظ…ط§ظ„ {formatPercent(Number(segment.probability) * 100)}
+              احتمال {formatPercent(Number(segment.probability) * 100)}
             </Text>
-            <Text style={styles.rowValue}>ط¹ط§ط¦ط¯ {formatPercent(Number(segment.segment_rtp))}</Text>
+            <Text style={styles.rowValue}>عائد {formatPercent(Number(segment.segment_rtp))}</Text>
           </View>
         ))}
       </View>
@@ -84,14 +84,14 @@ function OddsBody({ gameType, odds }: { gameType: GameType; odds: Record<string,
 
   if (gameType === 'plinko') {
     const risks = (odds.risks ?? {}) as Record<string, { rtp?: number }>;
-    const labels: Record<string, string> = { low: 'ظ…ظ†ط®ظپط¶', medium: 'ظ…طھظˆط³ط·', high: 'ط¹ط§ظ„ظٹ' };
+    const labels: Record<string, string> = { low: 'منخفض', medium: 'متوسط', high: 'عالي' };
     return (
       <View style={styles.rows}>
         {Object.entries(risks).map(([risk, value]) => (
           <View key={risk} style={styles.row}>
             <Text style={styles.rowLabel}>{labels[risk] ?? risk}</Text>
             <Text style={styles.rowValue}>RTP {formatPercent(Number(value.rtp))}</Text>
-            <Text style={styles.rowValue}>طھظˆط²ظٹط¹ ط«ظ†ط§ط¦ظٹ 12 طµظپط§ظ‹</Text>
+            <Text style={styles.rowValue}>توزيع ثنائي 12 صفاً</Text>
           </View>
         ))}
       </View>
@@ -105,14 +105,14 @@ function OddsBody({ gameType, odds }: { gameType: GameType; odds: Record<string,
         {tiers.map((tier, index) => (
           <View key={index} style={styles.row}>
             <Text style={styles.rowLabel}>{String(tier.symbol ?? '')}</Text>
-            <Text style={styles.rowValue}>أ—{Number(tier.multiplier)}</Text>
+            <Text style={styles.rowValue}>×{Number(tier.multiplier)}</Text>
             <Text style={styles.rowValue}>
-              ط§ط­طھظ…ط§ظ„ {formatPercent(Number(tier.probability) * 100)}
+              احتمال {formatPercent(Number(tier.probability) * 100)}
             </Text>
           </View>
         ))}
         <Text style={styles.rowHint}>
-          ظ†ط³ط¨ط© ط§ظ„ط¥طµط§ط¨ط© {formatPercent(Number(odds.hit_rate ?? 0) * 100)}
+          نسبة الإصابة {formatPercent(Number(odds.hit_rate ?? 0) * 100)}
         </Text>
       </View>
     );
@@ -122,16 +122,16 @@ function OddsBody({ gameType, odds }: { gameType: GameType; odds: Record<string,
     return (
       <View style={styles.rows}>
         <Text style={styles.rowHint}>
-          ط§ظ„ظ…ط¶ط§ط¹ظپ = (1 أ· ط§ط­طھظ…ط§ظ„ ط§ظ„ظپظˆط²) أ— RTP. ط§ظ„ظ†طھظٹط¬ط© ط±ظ‚ظ…ظٹط© ظ…ظ† 1 ط¥ظ„ظ‰ 100.
+          المضاعف = (1 ÷ احتمال الفوز) × RTP. النتيجة رقمية من 1 إلى 100.
         </Text>
-        <Text style={styles.rowHint}>ط§ط­طھظ…ط§ظ„ ط§ظ„ظپظˆط² ظٹط¸ظ‡ط± ظ…ط¨ط§ط´ط±ط© ظ‚ط¨ظ„ ظƒظ„ ط¬ظˆظ„ط©.</Text>
+        <Text style={styles.rowHint}>احتمال الفوز يظهر مباشرة قبل كل جولة.</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.rows}>
-      <Text style={styles.rowHint}>P(طھط¬ط§ظˆط² x) = RTP أ· x â€” ظƒظ„ظ…ط§ ط§ط±طھظپط¹ ظ‡ط¯ظپ ط§ظ„ط³ط­ط¨ ظ‚ظ„ظ‘ ط§ط­طھظ…ط§ظ„ ط§ظ„ظˆطµظˆظ„.</Text>
+      <Text style={styles.rowHint}>P(تجاوز x) = RTP ÷ x — كلما ارتفع هدف السحب قلّ احتمال الوصول.</Text>
     </View>
   );
 }
@@ -140,7 +140,7 @@ export function GamePromoBanner({ game }: { game: PublicGame | null }) {
   if (!game?.promo) return null;
   return (
     <View style={styles.promoOnly}>
-      <Text style={styles.promoText}>{game.promo.label ?? 'ط¹ط±ط¶ طھط±ظˆظٹط¬ظٹ'} آ· أ—{game.promo.multiplier}</Text>
+      <Text style={styles.promoText}>{game.promo.label ?? 'عرض ترويجي'} · ×{game.promo.multiplier}</Text>
     </View>
   );
 }
@@ -158,8 +158,8 @@ export function GameTestModeRow({
   return (
     <View style={styles.testRow}>
       <View style={styles.testCopy}>
-        <Text style={styles.testTitle}>ظˆط¶ط¹ ط§ظ„ظ…ط­ط§ظƒط§ط©</Text>
-        <Text style={styles.testHint}>ط¬ظˆظ„ط§طھ ط¨ظ„ط§ ط®طµظ… ط£ظˆ ط¥ط¶ط§ظپط© ظ„ط£ظٹ ط±طµظٹط¯ ط­ظ‚ظٹظ‚ظٹ.</Text>
+        <Text style={styles.testTitle}>وضع المحاكاة</Text>
+        <Text style={styles.testHint}>جولات بلا خصم أو إضافة لأي رصيد حقيقي.</Text>
       </View>
       <Switch
         value={value}
@@ -208,7 +208,7 @@ export function GameHistoryCard({
         setRounds(roundsResult.data as RoundRow[]);
       }
     } catch {
-      // ط§ظ„ط³ط¬ظ„ ظ…ظƒظ…ظ‘ظ„ ظ„ظ„ط¹ط±ط¶ ظپظ‚ط·ط› ظ„ط§ ظ†ط¹ط·ظ‘ظ„ ط§ظ„ظ„ط¹ط¨ ط¹ظ†ط¯ طھط¹ط°ظ‘ط±ظ‡.
+      // السجل مكمّل للعرض فقط؛ لا نعطّل اللعب عند تعذّره.
     } finally {
       setLoading(false);
     }
@@ -221,9 +221,9 @@ export function GameHistoryCard({
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>ط³ط¬ظ„ظ‘ظٹ ظپظٹ ظ‡ط°ظ‡ ط§ظ„ظ„ط¹ط¨ط©</Text>
-        <TouchableOpacity onPress={() => void load()} accessibilityRole="button" accessibilityLabel="طھط­ط¯ظٹط« ط§ظ„ط³ط¬ظ„">
-          <Text style={styles.refresh}>طھط­ط¯ظٹط«</Text>
+        <Text style={styles.cardTitle}>سجلّي في هذه اللعبة</Text>
+        <TouchableOpacity onPress={() => void load()} accessibilityRole="button" accessibilityLabel="تحديث السجل">
+          <Text style={styles.refresh}>تحديث</Text>
         </TouchableOpacity>
       </View>
 
@@ -232,14 +232,14 @@ export function GameHistoryCard({
       ) : (
         <>
           <View style={styles.metrics}>
-            <Metric label="ط¬ظˆظ„ط§طھ" value={stats?.rounds ?? 0} />
-            <Metric label="ظ…ط±ط§ظ‡ظ†ط§طھ" value={stats?.wagered ?? 0} />
-            <Metric label="طµط§ظپظٹ" value={stats?.net ?? 0} signed />
-            <Metric label="ظ…ظƒط§ط³ط¨" value={stats?.wins ?? 0} />
+            <Metric label="جولات" value={stats?.rounds ?? 0} />
+            <Metric label="مراهنات" value={stats?.wagered ?? 0} />
+            <Metric label="صافي" value={stats?.net ?? 0} signed />
+            <Metric label="مكاسب" value={stats?.wins ?? 0} />
           </View>
 
           {rounds.length === 0 ? (
-            <Text style={styles.rowHint}>ظ„ظ… طھظ„ط¹ط¨ ظ‡ط°ظ‡ ط§ظ„ظ„ط¹ط¨ط© ط¨ط¹ط¯.</Text>
+            <Text style={styles.rowHint}>لم تلعب هذه اللعبة بعد.</Text>
           ) : (
             rounds.map((round) => (
               <View key={round.bet_id} style={styles.roundRow}>
@@ -247,9 +247,9 @@ export function GameHistoryCard({
                   {round.is_win ? `+${round.payout}` : `-${round.bet_amount}`}
                 </Text>
                 <Text style={styles.roundMeta}>
-                  أ—{Number(round.multiplier).toFixed(2)}
-                  {round.is_test ? ' آ· ظ…ط­ط§ظƒط§ط©' : ''}
-                  {' آ· '}
+                  ×{Number(round.multiplier).toFixed(2)}
+                  {round.is_test ? ' · محاكاة' : ''}
+                  {' · '}
                   {new Date(round.created_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}
                 </Text>
               </View>

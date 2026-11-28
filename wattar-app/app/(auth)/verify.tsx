@@ -1,5 +1,5 @@
-﻿/**
- * Wattar App â€” طµظپط­ط© ط§ظ„طھط­ظ‚ظ‚ OTP
+/**
+ * Wattar App — صفحة التحقق OTP
  */
 import React, { useState, useRef, useEffect } from 'react';
 import {
@@ -37,7 +37,7 @@ export default function VerifyScreen() {
       inputs.current[index + 1]?.focus();
     }
 
-    // طھط­ظ‚ظ‚ طھظ„ظ‚ط§ط¦ظٹ ط¹ظ†ط¯ ط§ظƒطھظ…ط§ظ„ ط§ظ„ظƒظˆط¯
+    // تحقق تلقائي عند اكتمال الكود
     if (index === 5 && value) {
       handleVerify(newCode.join(''));
     }
@@ -46,7 +46,7 @@ export default function VerifyScreen() {
   const handleVerify = async (fullCode?: string) => {
     const codeStr = fullCode ?? code.join('');
     if (codeStr.length !== 6 || !phone) {
-      if (!phone) Alert.alert('ط®ط·ط£', 'ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپطŒ ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰');
+      if (!phone) Alert.alert('خطأ', 'لم يتم العثور على رقم الهاتف، حاول مرة أخرى');
       return;
     }
 
@@ -55,7 +55,7 @@ export default function VerifyScreen() {
       await clearPendingPhone();
       router.replace('/(tabs)');
     } catch {
-      // ط§ظ„ط®ط·ط£ ظ…ظˆط¬ظˆط¯ ظپظٹ store
+      // الخطأ موجود في store
     }
   };
 
@@ -64,16 +64,16 @@ export default function VerifyScreen() {
     const { signInWithPhone } = useAuthStore.getState();
     try {
       await signInWithPhone(phone);
-      Alert.alert('طھظ…', 'طھظ… ط¥ط¹ط§ط¯ط© ط¥ط±ط³ط§ظ„ ط§ظ„ط±ظ…ط²');
+      Alert.alert('تم', 'تم إعادة إرسال الرمز');
     } catch (err: any) {
-      Alert.alert('ط®ط·ط£', err.message);
+      Alert.alert('خطأ', err.message);
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚</Text>
-      <Text style={styles.subtitle}>ط£ط±ط³ظ„ظ†ط§ ط±ظ…ط²ظ‹ط§ ط¥ظ„ظ‰ ط±ظ‚ظ…ظƒ{phone ? ` (${phone})` : ''}</Text>
+      <Text style={styles.title}>رمز التحقق</Text>
+      <Text style={styles.subtitle}>أرسلنا رمزًا إلى رقمك{phone ? ` (${phone})` : ''}</Text>
 
       <View style={styles.codeContainer}>
         {code.map((digit, index) => (
@@ -100,12 +100,12 @@ export default function VerifyScreen() {
         {loading ? (
           <ActivityIndicator color={colors.text} />
         ) : (
-          <Text style={styles.buttonText}>طھط£ظƒظٹط¯</Text>
+          <Text style={styles.buttonText}>تأكيد</Text>
         )}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={handleResend}>
-        <Text style={styles.resendText}>ط¥ط¹ط§ط¯ط© ط¥ط±ط³ط§ظ„ ط§ظ„ط±ظ…ط²</Text>
+        <Text style={styles.resendText}>إعادة إرسال الرمز</Text>
       </TouchableOpacity>
     </View>
   );

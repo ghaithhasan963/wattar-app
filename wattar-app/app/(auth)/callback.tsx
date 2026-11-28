@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,7 +21,7 @@ export default function AuthCallbackScreen() {
         return;
       }
       if (!code) {
-        setError('ط±ط§ط¨ط· ط§ظ„طھط£ظƒظٹط¯ ط؛ظٹط± ظ…ظƒطھظ…ظ„ ط£ظˆ ط§ظ†طھظ‡طھ طµظ„ط§ط­ظٹطھظ‡.');
+        setError('رابط التأكيد غير مكتمل أو انتهت صلاحيته.');
         return;
       }
 
@@ -30,10 +30,10 @@ export default function AuthCallbackScreen() {
       useAuthStore.setState({ session: data.session, user: data.user });
       await useAuthStore.getState().loadProfile();
       const profile = useAuthStore.getState().profile;
-      if (!profile) throw new Error('طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„طŒ ظ„ظƒظ† طھط¹ط°ط± طھط­ظ…ظٹظ„ ظ…ظ„ظپ ط§ظ„ط­ط³ط§ط¨.');
+      if (!profile) throw new Error('تم تسجيل الدخول، لكن تعذر تحميل ملف الحساب.');
       if (active) {
         if (flow === 'recovery') {
-          // ط¹ظ„ط§ظ…ط© ط¬ظ„ط³ط© ط§ط³طھط¹ط§ط¯ط©: ط´ط§ط´ط© ط¥ط¹ط§ط¯ط© ط§ظ„طھط¹ظٹظٹظ† طھط±ظپط¶ ط§ظ„ط¹ظ…ظ„ ط¨ط¯ظˆظ†ظ‡ط§.
+          // علامة جلسة استعادة: شاشة إعادة التعيين ترفض العمل بدونها.
           if (data.user) {
             await saveSessionMark(AsyncStorage, { userId: data.user.id, startedAt: Date.now() });
           }
@@ -52,7 +52,7 @@ export default function AuthCallbackScreen() {
 
     completeSignIn().catch((callbackError: unknown) => {
       if (active) {
-        setError(callbackError instanceof Error ? callbackError.message : 'طھط¹ط°ط± طھط£ظƒظٹط¯ ط§ظ„ط­ط³ط§ط¨.');
+        setError(callbackError instanceof Error ? callbackError.message : 'تعذر تأكيد الحساب.');
       }
     });
 
@@ -63,14 +63,14 @@ export default function AuthCallbackScreen() {
     <View style={styles.container}>
       {error ? (
         <>
-          <Text style={styles.title}>طھط¹ط°ط± طھط£ظƒظٹط¯ ط§ظ„ط­ط³ط§ط¨</Text>
+          <Text style={styles.title}>تعذر تأكيد الحساب</Text>
           <Text style={styles.error}>{error}</Text>
-          <Text style={styles.hint}>ط§ط±ط¬ط¹ ط¥ظ„ظ‰ ط§ظ„طھط·ط¨ظٹظ‚ ظˆط§ط·ظ„ط¨ ط±ط§ط¨ط· طھط£ظƒظٹط¯ ط¬ط¯ظٹط¯ظ‹ط§.</Text>
+          <Text style={styles.hint}>ارجع إلى التطبيق واطلب رابط تأكيد جديدًا.</Text>
         </>
       ) : (
         <>
           <ActivityIndicator size="large" color={colors.primaryLight} />
-          <Text style={styles.title}>ط¬ط§ط±ظچ طھط£ظƒظٹط¯ ط­ط³ط§ط¨ظƒ...</Text>
+          <Text style={styles.title}>جارٍ تأكيد حسابك...</Text>
         </>
       )}
     </View>

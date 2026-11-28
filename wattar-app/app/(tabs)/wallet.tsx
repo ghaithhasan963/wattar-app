@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -153,9 +153,9 @@ export default function WalletScreen() {
       setWalletOptions(optionsRow ? optionsRow as WalletOptions : null);
       await loadProfile();
     } catch (loadError: unknown) {
-      const message = loadError instanceof Error ? loadError.message : 'طھط¹ط°ط± طھط­ظ…ظٹظ„ ط§ظ„ظ…ط­ظپط¸ط©.';
+      const message = loadError instanceof Error ? loadError.message : 'تعذر تحميل المحفظة.';
       setError(message);
-      if (showLoading) Alert.alert('طھط¹ط°ط± طھط­ظ…ظٹظ„ ط§ظ„ظ…ط­ظپط¸ط©', message);
+      if (showLoading) Alert.alert('تعذر تحميل المحفظة', message);
     } finally {
       if (showLoading) setLoading(false);
     }
@@ -179,9 +179,9 @@ export default function WalletScreen() {
 
   const eligibilityHint = useMemo(() => {
     if (!walletOptions) return '';
-    if (isHost) return 'ط£ظ†طھ ظ…ط¶ظٹظپط© ظ…ظˆط«ظ‚ط© â€” ظٹظ…ظƒظ†ظƒ ط³ط­ط¨ Diamond ظƒط¯ظˆظ„ط§ط± ط£ظˆ طھط­ظˆظٹظ„ظ‡ ط¥ظ„ظ‰ Coin.';
-    if (isAgent) return 'ط£ظ†طھ ظˆظƒظٹظ„ ظ…ط¹طھظ…ط¯ â€” ظٹظ…ظƒظ†ظƒ ط³ط­ط¨ Diamond ظƒط¯ظˆظ„ط§ط± ط£ظˆ طھط­ظˆظٹظ„ظ‡ ط¥ظ„ظ‰ Coin.';
-    return 'ط§ظ„ظ…ط³طھط®ط¯ظ… ط§ظ„ط¹ط§ط¯ظٹ ظٹط­ظˆظ‘ظ„ Diamond ط¥ظ„ظ‰ Coin ظ„ظ„ط§ط³طھط®ط¯ط§ظ… ط¯ط§ط®ظ„ ط§ظ„طھط·ط¨ظٹظ‚. ط§ظ„ط³ط­ط¨ ط§ظ„ظ†ظ‚ط¯ظٹ ظ…طھط§ط­ ظ„ظ„ظ…ط¶ظٹظپط§طھ ط§ظ„ظ…ظˆط«ظ‚ط§طھ ظˆط§ظ„ظˆظƒظ„ط§ط، ظپظ‚ط·.';
+    if (isHost) return 'أنت مضيفة موثقة — يمكنك سحب Diamond كدولار أو تحويله إلى Coin.';
+    if (isAgent) return 'أنت وكيل معتمد — يمكنك سحب Diamond كدولار أو تحويله إلى Coin.';
+    return 'المستخدم العادي يحوّل Diamond إلى Coin للاستخدام داخل التطبيق. السحب النقدي متاح للمضيفات الموثقات والوكلاء فقط.';
   }, [isAgent, isHost, walletOptions]);
 
   return (
@@ -192,8 +192,8 @@ export default function WalletScreen() {
       >
         <View style={styles.header}>
           <View>
-            <Text style={styles.title}>ط§ظ„ظ…ط­ظپط¸ط©</Text>
-            <Text style={styles.subtitle}>ط£ط±طµط¯ط© ظˆط§ط¶ط­ط©طŒ ط¹ظ…ظˆظ„ط§طھ ط¸ط§ظ‡ط±ط©طŒ ظˆطھط­ظˆظٹظ„ط§طھ ط³ظ„ط³ط©</Text>
+            <Text style={styles.title}>المحفظة</Text>
+            <Text style={styles.subtitle}>أرصدة واضحة، عمولات ظاهرة، وتحويلات سلسة</Text>
           </View>
           <View style={styles.headerIcon}><Coins size={21} color={palette.gold} /></View>
         </View>
@@ -203,9 +203,9 @@ export default function WalletScreen() {
         {!access ? (
           <View style={styles.gateCard}>
             <View style={styles.gateIcon}><ShieldCheck size={23} color={palette.gold} /></View>
-            <Text style={styles.gateTitle}>ط§ظ„ظ…ط­ظپط¸ط© ط؛ظٹط± ظ…طھط§ط­ط© ط­ط§ظ„ظٹظ‹ط§</Text>
+            <Text style={styles.gateTitle}>المحفظة غير متاحة حاليًا</Text>
             <Text style={styles.gateText}>
-              ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط§ظ„ط­ط³ط§ط¨ ظ†ط´ط·ظ‹ط§ ظˆظ…ط¤ظƒط¯ ط§ظ„ط¹ظ…ط± ظ„ط§ط³طھط®ط¯ط§ظ… ط§ظ„ظ…ط­ظپط¸ط©.
+              يجب أن يكون الحساب نشطًا ومؤكد العمر لاستخدام المحفظة.
             </Text>
           </View>
         ) : (
@@ -213,7 +213,7 @@ export default function WalletScreen() {
             {access.agent_name ? (
               <View style={styles.agentNotice}>
                 <ShieldCheck size={17} color={palette.success} />
-                <Text style={styles.agentNoticeText}>ظˆظƒظٹظ„ظƒ ط§ظ„ظ…ط¹طھظ…ط¯: {access.agent_name}</Text>
+                <Text style={styles.agentNoticeText}>وكيلك المعتمد: {access.agent_name}</Text>
               </View>
             ) : null}
 
@@ -223,22 +223,22 @@ export default function WalletScreen() {
                 <View style={styles.heroBalance}>
                   <View style={styles.heroLabelRow}>
                     <CurrencyIcon currency="coin" size={22} />
-                    <Text style={styles.heroLabel}>ط±طµظٹط¯ Coin</Text>
+                    <Text style={styles.heroLabel}>رصيد Coin</Text>
                   </View>
                   <Text style={styles.heroValue}>{coinBalance.toLocaleString()}</Text>
-                  <Text style={styles.heroHint}>ظ„ظ„ط´ط­ظ† ظˆط§ظ„ظ‡ط¯ط§ظٹط§ ظˆط§ظ„ط£ظ„ط¹ط§ط¨ ظˆط§ظ„ط±ط³ط§ط¦ظ„ ط§ظ„ظ…ط¯ظپظˆط¹ط©</Text>
+                  <Text style={styles.heroHint}>للشحن والهدايا والألعاب والرسائل المدفوعة</Text>
                 </View>
                 <View style={styles.heroDivider} />
                 <View style={styles.heroBalance}>
                   <View style={styles.heroLabelRow}>
                     <CurrencyIcon currency="diamond" size={22} />
-                    <Text style={styles.heroLabel}>ط±طµظٹط¯ Diamond</Text>
+                    <Text style={styles.heroLabel}>رصيد Diamond</Text>
                   </View>
                   <Text style={[styles.heroValue, styles.diamondValue]}>{diamondBalance.toLocaleString()}</Text>
                   <Text style={styles.heroHint}>
                     {coinPerDiamond > 0
-                      ? `طھط¹ط§ط¯ظ„ ${diamondCoinValue.toLocaleString()} Coin`
-                      : 'ط£ط±ط¨ط§ط­ ط§ظ„ظ‡ط¯ط§ظٹط§ ظˆط§ظ„ظ…ط¶ظٹظپط§طھ'}
+                      ? `تعادل ${diamondCoinValue.toLocaleString()} Coin`
+                      : 'أرباح الهدايا والمضيفات'}
                   </Text>
                 </View>
               </View>
@@ -252,7 +252,7 @@ export default function WalletScreen() {
                 accessibilityRole="button"
               >
                 <View style={[styles.quickIcon, styles.quickIconGold]}><ArrowDownToLine size={18} color={palette.gold} /></View>
-                <Text style={styles.quickLabel}>ط´ط­ظ† Coin</Text>
+                <Text style={styles.quickLabel}>شحن Coin</Text>
                 <Text style={styles.quickCaption}>1$ = {Number(walletOptions?.coins_per_usd ?? 3000).toLocaleString()} Coin</Text>
               </TouchableOpacity>
 
@@ -263,9 +263,9 @@ export default function WalletScreen() {
                 accessibilityRole="button"
               >
                 <View style={[styles.quickIcon, styles.quickIconTeal]}><ArrowRightLeft size={18} color={palette.teal} /></View>
-                <Text style={styles.quickLabel}>طھط­ظˆظٹظ„ Diamond</Text>
+                <Text style={styles.quickLabel}>تحويل Diamond</Text>
                 <Text style={styles.quickCaption}>
-                  {coinPerDiamond > 0 ? `1 Diamond = ${coinPerDiamond.toLocaleString()} Coin` : 'ط؛ظٹط± ظ…ظپط¹ظ‘ظ„'}
+                  {coinPerDiamond > 0 ? `1 Diamond = ${coinPerDiamond.toLocaleString()} Coin` : 'غير مفعّل'}
                 </Text>
               </TouchableOpacity>
 
@@ -276,11 +276,11 @@ export default function WalletScreen() {
                 accessibilityRole="button"
               >
                 <View style={[styles.quickIcon, styles.quickIconViolet]}><ArrowUpFromLine size={18} color={palette.primary} /></View>
-                <Text style={styles.quickLabel}>ط³ط­ط¨ ظ†ظ‚ط¯ظٹ</Text>
+                <Text style={styles.quickLabel}>سحب نقدي</Text>
                 <Text style={styles.quickCaption}>
                   {canWithdraw
-                    ? `ط§ظ„ط­ط¯ ط§ظ„ط£ط¯ظ†ظ‰ $${minWithdrawalUsd.toFixed(0)}`
-                    : isHost || isAgent ? 'ط؛ظٹط± ظ…ظپط¹ظ‘ظ„ ط­ط§ظ„ظٹظ‹ط§' : 'ظ„ظ„ظ…ط¶ظٹظپط§طھ ظˆط§ظ„ظˆظƒظ„ط§ط،'}
+                    ? `الحد الأدنى $${minWithdrawalUsd.toFixed(0)}`
+                    : isHost || isAgent ? 'غير مفعّل حاليًا' : 'للمضيفات والوكلاء'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -293,7 +293,7 @@ export default function WalletScreen() {
             {coinPerDiamond > 0 && diamondBalance > 0 ? (
               <View style={styles.conversionCard}>
                 <View style={styles.sectionHeadingRow}>
-                  <Text style={styles.sectionTitle}>طھط­ظˆظٹظ„ Diamond ط¥ظ„ظ‰ Coin</Text>
+                  <Text style={styles.sectionTitle}>تحويل Diamond إلى Coin</Text>
                   <View style={styles.ratePill}>
                     <Text style={styles.ratePillText}>
                       1 Diamond = {coinPerDiamond.toLocaleString()} Coin
@@ -301,50 +301,50 @@ export default function WalletScreen() {
                   </View>
                 </View>
                 <Text style={styles.sectionCopy}>
-                  ط­ظˆظ‘ظ„ ط£ط±ط¨ط§ط­ظƒ ط¥ظ„ظ‰ Coin ظ„ظ„ط§ط³طھط®ط¯ط§ظ… ط¯ط§ط®ظ„ ط§ظ„طھط·ط¨ظٹظ‚: ط§ظ„ظ‡ط¯ط§ظٹط§طŒ ط§ظ„ط£ظ„ط¹ط§ط¨طŒ ظˆط§ظ„ط±ط³ط§ط¦ظ„ ط§ظ„ظ…ط¯ظپظˆط¹ط©.
+                  حوّل أرباحك إلى Coin للاستخدام داخل التطبيق: الهدايا، الألعاب، والرسائل المدفوعة.
                 </Text>
                 <View style={styles.conversionPreview}>
                   <View>
-                    <Text style={styles.conversionLabel}>ط³طھط­طµظ„ ط¹ظ„ظ‰</Text>
+                    <Text style={styles.conversionLabel}>ستحصل على</Text>
                     <Text style={styles.conversionValue}>{diamondCoinValue.toLocaleString()} Coin</Text>
                   </View>
                   <ArrowRightLeft size={22} color={palette.teal} />
                   <View style={styles.conversionFrom}>
-                    <Text style={styles.conversionLabel}>ظ…ظ† ط±طµظٹط¯ظƒ</Text>
+                    <Text style={styles.conversionLabel}>من رصيدك</Text>
                     <Text style={styles.conversionSource}>{diamondBalance.toLocaleString()} Diamond</Text>
                   </View>
                 </View>
                 <TouchableOpacity style={styles.conversionButton} onPress={() => setConversionVisible(true)}>
-                  <Text style={styles.conversionButtonText}>ط§ط®طھظٹط§ط± ظ…ط¨ظ„ط؛ ط§ظ„طھط­ظˆظٹظ„</Text>
+                  <Text style={styles.conversionButtonText}>اختيار مبلغ التحويل</Text>
                 </TouchableOpacity>
               </View>
             ) : null}
 
             <View style={styles.walletNotice}>
-              <Text style={styles.walletNoticeTitle}>ط¹ظ…ظ„طھط§ظ†طŒ ظ„ظƒظ„ ظˆط§ط­ط¯ط© ط§ط³طھط®ط¯ط§ظ… ظˆط§ط¶ط­</Text>
+              <Text style={styles.walletNoticeTitle}>عملتان، لكل واحدة استخدام واضح</Text>
               <View style={styles.noticeRow}>
                 <View style={styles.noticeBullet} />
                 <Text style={styles.walletNoticeText}>
-                  <Text style={styles.noticeStrong}>Coin</Text> ظٹظڈط´طھط±ظ‰ ط¨ط§ظ„ط¯ظˆظ„ط§ط± ظˆظٹظڈط³طھط®ط¯ظ… ط¯ط§ط®ظ„ Wattar ظپظ‚ط·طŒ ظˆظ„ط§ ظٹظڈط³ط­ط¨ ظ†ظ‚ط¯ظ‹ط§.
+                  <Text style={styles.noticeStrong}>Coin</Text> يُشترى بالدولار ويُستخدم داخل Wattar فقط، ولا يُسحب نقدًا.
                 </Text>
               </View>
               <View style={styles.noticeRow}>
                 <View style={styles.noticeBullet} />
                 <Text style={styles.walletNoticeText}>
-                  <Text style={styles.noticeStrong}>Diamond</Text> ظٹط£طھظٹ ظ…ظ† ط£ط±ط¨ط§ط­ ط§ظ„ظ‡ط¯ط§ظٹط§ ظˆظٹظ…ظƒظ† طھط­ظˆظٹظ„ظ‡ ط¥ظ„ظ‰ CoinطŒ ط£ظˆ ط³ط­ط¨ظ‡ ظƒط¯ظˆظ„ط§ط± ظ„ظ„ظ…ط¶ظٹظپط§طھ ط§ظ„ظ…ظˆط«ظ‚ط§طھ ظˆط§ظ„ظˆظƒظ„ط§ط،.
+                  <Text style={styles.noticeStrong}>Diamond</Text> يأتي من أرباح الهدايا ويمكن تحويله إلى Coin، أو سحبه كدولار للمضيفات الموثقات والوكلاء.
                 </Text>
               </View>
             </View>
 
             {!methods.length ? (
-              <Text style={styles.emptyMethods}>ظ„ظ… طھظپط¹ظ‘ظ„ ط§ظ„ط¥ط¯ط§ط±ط© ظˆط³ط§ط¦ظ„ ط´ط­ظ† ط­ط§ظ„ظٹظ‹ط§.</Text>
+              <Text style={styles.emptyMethods}>لم تفعّل الإدارة وسائل شحن حاليًا.</Text>
             ) : null}
 
             {withdrawals.length ? (
               <View style={styles.historyCard}>
                 <View style={styles.historyHeading}>
                   <ArrowUpFromLine size={17} color={palette.success} />
-                  <Text style={styles.historyTitle}>ط·ظ„ط¨ط§طھ ط§ظ„ط³ط­ط¨</Text>
+                  <Text style={styles.historyTitle}>طلبات السحب</Text>
                 </View>
                 {withdrawals.map((withdrawal) => (
                   <View key={withdrawal.id} style={styles.transactionRow}>
@@ -357,7 +357,7 @@ export default function WalletScreen() {
                         {Number(withdrawal.amount_diamond).toLocaleString()} Diamond
                       </Text>
                       <Text style={styles.transactionSubAmount}>
-                        طµط§ظپظٹ ${Number(withdrawal.net_usd).toFixed(2)}
+                        صافي ${Number(withdrawal.net_usd).toFixed(2)}
                       </Text>
                     </View>
                   </View>
@@ -368,7 +368,7 @@ export default function WalletScreen() {
             <View style={styles.historyCard}>
               <View style={styles.historyHeading}>
                 <History size={17} color={palette.gold} />
-                <Text style={styles.historyTitle}>ط³ط¬ظ„ ط§ظ„ظ…ط¹ط§ظ…ظ„ط§طھ</Text>
+                <Text style={styles.historyTitle}>سجل المعاملات</Text>
               </View>
               {transactions.length ? (
                 <FlatList
@@ -395,7 +395,7 @@ export default function WalletScreen() {
                   }}
                 />
               ) : (
-                <Text style={styles.emptyHistory}>ظ„ط§ طھظˆط¬ط¯ ظ…ط¹ط§ظ…ظ„ط§طھ ط¨ط¹ط¯.</Text>
+                <Text style={styles.emptyHistory}>لا توجد معاملات بعد.</Text>
               )}
             </View>
           </>
@@ -521,7 +521,7 @@ function DepositModal({
       || numericAmount < Number(selectedMethod.min_amount_usd)
       || numericAmount > Number(selectedMethod.max_amount_usd)
       || !externalRef.trim() || !image) {
-      Alert.alert('ط±ط§ط¬ط¹ ط§ظ„ط¨ظٹط§ظ†ط§طھ', `ط£ط¯ط®ظ„ ظ…ط¨ظ„ط؛ظ‹ط§ ط¨ظٹظ† $${selectedMethod?.min_amount_usd ?? 1} ظˆ$${selectedMethod?.max_amount_usd ?? 2000}طŒ ظˆط±ظ‚ظ… ط§ظ„ط¹ظ…ظ„ظٹط© ظˆطµظˆط±ط© ط§ظ„ط¥ط«ط¨ط§طھ.`);
+      Alert.alert('راجع البيانات', `أدخل مبلغًا بين $${selectedMethod?.min_amount_usd ?? 1} و$${selectedMethod?.max_amount_usd ?? 2000}، ورقم العملية وصورة الإثبات.`);
       return;
     }
     if (selectedMethod.method === 'usdt') {
@@ -530,9 +530,9 @@ function DepositModal({
         ? /^[0-9a-fA-F]{64}$/.test(hash)
         : /^0x[0-9a-fA-F]{64}$/.test(hash);
       if (!validHash) {
-        Alert.alert('ط±ظ‚ظ… ط§ظ„ط¹ظ…ظ„ظٹط© ط؛ظٹط± طµط§ظ„ط­', network === 'trc20'
-          ? 'ط£ط¯ط®ظ„ ط±ظ‚ظ… ط¹ظ…ظ„ظٹط© TRC20 (64 ط­ط±ظپظ‹ط§ ط³ط¯ط§ط³ظٹ ط¹ط´ط±ظٹ).'
-          : 'ط£ط¯ط®ظ„ ط±ظ‚ظ… ط¹ظ…ظ„ظٹط© BEP20 (0x ظ…طھط¨ظˆط¹ط© ط¨ظ€64 ط­ط±ظپظ‹ط§ ط³ط¯ط§ط³ظٹ ط¹ط´ط±ظٹ).');
+        Alert.alert('رقم العملية غير صالح', network === 'trc20'
+          ? 'أدخل رقم عملية TRC20 (64 حرفًا سداسي عشري).'
+          : 'أدخل رقم عملية BEP20 (0x متبوعة بـ64 حرفًا سداسي عشري).');
         return;
       }
       if (fromAddress.trim()) {
@@ -540,7 +540,7 @@ function DepositModal({
           ? /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(fromAddress.trim())
           : /^0x[0-9a-fA-F]{40}$/.test(fromAddress.trim());
         if (!validAddress) {
-          Alert.alert('ط¹ظ†ظˆط§ظ† ط§ظ„ظ…ط±ط³ظ„ ط؛ظٹط± طµط§ظ„ط­', 'طھط£ظƒط¯ ظ…ظ† طµط­ط© ط¹ظ†ظˆط§ظ† ظ…ط­ظپط¸طھظƒ.');
+          Alert.alert('عنوان المرسل غير صالح', 'تأكد من صحة عنوان محفظتك.');
           return;
         }
       }
@@ -573,11 +573,11 @@ function DepositModal({
         } : {}),
       }, idempotencyKey);
       setAttempt(null);
-      Alert.alert('طھظ… ط§ط³طھظ„ط§ظ… ط§ظ„ط·ظ„ط¨', 'ط³ظٹط¸ظ‡ط± ط§ظ„ط±طµظٹط¯ ط¨ط¹ط¯ ظ…ط±ط§ط¬ط¹ط© ط¥ط«ط¨ط§طھ ط§ظ„ط´ط­ظ†.');
+      Alert.alert('تم استلام الطلب', 'سيظهر الرصيد بعد مراجعة إثبات الشحن.');
       await onSuccess();
       onClose();
     } catch (submitError: unknown) {
-      Alert.alert('طھط¹ط°ط± ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨', submitError instanceof Error ? submitError.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر إرسال الطلب', submitError instanceof Error ? submitError.message : 'حاول مرة أخرى.');
     } finally {
       setLoading(false);
     }
@@ -588,17 +588,17 @@ function DepositModal({
       <View style={styles.modalOverlay}>
         <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>ط´ط­ظ† Coin</Text>
-            <Text style={styles.modalSubtitle}>ط§ط®طھط± ظˆط³ظٹظ„ط© ط§ظ„ط¯ظپط¹طŒ ظˆط³ظ†ظˆط¶ظ‘ط­ ظ„ظƒ ط§ظ„ظ…ط¨ظ„ط؛ ظˆط§ظ„ط¹ظ…ظˆظ„ط© ظˆظ…ط§ ط³طھط­طµظ„ ط¹ظ„ظٹظ‡ ط¨ط§ظ„ط¶ط¨ط·.</Text>
+            <Text style={styles.modalTitle}>شحن Coin</Text>
+            <Text style={styles.modalSubtitle}>اختر وسيلة الدفع، وسنوضّح لك المبلغ والعمولة وما ستحصل عليه بالضبط.</Text>
 
             <View style={styles.compactBalance}>
               <Coins size={15} color={palette.gold} />
               <Text style={styles.compactBalanceText}>
-                ط±طµظٹط¯ظƒ ط§ظ„ط­ط§ظ„ظٹ: {coinBalance.toLocaleString()} Coin
+                رصيدك الحالي: {coinBalance.toLocaleString()} Coin
               </Text>
             </View>
 
-            <Text style={styles.fieldLabel}>ظˆط³ظٹظ„ط© ط§ظ„ط´ط­ظ†</Text>
+            <Text style={styles.fieldLabel}>وسيلة الشحن</Text>
             <View style={styles.methodCards}>
               {methods.map((method) => {
                 const active = selectedMethod?.method === method.method;
@@ -613,7 +613,7 @@ function DepositModal({
                       {method.name_ar}
                     </Text>
                     <Text style={styles.methodCardCaption}>
-                      ${Number(method.min_amount_usd).toFixed(0)} â€“ ${Number(method.max_amount_usd).toFixed(0)}
+                      ${Number(method.min_amount_usd).toFixed(0)} – ${Number(method.max_amount_usd).toFixed(0)}
                     </Text>
                     {active ? <View style={styles.methodActiveDot} /> : null}
                   </TouchableOpacity>
@@ -623,18 +623,18 @@ function DepositModal({
 
             {selectedMethod?.instructions ? (
               <View style={styles.instructions}>
-                <Text style={styles.instructionsTitle}>طھط¹ظ„ظٹظ…ط§طھ ط§ظ„ط¯ظپط¹</Text>
+                <Text style={styles.instructionsTitle}>تعليمات الدفع</Text>
                 <Text style={styles.instructionsText}>{selectedMethod.instructions}</Text>
               </View>
             ) : null}
 
-            <Text style={styles.fieldLabel}>ط§ظ„ظ…ط¨ظ„ط؛ ط¨ط§ظ„ط¯ظˆظ„ط§ط±</Text>
+            <Text style={styles.fieldLabel}>المبلغ بالدولار</Text>
             <View style={styles.amountInputRow}>
               <TextInput
                 style={[styles.inputField, styles.amountInput]}
                 value={amount}
                 onChangeText={setAmount}
-                placeholder={`ظ…ظ† ${selectedMethod?.min_amount_usd ?? 1}`}
+                placeholder={`من ${selectedMethod?.min_amount_usd ?? 1}`}
                 placeholderTextColor={palette.muted}
                 keyboardType="decimal-pad"
                 editable={!loading}
@@ -645,32 +645,32 @@ function DepositModal({
             {numericAmount > 0 ? (
               <View style={styles.mathCard}>
                 <View style={styles.mathRow}>
-                  <Text style={styles.mathLabel}>ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ظ…ظڈط¯ط®ظ„</Text>
+                  <Text style={styles.mathLabel}>المبلغ المُدخل</Text>
                   <Text style={styles.mathValue}>${numericAmount.toFixed(2)}</Text>
                 </View>
                 <View style={styles.mathRow}>
-                  <Text style={styles.mathLabel}>ط¹ظ…ظˆظ„ط© ط§ظ„ط´ط­ظ† ({feePercent.toFixed(2)}%)</Text>
-                  <Text style={styles.mathValue}>âˆ’${feeUsd.toFixed(2)}</Text>
+                  <Text style={styles.mathLabel}>عمولة الشحن ({feePercent.toFixed(2)}%)</Text>
+                  <Text style={styles.mathValue}>−${feeUsd.toFixed(2)}</Text>
                 </View>
                 <View style={styles.mathRow}>
-                  <Text style={styles.mathLabel}>ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„طµط§ظپظٹ</Text>
+                  <Text style={styles.mathLabel}>المبلغ الصافي</Text>
                   <Text style={styles.mathValue}>${creditedUsd.toFixed(2)}</Text>
                 </View>
                 <View style={styles.mathDivider} />
                 <View style={styles.mathRow}>
-                  <Text style={styles.mathHighlightLabel}>ط³ظˆظپ طھط­طµظ„ ط¹ظ„ظ‰</Text>
+                  <Text style={styles.mathHighlightLabel}>سوف تحصل على</Text>
                   <Text style={styles.mathHighlightValue}>{coinsToReceive.toLocaleString()} Coin</Text>
                 </View>
-                <Text style={styles.mathHint}>ط³ط¹ط± ط§ظ„طµط±ظپ: 1$ = {rate.toLocaleString()} Coin</Text>
+                <Text style={styles.mathHint}>سعر الصرف: 1$ = {rate.toLocaleString()} Coin</Text>
               </View>
             ) : null}
 
-            <Text style={styles.fieldLabel}>ط±ظ‚ظ… ط§ظ„ط¹ظ…ظ„ظٹط© / ظ…ط±ط¬ط¹ ط§ظ„ط­ظˆط§ظ„ط©</Text>
+            <Text style={styles.fieldLabel}>رقم العملية / مرجع الحوالة</Text>
             <TextInput
               style={styles.inputField}
               value={externalRef}
               onChangeText={setExternalRef}
-              placeholder="ط£ط¯ط®ظ„ ط§ظ„ط±ظ‚ظ… ظƒظ…ط§ ظٹط¸ظ‡ط± ظپظٹ ط¥ظٹطµط§ظ„ ط§ظ„ط¯ظپط¹"
+              placeholder="أدخل الرقم كما يظهر في إيصال الدفع"
               placeholderTextColor={palette.muted}
               editable={!loading}
               maxLength={200}
@@ -678,7 +678,7 @@ function DepositModal({
 
             {selectedMethod?.method === 'usdt' ? (
               <>
-                <Text style={styles.fieldLabel}>ط´ط¨ظƒط© USDT</Text>
+                <Text style={styles.fieldLabel}>شبكة USDT</Text>
                 <View style={styles.segmented}>
                   {(['trc20', 'bep20'] as const).map((item) => (
                     <TouchableOpacity
@@ -695,28 +695,28 @@ function DepositModal({
                 </View>
                 {usdtWallets?.[network] ? (
                   <View style={styles.instructions}>
-                    <Text style={styles.instructionsTitle}>ط¹ظ†ظˆط§ظ† ط§ظ„ظ…ط­ظپط¸ط© ظ„ظ„ط§ط³طھظ„ط§ظ…</Text>
+                    <Text style={styles.instructionsTitle}>عنوان المحفظة للاستلام</Text>
                     <Text style={styles.instructionsText} selectable>{usdtWallets[network]}</Text>
                   </View>
                 ) : null}
-                <Text style={styles.fieldLabel}>ط±ظ‚ظ… ط¹ظ…ظ„ظٹط© ط§ظ„طھط­ظˆظٹظ„ (TxID)</Text>
+                <Text style={styles.fieldLabel}>رقم عملية التحويل (TxID)</Text>
                 <TextInput
                   style={styles.inputField}
                   value={txHash}
                   onChangeText={setTxHash}
-                  placeholder={network === 'trc20' ? '64 ط­ط±ظپظ‹ط§ ط³ط¯ط§ط³ظٹ ط¹ط´ط±ظٹ' : '0x + 64 ط­ط±ظپظ‹ط§ ط³ط¯ط§ط³ظٹ ط¹ط´ط±ظٹ'}
+                  placeholder={network === 'trc20' ? '64 حرفًا سداسي عشري' : '0x + 64 حرفًا سداسي عشري'}
                   placeholderTextColor={palette.muted}
                   autoCapitalize="none"
                   autoCorrect={false}
                   editable={!loading}
                   maxLength={80}
                 />
-                <Text style={styles.fieldLabel}>ط¹ظ†ظˆط§ظ† ظ…ط­ظپط¸طھظƒ (ط§ط®طھظٹط§ط±ظٹ)</Text>
+                <Text style={styles.fieldLabel}>عنوان محفظتك (اختياري)</Text>
                 <TextInput
                   style={styles.inputField}
                   value={fromAddress}
                   onChangeText={setFromAddress}
-                  placeholder="ط§ظ„ط¹ظ†ظˆط§ظ† ط§ظ„ط°ظٹ ط£ط±ط³ظ„طھ ظ…ظ†ظ‡ USDT"
+                  placeholder="العنوان الذي أرسلت منه USDT"
                   placeholderTextColor={palette.muted}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -726,21 +726,21 @@ function DepositModal({
               </>
             ) : null}
 
-            <Text style={styles.fieldLabel}>طµظˆط±ط© ط¥ط«ط¨ط§طھ ط§ظ„ط¯ظپط¹</Text>
+            <Text style={styles.fieldLabel}>صورة إثبات الدفع</Text>
             <TouchableOpacity style={styles.proofPicker} onPress={pickImage} disabled={loading}>
               {image ? (
                 <Image source={{ uri: image }} style={styles.proofPreview} />
               ) : (
-                <Text style={styles.proofText}>ط§ط¶ط؛ط· ظ„ط§ط®طھظٹط§ط± طµظˆط±ط© ط§ظ„ط¥ظٹطµط§ظ„</Text>
+                <Text style={styles.proofText}>اضغط لاختيار صورة الإيصال</Text>
               )}
             </TouchableOpacity>
 
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.cancelButton} onPress={onClose} disabled={loading}>
-                <Text style={styles.cancelText}>ط¥ظ„ط؛ط§ط،</Text>
+                <Text style={styles.cancelText}>إلغاء</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.confirmButton, loading && styles.disabled]} onPress={submit} disabled={loading}>
-                {loading ? <ActivityIndicator color={colors.text} /> : <Text style={styles.confirmText}>ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨</Text>}
+                {loading ? <ActivityIndicator color={colors.text} /> : <Text style={styles.confirmText}>إرسال الطلب</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -773,7 +773,7 @@ function ConversionModal({
 
   const submit = async () => {
     if (!validAmount) {
-      Alert.alert('ط±ط§ط¬ط¹ ط§ظ„ظ…ط¨ظ„ط؛', `ط£ط¯ط®ظ„ ط¹ط¯ط¯ظ‹ط§ طµط­ظٹط­ظ‹ط§ ظ…ظ† Diamond ط¨ظٹظ† 1 ظˆ${balance.toLocaleString()}.`);
+      Alert.alert('راجع المبلغ', `أدخل عددًا صحيحًا من Diamond بين 1 و${balance.toLocaleString()}.`);
       return;
     }
     const fingerprint = String(diamonds);
@@ -789,10 +789,10 @@ function ConversionModal({
       });
       setAttempt(null);
       setAmount('');
-      Alert.alert('طھظ… ط§ظ„طھط­ظˆظٹظ„', `ط£ظڈط¶ظٹظپ ${coins.toLocaleString()} Coin ط¥ظ„ظ‰ ط±طµظٹط¯ظƒ.`);
+      Alert.alert('تم التحويل', `أُضيف ${coins.toLocaleString()} Coin إلى رصيدك.`);
       await onSuccess();
     } catch (error: unknown) {
-      Alert.alert('طھط¹ط°ط± ط§ظ„طھط­ظˆظٹظ„', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر التحويل', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     } finally {
       setLoading(false);
     }
@@ -803,9 +803,9 @@ function ConversionModal({
       <View style={styles.modalOverlay}>
         <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>طھط­ظˆظٹظ„ Diamond ط¥ظ„ظ‰ Coin</Text>
+            <Text style={styles.modalTitle}>تحويل Diamond إلى Coin</Text>
             <Text style={styles.modalSubtitle}>
-              ط§ظ„طھط­ظˆظٹظ„ ظپظˆط±ظٹ ط¯ط§ط®ظ„ ط§ظ„طھط·ط¨ظٹظ‚. ظ„ط§ ظٹظ…ظƒظ† طھط­ظˆظٹظ„ Coin ط¥ظ„ظ‰ Diamond ظ…ط±ط© ط£ط®ط±ظ‰.
+              التحويل فوري داخل التطبيق. لا يمكن تحويل Coin إلى Diamond مرة أخرى.
             </Text>
 
             <View style={styles.conversionRateCard}>
@@ -821,7 +821,7 @@ function ConversionModal({
               <Text style={styles.conversionRateValue}>1 = {rate.toLocaleString()}</Text>
             </View>
 
-            <Text style={styles.fieldLabel}>ط¹ط¯ط¯ Diamond ط§ظ„ظ…ط±ط§ط¯ طھط­ظˆظٹظ„ظ‡ آ· ط±طµظٹط¯ظƒ {balance.toLocaleString()}</Text>
+            <Text style={styles.fieldLabel}>عدد Diamond المراد تحويله · رصيدك {balance.toLocaleString()}</Text>
             <View style={styles.amountInputRow}>
               <TextInput
                 style={[styles.inputField, styles.amountInput]}
@@ -837,36 +837,36 @@ function ConversionModal({
                 onPress={() => setAmount(String(balance))}
                 disabled={loading}
               >
-                <Text style={styles.maxButtonText}>ط§ظ„ظƒظ„</Text>
+                <Text style={styles.maxButtonText}>الكل</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.mathCard}>
               <View style={styles.mathRow}>
-                <Text style={styles.mathLabel}>ط§ظ„ظ…ط¨ظ„ط؛ ط§ظ„ظ…ط­ظˆظ‘ظ„</Text>
+                <Text style={styles.mathLabel}>المبلغ المحوّل</Text>
                 <Text style={styles.mathValue}>{validAmount ? diamonds.toLocaleString() : 0} Diamond</Text>
               </View>
               <View style={styles.mathRow}>
-                <Text style={styles.mathLabel}>ط±ط³ظˆظ… ط§ظ„طھط­ظˆظٹظ„</Text>
-                <Text style={styles.mathValue}>ظ…ط¬ط§ظ†ظ‹ط§</Text>
+                <Text style={styles.mathLabel}>رسوم التحويل</Text>
+                <Text style={styles.mathValue}>مجانًا</Text>
               </View>
               <View style={styles.mathDivider} />
               <View style={styles.mathRow}>
-                <Text style={styles.mathHighlightLabel}>ط³ظˆظپ طھط­طµظ„ ط¹ظ„ظ‰</Text>
+                <Text style={styles.mathHighlightLabel}>سوف تحصل على</Text>
                 <Text style={styles.mathHighlightValue}>{coins.toLocaleString()} Coin</Text>
               </View>
             </View>
 
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.cancelButton} onPress={onClose} disabled={loading}>
-                <Text style={styles.cancelText}>ط¥ظ„ط؛ط§ط،</Text>
+                <Text style={styles.cancelText}>إلغاء</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.confirmButton, (loading || !validAmount) && styles.disabled]}
                 onPress={submit}
                 disabled={loading || !validAmount}
               >
-                {loading ? <ActivityIndicator color={colors.text} /> : <Text style={styles.confirmText}>طھط­ظˆظٹظ„ ط§ظ„ط¢ظ†</Text>}
+                {loading ? <ActivityIndicator color={colors.text} /> : <Text style={styles.confirmText}>تحويل الآن</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -918,7 +918,7 @@ function WithdrawalModal({
 
   const submit = async () => {
     if (!Number.isSafeInteger(diamonds) || diamonds < minimum || diamonds > balance) {
-      Alert.alert('ط±ط§ط¬ط¹ ط§ظ„ظ…ط¨ظ„ط؛', `ط£ط¯ط®ظ„ ط¹ط¯ط¯ظ‹ط§ طµط­ظٹط­ظ‹ط§ ط¨ظٹظ† ${minimum.toLocaleString()} ظˆ${balance.toLocaleString()} Diamond.`);
+      Alert.alert('راجع المبلغ', `أدخل عددًا صحيحًا بين ${minimum.toLocaleString()} و${balance.toLocaleString()} Diamond.`);
       return;
     }
     if (method === 'usdt') {
@@ -927,9 +927,9 @@ function WithdrawalModal({
         ? /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(trimmedAddress)
         : /^0x[0-9a-fA-F]{40}$/.test(trimmedAddress);
       if (!trimmedAddress || !validAddress) {
-        Alert.alert('ط¨ظٹط§ظ†ط§طھ ظ†ط§ظ‚طµط©', network === 'trc20'
-          ? 'ط£ط¯ط®ظ„ ط¹ظ†ظˆط§ظ† ظ…ط­ظپط¸ط© TRC20 طµط§ظ„ط­ظ‹ط§ (ظٹط¨ط¯ط£ ط¨ط­ط±ظپ T).'
-          : 'ط£ط¯ط®ظ„ ط¹ظ†ظˆط§ظ† ظ…ط­ظپط¸ط© BEP20 طµط§ظ„ط­ظ‹ط§ (ظٹط¨ط¯ط£ ط¨ظ€0x).');
+        Alert.alert('بيانات ناقصة', network === 'trc20'
+          ? 'أدخل عنوان محفظة TRC20 صالحًا (يبدأ بحرف T).'
+          : 'أدخل عنوان محفظة BEP20 صالحًا (يبدأ بـ0x).');
         return;
       }
     }
@@ -951,10 +951,10 @@ function WithdrawalModal({
       }, key);
       setAttempt(null);
       setAmount('');
-      Alert.alert('طھظ… ط§ط³طھظ„ط§ظ… ط§ظ„ط·ظ„ط¨', 'طھظ… ط­ط¬ط² Diamond ظ„ط­ظٹظ† ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط·ظ„ط¨. ط³ظٹظڈط¹ط§ط¯ طھظ„ظ‚ط§ط¦ظٹظ‹ط§ ط¥ط°ط§ ط±ظڈظپط¶.');
+      Alert.alert('تم استلام الطلب', 'تم حجز Diamond لحين مراجعة الطلب. سيُعاد تلقائيًا إذا رُفض.');
       await onSuccess();
     } catch (error: unknown) {
-      Alert.alert('طھط¹ط°ط± ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر إرسال الطلب', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     } finally {
       setLoading(false);
     }
@@ -967,12 +967,12 @@ function WithdrawalModal({
       <View style={styles.modalOverlay}>
         <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>ط³ط­ط¨ Diamond ظ†ظ‚ط¯ظ‹ط§</Text>
+            <Text style={styles.modalTitle}>سحب Diamond نقدًا</Text>
             <Text style={styles.modalSubtitle}>
-              ط±طµظٹط¯ظƒ {balance.toLocaleString()} Diamond آ· ط§ظ„ط­ط¯ ط§ظ„ط£ط¯ظ†ظ‰ {minimum.toLocaleString()} Diamond (${minimumUsd.toFixed(2)})
+              رصيدك {balance.toLocaleString()} Diamond · الحد الأدنى {minimum.toLocaleString()} Diamond (${minimumUsd.toFixed(2)})
             </Text>
 
-            <Text style={styles.fieldLabel}>ط¹ط¯ط¯ Diamond ط§ظ„ظ…ط±ط§ط¯ ط³ط­ط¨ظ‡</Text>
+            <Text style={styles.fieldLabel}>عدد Diamond المراد سحبه</Text>
             <View style={styles.amountInputRow}>
               <TextInput
                 style={[styles.inputField, styles.amountInput]}
@@ -988,35 +988,35 @@ function WithdrawalModal({
                 onPress={() => setAmount(String(balance))}
                 disabled={loading}
               >
-                <Text style={styles.maxButtonText}>ط§ظ„ظƒظ„</Text>
+                <Text style={styles.maxButtonText}>الكل</Text>
               </TouchableOpacity>
             </View>
             {belowMinimum ? (
-              <Text style={styles.warningText}>ط£ظ‚ظ„ ظ…ظ† ط§ظ„ط­ط¯ ط§ظ„ط£ط¯ظ†ظ‰ ظ„ظ„ط³ط­ط¨ ({minimum.toLocaleString()} Diamond).</Text>
+              <Text style={styles.warningText}>أقل من الحد الأدنى للسحب ({minimum.toLocaleString()} Diamond).</Text>
             ) : null}
 
             {diamonds > 0 ? (
               <View style={styles.mathCard}>
                 <View style={styles.mathRow}>
-                  <Text style={styles.mathLabel}>ظ‚ظٹظ…ط© ط§ظ„ط³ط­ط¨</Text>
+                  <Text style={styles.mathLabel}>قيمة السحب</Text>
                   <Text style={styles.mathValue}>${grossUsd.toFixed(2)}</Text>
                 </View>
                 <View style={styles.mathRow}>
-                  <Text style={styles.mathLabel}>ط¹ظ…ظˆظ„ط© ط§ظ„ط³ط­ط¨ ({feePercent.toFixed(2)}%)</Text>
-                  <Text style={styles.mathValue}>âˆ’${feeUsd.toFixed(2)}</Text>
+                  <Text style={styles.mathLabel}>عمولة السحب ({feePercent.toFixed(2)}%)</Text>
+                  <Text style={styles.mathValue}>−${feeUsd.toFixed(2)}</Text>
                 </View>
                 <View style={styles.mathDivider} />
                 <View style={styles.mathRow}>
-                  <Text style={styles.mathHighlightLabel}>ط³طھط³طھظ„ظ… ظپظٹ ط­ط³ط§ط¨ظƒ</Text>
+                  <Text style={styles.mathHighlightLabel}>ستستلم في حسابك</Text>
                   <Text style={styles.mathHighlightValue}>${netUsd.toFixed(2)}</Text>
                 </View>
                 <Text style={styles.mathHint}>
-                  ط³ط¹ط± ط§ظ„طµط±ظپ: {rate.toLocaleString()} Diamond = $1 آ· ط§ظ„ط­ط¯ ط§ظ„ظٹظˆظ…ظٹ ${maxDailyUsd.toFixed(0)}
+                  سعر الصرف: {rate.toLocaleString()} Diamond = $1 · الحد اليومي ${maxDailyUsd.toFixed(0)}
                 </Text>
               </View>
             ) : null}
 
-            <Text style={styles.fieldLabel}>ط·ط±ظٹظ‚ط© ط§ظ„ط§ط³طھظ„ط§ظ…</Text>
+            <Text style={styles.fieldLabel}>طريقة الاستلام</Text>
             <View style={styles.methodCards}>
               {methods.map((item) => {
                 const active = method === item;
@@ -1028,10 +1028,10 @@ function WithdrawalModal({
                     disabled={loading}
                   >
                     <Text style={[styles.methodCardTitle, active && styles.methodCardTitleActive]}>
-                      {item === 'agent' ? 'ط¹ط¨ط± ط§ظ„ظˆظƒظٹظ„' : 'ظ…ط­ظپط¸ط© USDT'}
+                      {item === 'agent' ? 'عبر الوكيل' : 'محفظة USDT'}
                     </Text>
                     <Text style={styles.methodCardCaption}>
-                      {item === 'agent' ? 'طھط­ظˆظٹظ„ ط®ط§ط±ط¬ ط§ظ„طھط·ط¨ظٹظ‚' : 'TRC20 / BEP20'}
+                      {item === 'agent' ? 'تحويل خارج التطبيق' : 'TRC20 / BEP20'}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -1040,7 +1040,7 @@ function WithdrawalModal({
 
             {method === 'usdt' ? (
               <>
-                <Text style={styles.fieldLabel}>ط¹ظ†ظˆط§ظ† ط§ظ„ظ…ط­ظپط¸ط©</Text>
+                <Text style={styles.fieldLabel}>عنوان المحفظة</Text>
                 <TextInput
                   style={styles.inputField}
                   value={address}
@@ -1051,7 +1051,7 @@ function WithdrawalModal({
                   placeholder={network === 'trc20' ? 'T...' : '0x...'}
                   placeholderTextColor={palette.muted}
                 />
-                <Text style={styles.fieldLabel}>ط§ظ„ط´ط¨ظƒط©</Text>
+                <Text style={styles.fieldLabel}>الشبكة</Text>
                 <View style={styles.segmented}>
                   {(['trc20', 'bep20'] as const).map((item) => (
                     <TouchableOpacity
@@ -1069,16 +1069,16 @@ function WithdrawalModal({
               </>
             ) : (
               <Text style={styles.instructionsText}>
-                ط³ظٹط­ظˆظ‘ظ„ ط§ظ„ظˆظƒظٹظ„ ط§ظ„ظ…ط¹طھظ…ط¯ ط§ظ„ظ…ط¨ظ„ط؛ ط¥ظ„ظٹظƒ ط®ط§ط±ط¬ ط§ظ„طھط·ط¨ظٹظ‚ ط¨ط¹ط¯ ظ…ظˆط§ظپظ‚ط© ط§ظ„ط¥ط¯ط§ط±ط©.
+                سيحوّل الوكيل المعتمد المبلغ إليك خارج التطبيق بعد موافقة الإدارة.
               </Text>
             )}
 
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.cancelButton} onPress={onClose} disabled={loading}>
-                <Text style={styles.cancelText}>ط¥ظ„ط؛ط§ط،</Text>
+                <Text style={styles.cancelText}>إلغاء</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.confirmButton, loading && styles.disabled]} onPress={submit} disabled={loading}>
-                {loading ? <ActivityIndicator color={colors.text} /> : <Text style={styles.confirmText}>ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨</Text>}
+                {loading ? <ActivityIndicator color={colors.text} /> : <Text style={styles.confirmText}>إرسال الطلب</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -1090,39 +1090,39 @@ function WithdrawalModal({
 
 function getTransactionLabel(item: WalletTransaction): string {
   if (item.reference_type === 'conversion') {
-    return item.currency === 'diamond' ? 'طھط­ظˆظٹظ„ ط¥ظ„ظ‰ Coin (ط®طµظ… Diamond)' : 'طھط­ظˆظٹظ„ ظ…ظ† Diamond (ط¥ط¶ط§ظپط© Coin)';
+    return item.currency === 'diamond' ? 'تحويل إلى Coin (خصم Diamond)' : 'تحويل من Diamond (إضافة Coin)';
   }
   if (item.reference_type === 'diamond_withdrawal') {
-    return item.amount > 0 ? 'ط¥ط¹ط§ط¯ط© ط±طµظٹط¯ Diamond ط¨ط¹ط¯ ط±ظپط¶ ط§ظ„ط³ط­ط¨' : 'ط­ط¬ط² Diamond ظ„ظ„ط³ط­ط¨';
+    return item.amount > 0 ? 'إعادة رصيد Diamond بعد رفض السحب' : 'حجز Diamond للسحب';
   }
-  if (item.type === 'gift_received' && item.currency === 'promo_dia') return 'Diamond ظ…ظ† ظ‡ط¯ظٹط©';
+  if (item.type === 'gift_received' && item.currency === 'promo_dia') return 'Diamond من هدية';
   const labels: Record<string, string> = {
-    deposit: 'ط´ط­ظ† Coin',
-    gift_sent: 'ظ‡ط¯ظٹط© ظ…ط±ط³ظ„ط©',
-    gift_received: 'ط£ط±ط¨ط§ط­ Diamond',
-    withdraw: 'ط³ط­ط¨ ط³ط§ط¨ظ‚',
-    transfer_out: 'طھط­ظˆظٹظ„ طµط§ط¯ط± ط³ط§ط¨ظ‚',
-    transfer_in: 'طھط­ظˆظٹظ„ ظˆط§ط±ط¯ ط³ط§ط¨ظ‚',
-    bet: 'ظ„ط¹ط¨ط© ظ‚ط¯ظٹظ…ط©',
-    win: 'ط±ط¨ط­ ظ„ط¹ط¨ط© ظ‚ط¯ظٹظ…',
-    daily_bonus: 'ظ…ظƒط§ظپط£ط©',
-    referral_bonus: 'ظ…ظƒط§ظپط£ط© ط¥ط­ط§ظ„ط©',
-    signup_bonus: 'ظ…ظƒط§ظپط£ط© طھط³ط¬ظٹظ„',
-    admin_adjustment: 'طھط³ظˆظٹط© ط¥ط¯ط§ط±ظٹط©',
+    deposit: 'شحن Coin',
+    gift_sent: 'هدية مرسلة',
+    gift_received: 'أرباح Diamond',
+    withdraw: 'سحب سابق',
+    transfer_out: 'تحويل صادر سابق',
+    transfer_in: 'تحويل وارد سابق',
+    bet: 'لعبة قديمة',
+    win: 'ربح لعبة قديم',
+    daily_bonus: 'مكافأة',
+    referral_bonus: 'مكافأة إحالة',
+    signup_bonus: 'مكافأة تسجيل',
+    admin_adjustment: 'تسوية إدارية',
   };
   return labels[item.type] ?? item.type;
 }
 
 function getWithdrawalStatus(status: string): string {
   const labels: Record<string, string> = {
-    pending: 'ط·ظ„ط¨ ط³ط­ط¨ ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©',
-    reviewing: 'ط·ظ„ط¨ ط§ظ„ط³ط­ط¨ ظ‚ظٹط¯ ط§ظ„ظ…ط¹ط§ظ„ط¬ط©',
-    approved: 'طھظ…طھ ط§ظ„ظ…ظˆط§ظپظ‚ط© ط¹ظ„ظ‰ ط§ظ„ط³ط­ط¨',
-    processing: 'ط¬ط§ط±ظچ طھظ†ظپظٹط° ط§ظ„ط³ط­ط¨',
-    completed: 'طھظ… طھظ†ظپظٹط° ط§ظ„ط³ط­ط¨',
-    rejected: 'ط±ظڈظپط¶ ط§ظ„ط·ظ„ط¨ ظˆط£ط¹ظٹط¯ ط§ظ„ط±طµظٹط¯',
-    cancelled: 'طھظ… ط¥ظ„ط؛ط§ط، ط§ظ„ط·ظ„ط¨',
-    failed: 'طھط¹ط°ط± طھظ†ظپظٹط° ط§ظ„ط·ظ„ط¨',
+    pending: 'طلب سحب قيد المراجعة',
+    reviewing: 'طلب السحب قيد المعالجة',
+    approved: 'تمت الموافقة على السحب',
+    processing: 'جارٍ تنفيذ السحب',
+    completed: 'تم تنفيذ السحب',
+    rejected: 'رُفض الطلب وأعيد الرصيد',
+    cancelled: 'تم إلغاء الطلب',
+    failed: 'تعذر تنفيذ الطلب',
   };
   return labels[status] ?? status;
 }

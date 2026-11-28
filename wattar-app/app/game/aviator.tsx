@@ -1,7 +1,7 @@
-﻿/**
- * Wattar App â€” ط·ظٹط§ط±ط© ط§ظ„ظ…ط¶ط§ط¹ظپط§طھ (M9.4)
- * ط§ظ„ظ…ط³طھط®ط¯ظ… ظٹط­ط¯ط¯ ظ…ط¶ط§ط¹ظپ ط§ظ„ط³ط­ط¨طŒ ظˆط§ظ„ط®ط§ط¯ظ… ظٹط­ط¯ط¯ ظ†ظ‚ط·ط© ط§ظ„ط§ظ†ظ‡ظٹط§ط±:
- *   P(crash > x) = RTP أ· x  â†’  E[x آ· 1(crash>x)] = RTP
+/**
+ * Wattar App — طيارة المضاعفات (M9.4)
+ * المستخدم يحدد مضاعف السحب، والخادم يحدد نقطة الانهيار:
+ *   P(crash > x) = RTP ÷ x  →  E[x · 1(crash>x)] = RTP
  */
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -70,15 +70,15 @@ export default function AviatorGame() {
     const target = Number(cashoutMult);
     if (bet === null || !Number.isFinite(target) || target <= 1 || loading || isFlying) return;
     if (target > maxMultiplier) {
-      Alert.alert('ظ…ط¶ط§ط¹ظپ ظƒط¨ظٹط±', `ط£ظ‚طµظ‰ ظ…ط¶ط§ط¹ظپ ط³ط­ط¨ ظ‡ظˆ ${maxMultiplier}x.`);
+      Alert.alert('مضاعف كبير', `أقصى مضاعف سحب هو ${maxMultiplier}x.`);
       return;
     }
     if (game && !game.available) {
-      Alert.alert('ط§ظ„ظ„ط¹ط¨ط© ط؛ظٹط± ظ…طھط§ط­ط©', 'ظ‡ط°ظ‡ ط§ظ„ظ„ط¹ط¨ط© ط؛ظٹط± ظ…طھط§ط­ط© ظ„ط­ط³ط§ط¨ظƒ ط­ط§ظ„ظٹط§ظ‹.');
+      Alert.alert('اللعبة غير متاحة', 'هذه اللعبة غير متاحة لحسابك حالياً.');
       return;
     }
     if (game && (bet < game.min_bet || bet > game.max_bet)) {
-      Alert.alert('ط§ظ„ط±ظ‡ط§ظ† ط®ط§ط±ط¬ ط§ظ„ط­ط¯ظˆط¯', `ط§ظ„ط­ط¯ ط§ظ„ظ…ط³ظ…ظˆط­ ظ…ظ† ${game.min_bet} ط¥ظ„ظ‰ ${game.max_bet} Coin.`);
+      Alert.alert('الرهان خارج الحدود', `الحد المسموح من ${game.min_bet} إلى ${game.max_bet} Coin.`);
       return;
     }
     setLoading(true);
@@ -101,7 +101,7 @@ export default function AviatorGame() {
         || response.crash_point < 1
         || response.payout < 0
       ) {
-        throw new Error('ظ„ظ… طھطµظ„ ظ†طھظٹط¬ط© ط§ظ„ط¬ظˆظ„ط© ط¨ط´ظƒظ„ طµط­ظٹط­.');
+        throw new Error('لم تصل نتيجة الجولة بشكل صحيح.');
       }
 
       setLoading(false);
@@ -141,7 +141,7 @@ export default function AviatorGame() {
     } catch (err: unknown) {
       setLoading(false);
       setIsFlying(false);
-      Alert.alert('ط®ط·ط£', err instanceof Error ? err.message : 'طھط¹ط°ط± ط¥ظƒظ…ط§ظ„ ط§ظ„ط¬ظˆظ„ط©.');
+      Alert.alert('خطأ', err instanceof Error ? err.message : 'تعذر إكمال الجولة.');
     }
   };
 
@@ -154,8 +154,8 @@ export default function AviatorGame() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <StatusBar style="light" />
       <GameHeader
-        title={game?.display_name ?? 'ط·ظٹط§ط±ط© ط§ظ„ظ…ط¶ط§ط¹ظپط§طھ'}
-        subtitle={game?.description ?? 'ط­ط¯ظ‘ط¯ ظ…ط¶ط§ط¹ظپ ط§ظ„ط³ط­ط¨ ظ‚ط¨ظ„ ط§ظ„ط¥ظ‚ظ„ط§ط¹. ط§ظ„ط·ظٹط§ط±ط© طھط·ظٹط± ط­طھظ‰ ظ†ظ‚ط·ط© ط§ظ†ظ‡ظٹط§ط± ظٹط­ط¯ط¯ظ‡ط§ ط§ظ„ط®ط§ط¯ظ….'}
+        title={game?.display_name ?? 'طيارة المضاعفات'}
+        subtitle={game?.description ?? 'حدّد مضاعف السحب قبل الإقلاع. الطيارة تطير حتى نقطة انهيار يحددها الخادم.'}
         balance={profile?.balance_gold ?? 0}
       />
 
@@ -187,13 +187,13 @@ export default function AviatorGame() {
               {multiplier.toFixed(2)}x
             </Text>
           ) : (
-            <Text style={styles.placeholder}>ط¶ط¹ ط±ظ‡ط§ظ†ظƒ ظˆط§ط¨ط¯ط£ ط§ظ„ط±ط­ظ„ط©</Text>
+            <Text style={styles.placeholder}>ضع رهانك وابدأ الرحلة</Text>
           )}
           {result && (
             <Text style={[styles.resultText, result.won ? styles.winText : styles.loseText]}>
               {result.won
-                ? `ط±ط¨ط­طھ ${result.payout.toLocaleString()} Coin!`
-                : `ط§ظ†ظ‡ط§ط±طھ ط¹ظ†ط¯ ${result.crash.toFixed(2)}x`}
+                ? `ربحت ${result.payout.toLocaleString()} Coin!`
+                : `انهارت عند ${result.crash.toFixed(2)}x`}
             </Text>
           )}
         </View>
@@ -208,15 +208,15 @@ export default function AviatorGame() {
         />
         {game ? (
           <Text style={styles.limitHint}>
-            ط§ظ„ط­ط¯: {game.min_bet.toLocaleString()} â€“ {game.max_bet.toLocaleString()} Coin
+            الحد: {game.min_bet.toLocaleString()} – {game.max_bet.toLocaleString()} Coin
           </Text>
         ) : null}
 
         <View style={styles.inputGroup}>
           <View style={styles.inputHeading}>
-            <Text style={styles.inputLabel}>ط§ظ„ط³ط­ط¨ ط§ظ„طھظ„ظ‚ط§ط¦ظٹ ط¹ظ†ط¯ (x)</Text>
+            <Text style={styles.inputLabel}>السحب التلقائي عند (x)</Text>
             <Text style={styles.probability}>
-              ط§ط­طھظ…ط§ظ„ ط§ظ„ظˆطµظˆظ„ {formatPercent(targetProbability * 100)}
+              احتمال الوصول {formatPercent(targetProbability * 100)}
             </Text>
           </View>
           <TextInput
@@ -245,7 +245,7 @@ export default function AviatorGame() {
             ))}
           </View>
           <Text style={styles.targetHint}>
-            RTP ط§ظ„ظ…ط¹ظ„ظ† {formatPercent(rtp)} â€” طھظڈط­ط¯ط¯ ظ†ظ‚ط·ط© ط§ظ„ط§ظ†ظ‡ظٹط§ط± ط¹ظ„ظ‰ ط§ظ„ط®ط§ط¯ظ… ظ‚ط¨ظ„ ط¹ط±ط¶ ط§ظ„ظ…ط³ط§ط±.
+            RTP المعلن {formatPercent(rtp)} — تُحدد نقطة الانهيار على الخادم قبل عرض المسار.
           </Text>
         </View>
 
@@ -256,7 +256,7 @@ export default function AviatorGame() {
         >
           <Plane size={20} color={colors.inkDark} />
           <Text style={styles.playButtonText}>
-            {loading ? 'ط¬ط§ط±ظٹ...' : isFlying ? 'طھط·ظٹط±...' : 'ط¥ظ‚ظ„ط§ط¹ ًںڑ€'}
+            {loading ? 'جاري...' : isFlying ? 'تطير...' : 'إقلاع 🚀'}
           </Text>
         </TouchableOpacity>
       </View>

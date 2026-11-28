@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ShieldCheck } from 'lucide-react-native';
@@ -20,7 +20,7 @@ export default function AgeConfirmationScreen() {
       return;
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
-      setError('ط£ط¯ط®ظ„ طھط§ط±ظٹط® ط§ظ„ظ…ظٹظ„ط§ط¯ ط¨طµظٹط؛ط© ط³ظ†ط©-ط´ظ‡ط±-ظٹظˆظ….');
+      setError('أدخل تاريخ الميلاد بصيغة سنة-شهر-يوم.');
       return;
     }
     setLoading(true);
@@ -33,7 +33,7 @@ export default function AgeConfirmationScreen() {
       });
       router.replace('/(tabs)');
     } catch (caught: unknown) {
-      setError(caught instanceof Error ? caught.message : 'طھط¹ط°ط± ط­ظپط¸ ط§ظ„طھط£ظƒظٹط¯. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      setError(caught instanceof Error ? caught.message : 'تعذر حفظ التأكيد. حاول مرة أخرى.');
     } finally {
       setLoading(false);
     }
@@ -48,12 +48,12 @@ export default function AgeConfirmationScreen() {
     <View style={styles.screen}>
       <View style={styles.card}>
         <View style={styles.icon}><ShieldCheck size={30} color={colors.primary} /></View>
-        <Text style={styles.title}>طھط£ظƒظٹط¯ ط§ظ„ط¹ظ…ط±</Text>
+        <Text style={styles.title}>تأكيد العمر</Text>
         <Text style={styles.description}>
-          ظٹطھط·ظ„ط¨ ط§ط³طھط®ط¯ط§ظ… Wattar ط£ظ† ظٹظƒظˆظ† ط¹ظ…ط±ظƒ 18 ط¹ط§ظ…ظ‹ط§ ط£ظˆ ط£ظƒط«ط±. ظ†طھط­ظ‚ظ‚ ظ…ظ† طھط§ط±ظٹط® ط§ظ„ظ…ظٹظ„ط§ط¯ ط¹ظ„ظ‰ ط§ظ„ط®ط§ط¯ظ… ظˆظ„ط§ ظ†ط­طھظپط¸ ط¨ظ‡ط› ظ‡ط°ط§ ظ„ظٹط³ طھظˆط«ظٹظ‚ظ‹ط§ ظ„ظ„ظ‡ظˆظٹط©.
+          يتطلب استخدام Wattar أن يكون عمرك 18 عامًا أو أكثر. نتحقق من تاريخ الميلاد على الخادم ولا نحتفظ به؛ هذا ليس توثيقًا للهوية.
         </Text>
 
-        <Text style={styles.dateLabel}>طھط§ط±ظٹط® ط§ظ„ظ…ظٹظ„ط§ط¯</Text>
+        <Text style={styles.dateLabel}>تاريخ الميلاد</Text>
         <TextInput
           style={styles.dateInput}
           value={birthDate}
@@ -74,9 +74,9 @@ export default function AgeConfirmationScreen() {
           accessibilityState={{ checked: confirmed }}
         >
           <View style={[styles.checkbox, confirmed && styles.checkboxChecked]}>
-            {confirmed && <Text style={styles.checkmark}>âœ“</Text>}
+            {confirmed && <Text style={styles.checkmark}>✓</Text>}
           </View>
-          <Text style={styles.confirmText}>ط£ط¤ظƒط¯ ط£ظ† طھط§ط±ظٹط® ط§ظ„ظ…ظٹظ„ط§ط¯ ط§ظ„ط°ظٹ ط£ط¯ط®ظ„طھظ‡ طµط­ظٹط­</Text>
+          <Text style={styles.confirmText}>أؤكد أن تاريخ الميلاد الذي أدخلته صحيح</Text>
         </TouchableOpacity>
 
         {error && <Text style={styles.error}>{error}</Text>}
@@ -88,10 +88,10 @@ export default function AgeConfirmationScreen() {
         >
           {loading
             ? <ActivityIndicator color={colors.background} />
-            : <Text style={styles.primaryButtonText}>ظ…طھط§ط¨ط¹ط©</Text>}
+            : <Text style={styles.primaryButtonText}>متابعة</Text>}
         </TouchableOpacity>
         <TouchableOpacity style={styles.leaveButton} onPress={leaveApp} disabled={loading}>
-          <Text style={styles.leaveText}>ظ„ط§ ط£ط³طھط·ظٹط¹ ط§ظ„طھط£ظƒظٹط¯ â€” طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬</Text>
+          <Text style={styles.leaveText}>لا أستطيع التأكيد — تسجيل الخروج</Text>
         </TouchableOpacity>
       </View>
     </View>

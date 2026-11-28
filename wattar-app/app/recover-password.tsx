@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -26,13 +26,13 @@ type Gate = 'checking' | 'ready' | 'blocked';
 export default function RecoverPasswordScreen() {
   const router = useRouter();
   const [gate, setGate] = useState<Gate>('checking');
-  const [gateMessage, setGateMessage] = useState('ط¬ط§ط±ظچ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط±ط§ط¨ط· ط§ظ„ط§ط³طھط¹ط§ط¯ط©...');
+  const [gateMessage, setGateMessage] = useState('جارٍ التحقق من رابط الاستعادة...');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ط¨ظˆط§ط¨ط© ط¥ظ„ط²ط§ظ…ظٹط©: ظ„ط§ طھظڈظ‚ط¨ظ„ ط¥ط¹ط§ط¯ط© ط§ظ„طھط¹ظٹظٹظ† ط¥ظ„ط§ ظ…ظ† ط±ط§ط¨ط· ط§ط³طھط¹ط§ط¯ط© ط­ط¯ظٹط« ظ„ظ†ظپط³ ط§ظ„ظ…ط³طھط®ط¯ظ….
+  // بوابة إلزامية: لا تُقبل إعادة التعيين إلا من رابط استعادة حديث لنفس المستخدم.
   useEffect(() => {
     let active = true;
     const verify = async () => {
@@ -43,7 +43,7 @@ export default function RecoverPasswordScreen() {
         if (!session?.user) {
           if (active) {
             setGate('blocked');
-            setGateMessage('ظ„ط§ طھظˆط¬ط¯ ط¬ظ„ط³ط© ط§ط³طھط¹ط§ط¯ط©. ط§ظپطھط­ ط±ط§ط¨ط· ط¥ط¹ط§ط¯ط© ط§ظ„طھط¹ظٹظٹظ† ط§ظ„ط°ظٹ ظˆطµظ„ظƒ ط¨ط§ظ„ط¨ط±ظٹط¯طŒ ط£ظˆ ط§ط·ظ„ط¨ ط±ط§ط¨ط·ط§ظ‹ ط¬ط¯ظٹط¯ط§ظ‹.');
+            setGateMessage('لا توجد جلسة استعادة. افتح رابط إعادة التعيين الذي وصلك بالبريد، أو اطلب رابطاً جديداً.');
           }
           return;
         }
@@ -51,7 +51,7 @@ export default function RecoverPasswordScreen() {
         if (!isRecoverySessionFresh(mark, Date.now()) || mark.userId !== session.user.id) {
           if (active) {
             setGate('blocked');
-            setGateMessage('ظ‡ط°ظ‡ ط§ظ„ط´ط§ط´ط© طھظڈظپطھط­ ظ…ظ† ط±ط§ط¨ط· ط¥ط¹ط§ط¯ط© ط§ظ„طھط¹ظٹظٹظ† ظپظ‚ط·. ط§ط·ظ„ط¨ ط±ط§ط¨ط·ط§ظ‹ ط¬ط¯ظٹط¯ط§ظ‹ ظ„ظ„ظ…طھط§ط¨ط¹ط©.');
+            setGateMessage('هذه الشاشة تُفتح من رابط إعادة التعيين فقط. اطلب رابطاً جديداً للمتابعة.');
           }
           return;
         }
@@ -59,7 +59,7 @@ export default function RecoverPasswordScreen() {
       } catch (caught: unknown) {
         if (active) {
           setGate('blocked');
-          setGateMessage(describeAuthError(caught, 'طھط¹ط°ط± ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط¬ظ„ط³ط© ط§ظ„ط§ط³طھط¹ط§ط¯ط©. ط­ط§ظˆظ„ ظ…ظ† ط¬ط¯ظٹط¯.'));
+          setGateMessage(describeAuthError(caught, 'تعذر التحقق من جلسة الاستعادة. حاول من جديد.'));
         }
       }
     };
@@ -82,7 +82,7 @@ export default function RecoverPasswordScreen() {
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) throw updateError;
       await clearSessionMark(AsyncStorage).catch(() => undefined);
-      Alert.alert('طھظ… طھط­ط¯ظٹط« ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±', 'ظٹظ…ظƒظ†ظƒ ط§ظ„ط¢ظ† ط§ظ„ظ…طھط§ط¨ط¹ط© ط¨ط§ط³طھط®ط¯ط§ظ… ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط¬ط¯ظٹط¯ط©.');
+      Alert.alert('تم تحديث كلمة المرور', 'يمكنك الآن المتابعة باستخدام كلمة المرور الجديدة.');
       router.replace('/(tabs)');
     } catch (caught: unknown) {
       setError(describeAuthError(caught));
@@ -105,14 +105,14 @@ export default function RecoverPasswordScreen() {
       <View style={styles.screen}>
         <View style={styles.card}>
           <View style={styles.icon}><ShieldAlert size={23} color={colors.danger} /></View>
-          <Text style={styles.title}>ط±ط§ط¨ط· ط¥ط¹ط§ط¯ط© ط§ظ„طھط¹ظٹظٹظ† ط؛ظٹط± طµط§ظ„ط­</Text>
+          <Text style={styles.title}>رابط إعادة التعيين غير صالح</Text>
           <Text style={styles.description}>{gateMessage}</Text>
           <TouchableOpacity
             style={styles.button}
             onPress={() => router.replace('/(auth)/email')}
             accessibilityRole="button"
           >
-            <Text style={styles.buttonText}>ط·ظ„ط¨ ط±ط§ط¨ط· ط¬ط¯ظٹط¯</Text>
+            <Text style={styles.buttonText}>طلب رابط جديد</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -123,13 +123,13 @@ export default function RecoverPasswordScreen() {
     <View style={styles.screen}>
       <View style={styles.card}>
         <View style={styles.icon}><LockKeyhole size={23} color={colors.primary} /></View>
-        <Text style={styles.title}>ط§ط®طھظٹط§ط± ظƒظ„ظ…ط© ظ…ط±ظˆط± ط¬ط¯ظٹط¯ط©</Text>
-        <Text style={styles.description}>ط£ظ†ط´ط¦ ظƒظ„ظ…ط© ظ…ط±ظˆط± ظ‚ظˆظٹط© ظ„ط§ طھظ‚ظ„ ط¹ظ† 8 ط£ط­ط±ظپ.</Text>
+        <Text style={styles.title}>اختيار كلمة مرور جديدة</Text>
+        <Text style={styles.description}>أنشئ كلمة مرور قوية لا تقل عن 8 أحرف.</Text>
         <TextInput
           style={styles.input}
           value={password}
           onChangeText={(value) => { setPassword(value); setError(null); }}
-          placeholder="ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط¬ط¯ظٹط¯ط©"
+          placeholder="كلمة المرور الجديدة"
           placeholderTextColor={colors.textSecondary}
           secureTextEntry
           autoCapitalize="none"
@@ -141,7 +141,7 @@ export default function RecoverPasswordScreen() {
           style={styles.input}
           value={confirmation}
           onChangeText={(value) => { setConfirmation(value); setError(null); }}
-          placeholder="طھط£ظƒظٹط¯ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±"
+          placeholder="تأكيد كلمة المرور"
           placeholderTextColor={colors.textSecondary}
           secureTextEntry
           autoCapitalize="none"
@@ -158,7 +158,7 @@ export default function RecoverPasswordScreen() {
         >
           {loading
             ? <ActivityIndicator color={colors.background} />
-            : <Text style={styles.buttonText}>ط­ظپط¸ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</Text>}
+            : <Text style={styles.buttonText}>حفظ كلمة المرور</Text>}
         </TouchableOpacity>
       </View>
     </View>

@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
@@ -46,7 +46,7 @@ export default function MissionsScreen() {
       if (loadError) throw loadError;
       setMissions((data ?? []) as DailyMission[]);
     } catch (caught: unknown) {
-      setError(caught instanceof Error ? caught.message : 'طھط¹ط°ط± طھط­ظ…ظٹظ„ ط§ظ„ظ…ظ‡ظ…ط§طھ.');
+      setError(caught instanceof Error ? caught.message : 'تعذر تحميل المهمات.');
     } finally {
       setLoading(false);
     }
@@ -68,10 +68,10 @@ export default function MissionsScreen() {
       const result = data as { coin_awarded?: number; xp_awarded?: number } | null;
       const coins = Number(result?.coin_awarded ?? 0);
       const xp = Number(result?.xp_awarded ?? 0);
-      setNotice(`طھظ… ط§ط³طھظ„ط§ظ… ط§ظ„ظ…ظƒط§ظپط£ط©: ${coins.toLocaleString()} Coin ظˆ${xp.toLocaleString()} XP.`);
+      setNotice(`تم استلام المكافأة: ${coins.toLocaleString()} Coin و${xp.toLocaleString()} XP.`);
       await Promise.all([loadMissions(), loadProfile()]);
     } catch (caught: unknown) {
-      setError(caught instanceof Error ? caught.message : 'طھط¹ط°ط± ط§ط³طھظ„ط§ظ… ظ…ظƒط§ظپط£ط© ط§ظ„ظ…ظ‡ظ…ط©.');
+      setError(caught instanceof Error ? caught.message : 'تعذر استلام مكافأة المهمة.');
     } finally {
       setBusyMission(null);
     }
@@ -80,10 +80,10 @@ export default function MissionsScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="ط±ط¬ظˆط¹">
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="رجوع">
           <ArrowLeft size={20} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>ظ…ظ‡ظ…ط§طھ ط§ظ„ظٹظˆظ…</Text>
+        <Text style={styles.title}>مهمات اليوم</Text>
       </View>
 
       <ScrollView
@@ -92,15 +92,15 @@ export default function MissionsScreen() {
       >
         <View style={styles.hero}>
           <View style={styles.heroIcon}><Target size={23} color={colors.gold} /></View>
-          <Text style={styles.heroTitle}>طھظ‚ط¯ظ‘ظ… ظˆط§ظ„ط¹ط¨ ظ…ط¬ط§ظ†ظ‹ط§</Text>
-          <Text style={styles.heroCopy}>ط£ظƒظ…ظ„ ط£ظ‡ط¯ط§ظپظ‹ط§ ظ…ط¬طھظ…ط¹ظٹط© ظˆط§ط³طھظ„ظ… Coin ظˆXP. ظƒظ„ ظ…ظ‡ظ…ط© طھط¹ط·ظٹ ط­طھظ‰ 100 Coin ظ…ط¬ط§ظ†ظ‹ط§طŒ ظˆط§ظ„ظ€Coin ط¹ظ…ظ„ط© ط§ظ„ظ„ط¹ط¨ ظˆط§ظ„ظ‡ط¯ط§ظٹط§ ط¯ط§ط®ظ„ ط§ظ„طھط·ط¨ظٹظ‚.</Text>
+          <Text style={styles.heroTitle}>تقدّم والعب مجانًا</Text>
+          <Text style={styles.heroCopy}>أكمل أهدافًا مجتمعية واستلم Coin وXP. كل مهمة تعطي حتى 100 Coin مجانًا، والـCoin عملة اللعب والهدايا داخل التطبيق.</Text>
         </View>
 
         {notice ? <Text accessibilityRole="alert" style={styles.notice}>{notice}</Text> : null}
         {error ? (
           <View style={styles.errorCard}>
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={() => void loadMissions()}><Text style={styles.retry}>ط¥ط¹ط§ط¯ط© ط§ظ„ظ…ط­ط§ظˆظ„ط©</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => void loadMissions()}><Text style={styles.retry}>إعادة المحاولة</Text></TouchableOpacity>
           </View>
         ) : null}
 
@@ -109,8 +109,8 @@ export default function MissionsScreen() {
         ) : missions.length === 0 && !error ? (
           <View style={styles.state}>
             <Sparkles size={25} color={colors.primary} />
-            <Text style={styles.emptyTitle}>ظ„ط§ طھظˆط¬ط¯ ظ…ظ‡ظ…ط§طھ ظ†ط´ط·ط© ط§ظ„ط¢ظ†</Text>
-            <Text style={styles.emptyCopy}>ط§ط±ط¬ط¹ ظ„ط§ط­ظ‚ظ‹ط§ ظ„ط§ظƒطھط´ط§ظپ ط£ظ‡ط¯ط§ظپ ط¬ط¯ظٹط¯ط©.</Text>
+            <Text style={styles.emptyTitle}>لا توجد مهمات نشطة الآن</Text>
+            <Text style={styles.emptyCopy}>ارجع لاحقًا لاكتشاف أهداف جديدة.</Text>
           </View>
         ) : missions.map((mission) => {
           const progress = Math.min(mission.current_progress, mission.target_count);
@@ -128,7 +128,7 @@ export default function MissionsScreen() {
               </View>
 
               <View style={styles.progressRow}>
-                <Text style={styles.progressLabel}>ط§ظ„طھظ‚ط¯ظ…</Text>
+                <Text style={styles.progressLabel}>التقدم</Text>
                 <Text style={styles.progressValue}>{progress} / {mission.target_count}</Text>
               </View>
               <View style={styles.progressTrack}>
@@ -136,9 +136,9 @@ export default function MissionsScreen() {
               </View>
 
               <View style={styles.rewardRow}>
-                <Text style={styles.rewardLabel}>ط§ظ„ظ…ظƒط§ظپط£ط©</Text>
+                <Text style={styles.rewardLabel}>المكافأة</Text>
                 <Text style={styles.rewardValue}>
-                  {mission.reward_gold.toLocaleString()} Coin آ· {mission.reward_xp.toLocaleString()} XP
+                  {mission.reward_gold.toLocaleString()} Coin · {mission.reward_xp.toLocaleString()} XP
                 </Text>
               </View>
 
@@ -149,7 +149,7 @@ export default function MissionsScreen() {
               >
                 {busyMission === mission.mission_id
                   ? <ActivityIndicator size="small" color={colors.background} />
-                  : <Text style={styles.claimText}>{mission.is_claimed ? 'طھظ… ط§ظ„ط§ط³طھظ„ط§ظ… ط§ظ„ظٹظˆظ…' : completed ? 'ط§ط³طھظ„ط§ظ… ط§ظ„ظ…ظƒط§ظپط£ط©' : 'ط£ظƒظ…ظ„ ط§ظ„ظ…ظ‡ظ…ط© ط£ظˆظ„ظ‹ط§'}</Text>}
+                  : <Text style={styles.claimText}>{mission.is_claimed ? 'تم الاستلام اليوم' : completed ? 'استلام المكافأة' : 'أكمل المهمة أولًا'}</Text>}
               </TouchableOpacity>
             </View>
           );

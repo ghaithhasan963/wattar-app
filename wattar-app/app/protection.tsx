@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -45,13 +45,13 @@ const palette = {
 } as const;
 
 const kindLabels: Record<string, string> = {
-  anti_kick: 'ظ…ط§ظ†ط¹ ط§ظ„ط·ط±ط¯',
-  anti_ban: 'ظ…ط§ظ†ط¹ ط§ظ„ط­ط¸ط±',
+  anti_kick: 'مانع الطرد',
+  anti_ban: 'مانع الحظر',
 };
 
 const kindDescriptions: Record<string, string> = {
-  anti_kick: 'ظٹظ…ظ†ط¹ ط¥ط¯ط§ط±ط© ط§ظ„ط؛ط±ظپط© (ط§ظ„ظ…ط§ظ„ظƒ ظˆط§ظ„ظ…ط´ط±ظپظˆظ†) ظ…ظ† ط·ط±ط¯ظƒ ظ…ظ† ط§ظ„ط؛ط±ظپط©.',
-  anti_ban: 'ظٹظ…ظ†ط¹ ط¥ط¯ط§ط±ط© ط§ظ„ط؛ط±ظپط© (ط§ظ„ظ…ط§ظ„ظƒ ظˆط§ظ„ظ…ط´ط±ظپظˆظ†) ظ…ظ† ط­ط¸ط±ظƒ ظ…ظ† ط§ظ„ط؛ط±ظپط©.',
+  anti_kick: 'يمنع إدارة الغرفة (المالك والمشرفون) من طردك من الغرفة.',
+  anti_ban: 'يمنع إدارة الغرفة (المالك والمشرفون) من حظرك من الغرفة.',
 };
 
 export default function ProtectionScreen() {
@@ -77,7 +77,7 @@ export default function ProtectionScreen() {
       setProducts((productsResult.data ?? []) as ProtectionProductPublic[]);
       setMyProtections((myResult.data ?? []) as MyProtection[]);
     } catch (caught: unknown) {
-      setError(caught instanceof Error ? caught.message : 'طھط¹ط°ط± طھط­ظ…ظٹظ„ ظ…ظ†طھط¬ط§طھ ط§ظ„ط­ظ…ط§ظٹط©.');
+      setError(caught instanceof Error ? caught.message : 'تعذر تحميل منتجات الحماية.');
     } finally {
       setLoading(false);
     }
@@ -98,18 +98,18 @@ export default function ProtectionScreen() {
     const stacking = current && product.mode !== 'permanent' && (current.expires_at !== null || current.permanent);
     const note = permanent
       ? current?.permanent
-        ? 'ظ„ط¯ظٹظƒ ط­ظ…ط§ظٹط© ط¯ط§ط¦ظ…ط© ظ…ظ† ظ‡ط°ط§ ط§ظ„ظ†ظˆط¹ ط¨ط§ظ„ظپط¹ظ„.'
-        : 'ط­ظ…ط§ظٹط© ط¯ط§ط¦ظ…ط© â€” ط¨ظ„ط§ طھط§ط±ظٹط® ط§ظ†طھظ‡ط§ط،.'
+        ? 'لديك حماية دائمة من هذا النوع بالفعل.'
+        : 'حماية دائمة — بلا تاريخ انتهاء.'
       : stacking
-        ? 'ط³طھظڈظ…ط¯ط¯ ظ…ط¯ط© ط­ظ…ط§ظٹطھظƒ ط§ظ„ط­ط§ظ„ظٹط© ظ…ظ† طھط§ط±ظٹط® ط§ظ†طھظ‡ط§ط¦ظ‡ط§.'
-        : 'ط­ظ…ط§ظٹط© ظ„ظپطھط±ط© ظ…ط­ط¯ظˆط¯ط© طھط¨ط¯ط£ ظ…ظ† ط§ظ„ط¢ظ†.';
+        ? 'ستُمدد مدة حمايتك الحالية من تاريخ انتهائها.'
+        : 'حماية لفترة محدودة تبدأ من الآن.';
     Alert.alert(
-      `ط´ط±ط§ط، ${product.name_ar}`,
-      `ط§ظ„ط³ط¹ط±: ${product.price_coins.toLocaleString()} ظƒظˆظٹظ†.\n${note}`,
+      `شراء ${product.name_ar}`,
+      `السعر: ${product.price_coins.toLocaleString()} كوين.\n${note}`,
       [
-        { text: 'ط¥ظ„ط؛ط§ط،', style: 'cancel' },
+        { text: 'إلغاء', style: 'cancel' },
         {
-          text: 'طھط£ظƒظٹط¯ ط§ظ„ط´ط±ط§ط،',
+          text: 'تأكيد الشراء',
           style: 'default',
           onPress: () => void confirmPurchase(product),
         },
@@ -133,13 +133,13 @@ export default function ProtectionScreen() {
         purchaseAttempt.current.key,
       );
       if (!result?.success) {
-        throw new Error(result?.message || 'طھط¹ط°ط± ط¥طھظ…ط§ظ… ط§ظ„ط´ط±ط§ط،.');
+        throw new Error(result?.message || 'تعذر إتمام الشراء.');
       }
       purchaseAttempt.current = null;
       await Promise.all([loadProtections(), loadProfile()]);
-      Alert.alert('طھظ… طھط£ظƒظٹط¯ ط§ظ„ط·ظ„ط¨', `طھظ… طھظپط¹ظٹظ„ ${product.name_ar}.`);
+      Alert.alert('تم تأكيد الطلب', `تم تفعيل ${product.name_ar}.`);
     } catch (caught: unknown) {
-      Alert.alert('طھط¹ط°ط± ط´ط±ط§ط، ط§ظ„ط­ظ…ط§ظٹط©', caught instanceof Error ? caught.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر شراء الحماية', caught instanceof Error ? caught.message : 'حاول مرة أخرى.');
     } finally {
       setBusyId(null);
     }
@@ -148,23 +148,23 @@ export default function ProtectionScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="ط±ط¬ظˆط¹">
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="رجوع">
           <ArrowLeft size={20} color={palette.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>ط­ظ…ط§ظٹط§طھ ط§ظ„ط؛ط±ظپ</Text>
+        <Text style={styles.title}>حمايات الغرف</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <View style={styles.heroIcon}><ShieldCheck size={24} color={palette.teal} /></View>
-          <Text style={styles.heroTitle}>ط£ط¯ظˆط§طھ ط§ظ„ط­ظ…ط§ظٹط© ط§ظ„ظ…ط¯ظپظˆط¹ط©</Text>
+          <Text style={styles.heroTitle}>أدوات الحماية المدفوعة</Text>
           <Text style={styles.heroCopy}>
-            ظ…ط§ظ†ط¹ ط§ظ„ط·ط±ط¯ ظˆظ…ط§ظ†ط¹ ط§ظ„ط­ط¸ط± â€” ط¯ط§ط¦ظ… ط£ظˆ ط§ط´طھط±ط§ظƒ ط£ظˆ ط¨ط§ظ‚ط©طŒ طھظڈط´طھط±ظ‰ ط¨ظƒظˆظٹظ† ظ…ظ† ظ…ط­ظپط¸طھظƒ ظپظ‚ط·. طھظ…ظ†ط¹ ط¥ط¯ط§ط±ط© ط§ظ„ط؛ط±ظپط© (ط§ظ„ظ…ط§ظ„ظƒ ظˆط§ظ„ظ…ط´ط±ظپظٹظ†) ظپظ‚ط·ط› ظ„ط§ طھظ†ظپط¹ ط¶ط¯ ظ‚ط±ط§ط± ط§ظ„ط¥ط¯ط§ط±ط© ظˆط§ظ„ظ…ط®ط§ظ„ظپط§طھ ط§ظ„ط¬ط³ظٹظ…ط©.
+            مانع الطرد ومانع الحظر — دائم أو اشتراك أو باقة، تُشترى بكوين من محفظتك فقط. تمنع إدارة الغرفة (المالك والمشرفين) فقط؛ لا تنفع ضد قرار الإدارة والمخالفات الجسيمة.
           </Text>
         </View>
 
         <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>ط±طµظٹط¯ Coin ط§ظ„ظ…طھط§ط­</Text>
+          <Text style={styles.balanceLabel}>رصيد Coin المتاح</Text>
           <Text style={styles.balance}>{balance.toLocaleString()}</Text>
         </View>
 
@@ -174,12 +174,12 @@ export default function ProtectionScreen() {
               <View key={p.kind} style={index > 0 ? styles.activeRow : undefined}>
                 <Check size={16} color={p.active ? palette.teal : palette.muted} />
                 <Text style={styles.activeTitle}>
-                  {kindLabels[p.kind] ?? p.kind} â€”{' '}
+                  {kindLabels[p.kind] ?? p.kind} —{' '}
                   {p.active
                     ? p.permanent
-                      ? 'ط¯ط§ط¦ظ…'
-                      : `ظٹظ†طھظ‡ظٹ ظپظٹ ${new Date(p.expires_at as string).toLocaleDateString('ar', { year: 'numeric', month: 'long', day: 'numeric' })}`
-                    : 'ظ…ظ†طھظ‡ظٹ'}
+                      ? 'دائم'
+                      : `ينتهي في ${new Date(p.expires_at as string).toLocaleDateString('ar', { year: 'numeric', month: 'long', day: 'numeric' })}`
+                    : 'منتهي'}
                 </Text>
               </View>
             ))}
@@ -189,19 +189,19 @@ export default function ProtectionScreen() {
         {error ? (
           <View style={styles.errorCard}>
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={() => void loadProtections()}><Text style={styles.retry}>ط¥ط¹ط§ط¯ط© ط§ظ„ظ…ط­ط§ظˆظ„ط©</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => void loadProtections()}><Text style={styles.retry}>إعادة المحاولة</Text></TouchableOpacity>
           </View>
         ) : null}
 
         <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>ط§ظ„ظ…ظ†طھط¬ط§طھ ط§ظ„ظ…طھط§ط­ط©</Text>
-          <Text style={styles.sectionSubtitle}>ط§ظ„ط£ط³ط¹ط§ط± طھط­ط¯ط¯ظ‡ط§ ط¥ط¯ط§ط±ط© Wattar</Text>
+          <Text style={styles.sectionTitle}>المنتجات المتاحة</Text>
+          <Text style={styles.sectionSubtitle}>الأسعار تحددها إدارة Wattar</Text>
         </View>
 
         {loading ? (
           <View style={styles.state}><ActivityIndicator color={palette.primary} /></View>
         ) : products.length === 0 && !error ? (
-          <View style={styles.state}><Text style={styles.emptyText}>ظ„ط§ طھظˆط¬ط¯ ظ…ظ†طھط¬ط§طھ ظ…طھط§ط­ط© ط­ط§ظ„ظٹظ‹ط§.</Text></View>
+          <View style={styles.state}><Text style={styles.emptyText}>لا توجد منتجات متاحة حاليًا.</Text></View>
         ) : (
           products.map((product) => {
             const busy = busyId === product.id;
@@ -216,8 +216,8 @@ export default function ProtectionScreen() {
                     <Text style={styles.planName}>{product.name_ar}</Text>
                     <Text style={styles.planDuration}>
                       {product.mode === 'permanent'
-                        ? 'ط¯ط§ط¦ظ… â€” ط¨ظ„ط§ طھط§ط±ظٹط® ط§ظ†طھظ‡ط§ط،'
-                        : `${product.duration_days} ظٹظˆظ…ظ‹ط§ آ· طھظڈظ…ط¯ط¯ ظ…ظ† طھط§ط±ظٹط® ط§ظ„ط§ظ†طھظ‡ط§ط،`}
+                        ? 'دائم — بلا تاريخ انتهاء'
+                        : `${product.duration_days} يومًا · تُمدد من تاريخ الانتهاء`}
                     </Text>
                   </View>
                   <Text style={styles.price}>{product.price_coins.toLocaleString()} Coin</Text>
@@ -232,23 +232,23 @@ export default function ProtectionScreen() {
                   {busy ? <ActivityIndicator size="small" color={palette.background} /> : null}
                   <Text style={styles.buyText}>
                     {busy
-                      ? 'ط¬ط§ط±ظچ ط¥طھظ…ط§ظ… ط§ظ„ط·ظ„ط¨...'
+                      ? 'جارٍ إتمام الطلب...'
                       : alreadyPermanent
-                        ? 'ظ„ط¯ظٹظƒ ط­ظ…ط§ظٹط© ط¯ط§ط¦ظ…ط© ظ…ظ† ظ‡ط°ط§ ط§ظ„ظ†ظˆط¹'
+                        ? 'لديك حماية دائمة من هذا النوع'
                         : canAfford
-                          ? 'ط´ط±ط§ط، ط¨ط¹ظ…ظ„ط© Coin'
-                          : 'ط±طµظٹط¯ Coin ط؛ظٹط± ظƒط§ظپظچ'}
+                          ? 'شراء بعملة Coin'
+                          : 'رصيد Coin غير كافٍ'}
                   </Text>
                 </TouchableOpacity>
                 {busyId !== null && !busy ? (
-                  <View style={styles.busyNote}><X size={12} color={palette.muted} /><Text style={styles.busyText}>ط§ظ†طھط¸ط± ط§ظ†طھظ‡ط§ط، ط§ظ„ط·ظ„ط¨ ط§ظ„ط¬ط§ط±ظٹ.</Text></View>
+                  <View style={styles.busyNote}><X size={12} color={palette.muted} /><Text style={styles.busyText}>انتظر انتهاء الطلب الجاري.</Text></View>
                 ) : null}
               </View>
             );
           })
         )}
         <Text style={styles.disclaimer}>
-          ط§ظ„ط­ظ…ط§ظٹط§طھ طھظڈط´طھط±ظ‰ ط­طµط±ط§ظ‹ ط¨ظƒظˆظٹظ† ظ…ظ† ظ…ط­ظپط¸طھظƒ ظˆظ„ط§ طھطھط¶ظ…ظ† ط£ظٹ ط¯ظپط¹ ط­ظ‚ظٹظ‚ظٹ ط¹ط¨ط± ظ…طھط¬ط± ط§ظ„طھط·ط¨ظٹظ‚ط§طھ. ظ‚ط±ط§ط± ط§ظ„ط¥ط¯ط§ط±ط© ظˆط§ظ„ظ…ط®ط§ظ„ظپط§طھ ط§ظ„ط¬ط³ظٹظ…ط© ظٹطھط¬ط§ظˆط² ظƒظ„ ط§ظ„ط­ظ…ط§ظٹط§طھ.
+          الحمايات تُشترى حصراً بكوين من محفظتك ولا تتضمن أي دفع حقيقي عبر متجر التطبيقات. قرار الإدارة والمخالفات الجسيمة يتجاوز كل الحمايات.
         </Text>
       </ScrollView>
     </View>

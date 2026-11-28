@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Bell, ChevronLeft, Globe, HelpCircle, KeyRound, LogOut, MessageCircle, Shield, ShieldAlert, Smartphone, Sparkles, Trash2, User } from 'lucide-react-native';
@@ -45,7 +45,7 @@ export default function SettingsScreen() {
     try {
       await setReduceMotion(enabled);
     } catch (error: unknown) {
-      Alert.alert('طھط¹ط°ط± ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر حفظ الإعداد', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     }
   };
 
@@ -53,7 +53,7 @@ export default function SettingsScreen() {
     try {
       await setChatTextSize(size);
     } catch (error: unknown) {
-      Alert.alert('طھط¹ط°ط± ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر حفظ الإعداد', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     }
   };
 
@@ -63,7 +63,7 @@ export default function SettingsScreen() {
       else await disableSocialPushNotifications();
       setNotificationsEnabled(enabled);
     } catch (error: unknown) {
-      Alert.alert('طھط¹ط°ط± طھط­ط¯ظٹط« ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر تحديث الإشعارات', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     }
   };
 
@@ -75,15 +75,15 @@ export default function SettingsScreen() {
       if (error) throw error;
       setHostOutreachOptOut(!enabled);
     } catch (error: unknown) {
-      Alert.alert('طھط¹ط°ط± طھط­ط¯ظٹط« ط§ظ„ط®طµظˆطµظٹط©', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر تحديث الخصوصية', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     }
   };
 
   const handleSignOut = () => {
-    Alert.alert('طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬', 'ظ‡ظ„ طھط±ظٹط¯ طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬ ظ…ظ† ط­ط³ط§ط¨ظƒطں', [
-      { text: 'ط¥ظ„ط؛ط§ط،', style: 'cancel' },
+    Alert.alert('تسجيل الخروج', 'هل تريد تسجيل الخروج من حسابك؟', [
+      { text: 'إلغاء', style: 'cancel' },
       {
-        text: 'طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬',
+        text: 'تسجيل الخروج',
         style: 'destructive',
         onPress: async () => {
           await signOut();
@@ -95,12 +95,12 @@ export default function SettingsScreen() {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      'ط­ط°ظپ ط§ظ„ط­ط³ط§ط¨ ظ†ظ‡ط§ط¦ظٹظ‹ط§',
-      'ط³طھظڈط²ط§ظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¯ط®ظˆظ„ ظˆط§ظ„ظˆط³ط§ط¦ط·طŒ ظˆظٹظڈط®ظپظ‰ ظ…ظ„ظپظƒ ظˆظ…ط­طھظˆط§ظƒ ط¹ظ† ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†. ط³طھظڈط­ظپط¸ ط³ط¬ظ„ط§طھ ط§ظ„ظ…ط¹ط§ظ…ظ„ط§طھ ط§ظ„ظ…ط§ظ„ظٹط© ط§ظ„ط¶ط±ظˆط±ظٹط©. ظ„ط§ ظٹظ…ظƒظ† ط§ظ„طھط±ط§ط¬ط¹ ط¹ظ† ظ‡ط°ط§ ط§ظ„ط¥ط¬ط±ط§ط،.',
+      'حذف الحساب نهائيًا',
+      'ستُزال بيانات الدخول والوسائط، ويُخفى ملفك ومحتواك عن المستخدمين. ستُحفظ سجلات المعاملات المالية الضرورية. لا يمكن التراجع عن هذا الإجراء.',
       [
-        { text: 'ط¥ظ„ط؛ط§ط،', style: 'cancel' },
+        { text: 'إلغاء', style: 'cancel' },
         {
-          text: 'ط­ط°ظپ ط­ط³ط§ط¨ظٹ',
+          text: 'حذف حسابي',
           style: 'destructive',
           onPress: () => {
             void (async () => {
@@ -111,8 +111,8 @@ export default function SettingsScreen() {
                 router.replace('/(auth)/login');
               } catch (error: unknown) {
                 Alert.alert(
-                  'طھط¹ط°ط± ط­ط°ظپ ط§ظ„ط­ط³ط§ط¨',
-                  error instanceof Error ? error.message : 'طھط­ظ‚ظ‚ ظ…ظ† ط§طھطµط§ظ„ ط§ظ„ط¥ظ†طھط±ظ†طھ ظˆط­ط§ظˆظ„ ظ…ط¬ط¯ط¯ظ‹ط§.',
+                  'تعذر حذف الحساب',
+                  error instanceof Error ? error.message : 'تحقق من اتصال الإنترنت وحاول مجددًا.',
                 );
               } finally {
                 setDeletingAccount(false);
@@ -127,44 +127,44 @@ export default function SettingsScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="ط±ط¬ظˆط¹">
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="رجوع">
           <ChevronLeft size={22} color={colors.textSecondary} />
         </TouchableOpacity>
-        <Text style={styles.title}>ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ</Text>
+        <Text style={styles.title}>الإعدادات</Text>
       </View>
 
       <View style={styles.accountCard}>
         <View style={styles.accountIcon}><User size={22} color={colors.primary} /></View>
         <View style={styles.accountText}>
-          <Text style={styles.accountName}>{profile?.display_name || profile?.username || 'ط­ط³ط§ط¨ظٹ'}</Text>
-          <Text style={styles.accountMeta}>@{profile?.username || 'â€”'}</Text>
+          <Text style={styles.accountName}>{profile?.display_name || profile?.username || 'حسابي'}</Text>
+          <Text style={styles.accountMeta}>@{profile?.username || '—'}</Text>
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>ط§ظ„طھط®طµظٹطµ</Text>
+      <Text style={styles.sectionTitle}>التخصيص</Text>
       <View style={styles.group}>
         <View style={[styles.row, styles.rowBorder]}>
           <View style={styles.rowIcon}><Sparkles size={18} color={colors.primary} /></View>
           <View style={styles.settingCopy}>
-            <Text style={styles.rowLabel}>طھظ‚ظ„ظٹظ„ ط§ظ„ط­ط±ظƒط©</Text>
-            <Text style={styles.rowDescription}>ط¥ظٹظ‚ط§ظپ ط§ظ„ط­ط±ظƒط§طھ ط§ظ„ط§ظ†طھظ‚ط§ظ„ظٹط© ظ„طھط¬ط±ط¨ط© ط£ظ‡ط¯ط£</Text>
+            <Text style={styles.rowLabel}>تقليل الحركة</Text>
+            <Text style={styles.rowDescription}>إيقاف الحركات الانتقالية لتجربة أهدأ</Text>
           </View>
           <Switch
             value={reduceMotion}
             onValueChange={updateMotionPreference}
             trackColor={{ false: colors.border, true: colors.primary }}
             thumbColor={colors.text}
-            accessibilityLabel="طھظ‚ظ„ظٹظ„ ط§ظ„ط­ط±ظƒط©"
+            accessibilityLabel="تقليل الحركة"
           />
         </View>
         <View style={[styles.row, styles.rowBorder]}>
           <View style={styles.rowIcon}><Bell size={18} color={colors.primary} /></View>
           <View style={styles.settingCopy}>
-            <Text style={styles.rowLabel}>ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ</Text>
+            <Text style={styles.rowLabel}>الإشعارات</Text>
             <Text style={styles.rowDescription}>
               {notificationsEnabled
-                ? 'ظ…ظپط¹ظ„ط© ط¹ظ„ظ‰ ظ‡ط°ط§ ط§ظ„ط¬ظ‡ط§ط². ظپط¹ظ‘ظ„ظ‡ط§ ط£ظٹط¶ظ‹ط§ ط¹ظ„ظ‰ ط§ظ„ط¬ظ‡ط§ط² ط§ظ„ط°ظٹ طھط±ظٹط¯ ط§ط³طھظ‚ط¨ط§ظ„ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ط¹ظ„ظٹظ‡.'
-                : 'ظپط¹ظ‘ظ„ظ‡ط§ ط¹ظ„ظ‰ ط¬ظ‡ط§ط² ظƒظ„ ط­ط³ط§ط¨ ظ„ط§ط³طھظ‚ط¨ط§ظ„ ط·ظ„ط¨ط§طھ ط§ظ„طµط¯ط§ظ‚ط© ظˆط§ظ„ط±ط³ط§ط¦ظ„ ظˆط¯ط¹ظˆط§طھ ط§ظ„ط؛ط±ظپ.'}
+                ? 'مفعلة على هذا الجهاز. فعّلها أيضًا على الجهاز الذي تريد استقبال الإشعارات عليه.'
+                : 'فعّلها على جهاز كل حساب لاستقبال طلبات الصداقة والرسائل ودعوات الغرف.'}
             </Text>
           </View>
           <Switch
@@ -172,7 +172,7 @@ export default function SettingsScreen() {
             onValueChange={updateNotifications}
             trackColor={{ false: colors.border, true: colors.primary }}
             thumbColor={colors.text}
-            accessibilityLabel="ط¥ط´ط¹ط§ط±ط§طھ Wattar"
+            accessibilityLabel="إشعارات Wattar"
           />
         </View>
         <TouchableOpacity
@@ -182,21 +182,21 @@ export default function SettingsScreen() {
         >
           <View style={styles.rowIcon}><Bell size={18} color={colors.primary} /></View>
           <View style={styles.settingCopy}>
-            <Text style={styles.rowLabel}>ط£ظ†ظˆط§ط¹ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ</Text>
-            <Text style={styles.rowDescription}>طھط­ظƒظ… ط¨ظ…ط§ ظٹطµظ„ظƒ ط¯ط§ط®ظ„ ط§ظ„طھط·ط¨ظٹظ‚ ظˆط¹ظ„ظ‰ ط¬ظ‡ط§ط²ظƒ ظ„ظƒظ„ ظ†ظˆط¹.</Text>
+            <Text style={styles.rowLabel}>أنواع الإشعارات</Text>
+            <Text style={styles.rowDescription}>تحكم بما يصلك داخل التطبيق وعلى جهازك لكل نوع.</Text>
           </View>
           <ChevronLeft size={17} color={colors.textMuted} />
         </TouchableOpacity>
         <View style={[styles.row, styles.rowBorder]}>
           <View style={styles.rowIcon}><MessageCircle size={18} color={colors.primary} /></View>
           <View style={styles.settingCopy}>
-            <Text style={styles.rowLabel}>ط±ط³ط§ط¦ظ„ ط§ظ„ظ…ط¶ظٹظپط§طھ ط§ظ„ط§ظپطھطھط§ط­ظٹط©</Text>
+            <Text style={styles.rowLabel}>رسائل المضيفات الافتتاحية</Text>
             <Text style={styles.rowDescription}>
               {hostOutreachOptOut === null
-                ? 'ط¬ط§ط±ظچ طھط­ظ…ظٹظ„ طھظپط¶ظٹظ„ظƒ...'
+                ? 'جارٍ تحميل تفضيلك...'
                 : hostOutreachOptOut
-                  ? 'ظ…طھظˆظ‚ظپط©. ظ„ظ† طھط¨ط¯ط£ ط§ظ„ظ…ط¶ظٹظپط§طھ ظ…ط­ط§ط¯ط«ط§طھ ط¬ط¯ظٹط¯ط© ظ…ط¹ظƒ.'
-                  : 'ظ‚ط¯ طھطµظ„ظƒ ط±ط³ط§ط¦ظ„ طھط¹ط§ط±ظپ ظ…ط­ط¯ظˆط¯ط©طŒ ظˆظٹظ…ظƒظ†ظƒ طھط¬ط§ظ‡ظ„ظ‡ط§ ط£ظˆ ط­ط¸ط± ط§ظ„ظ…ط±ط³ظ„.'}
+                  ? 'متوقفة. لن تبدأ المضيفات محادثات جديدة معك.'
+                  : 'قد تصلك رسائل تعارف محدودة، ويمكنك تجاهلها أو حظر المرسل.'}
             </Text>
           </View>
           <Switch
@@ -205,16 +205,16 @@ export default function SettingsScreen() {
             disabled={hostOutreachOptOut === null}
             trackColor={{ false: colors.border, true: colors.primary }}
             thumbColor={colors.text}
-            accessibilityLabel="ط±ط³ط§ط¦ظ„ ط§ظ„ظ…ط¶ظٹظپط§طھ ط§ظ„ط§ظپطھطھط§ط­ظٹط©"
+            accessibilityLabel="رسائل المضيفات الافتتاحية"
           />
         </View>
         <View style={styles.fontSizeSection}>
-          <Text style={styles.rowLabel}>ط­ط¬ظ… ظ†طµ ط§ظ„ظ…ط­ط§ط¯ط«ط©</Text>
+          <Text style={styles.rowLabel}>حجم نص المحادثة</Text>
           <View style={styles.sizeOptions}>
             {([
-              ['small', 'طµط؛ظٹط±'],
-              ['medium', 'ظ…طھظˆط³ط·'],
-              ['large', 'ظƒط¨ظٹط±'],
+              ['small', 'صغير'],
+              ['medium', 'متوسط'],
+              ['large', 'كبير'],
             ] as const).map(([size, label]) => (
               <TouchableOpacity
                 key={size}
@@ -232,42 +232,42 @@ export default function SettingsScreen() {
         </View>
       </View>
 
-      <Text style={[styles.sectionTitle, styles.accountSection]}>ط§ظ„ط­ط³ط§ط¨ ظˆط§ظ„ط¯ط¹ظ…</Text>
+      <Text style={[styles.sectionTitle, styles.accountSection]}>الحساب والدعم</Text>
       <View style={styles.group}>
         <SettingRow
           icon={Shield}
-          label="ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط®طµظˆطµظٹط©"
-          value="ط¥ط¯ط§ط±ط©"
+          label="إعدادات الخصوصية"
+          value="إدارة"
           onPress={() => router.push('/privacy-settings')}
         />
         <SettingRow
           icon={KeyRound}
-          label="ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±"
-          value="طھط؛ظٹظٹط±"
+          label="كلمة المرور"
+          value="تغيير"
           onPress={() => router.push('/password')}
         />
         <SettingRow
           icon={Smartphone}
-          label="ط§ظ„ط£ط¬ظ‡ط²ط© ظˆط§ظ„ط¬ظ„ط³ط§طھ"
-          value="ط¥ط¯ط§ط±ط©"
+          label="الأجهزة والجلسات"
+          value="إدارة"
           onPress={() => router.push('/sessions')}
         />
         <SettingRow
           icon={Shield}
-          label="ط§ظ„ظ…ط³طھط®ط¯ظ…ظˆظ† ط§ظ„ظ…ط­ط¸ظˆط±ظˆظ†"
-          value="ط¥ط¯ط§ط±ط©"
+          label="المستخدمون المحظورون"
+          value="إدارة"
           onPress={() => router.push('/blocked-users')}
         />
         <SettingRow
           icon={ShieldAlert}
-          label="ط§ظ„ظ…ط®ط§ظ„ظپط§طھ ظˆط§ظ„ط¹ظ‚ظˆط¨ط§طھ"
-          value="ط³ط¬ظ„ظٹ"
+          label="المخالفات والعقوبات"
+          value="سجلي"
           onPress={() => router.push('/moderation')}
         />
         <SettingRow
           icon={HelpCircle}
-          label="ط§ظ„ظ…ط³ط§ط¹ط¯ط© ظˆط§ظ„ط¯ط¹ظ…"
-          value="طھط°ط§ظƒط±ظٹ"
+          label="المساعدة والدعم"
+          value="تذاكري"
           onPress={() => router.push('/support')}
           last
         />
@@ -282,16 +282,16 @@ export default function SettingsScreen() {
       >
         <Trash2 size={18} color={colors.danger} />
         <Text style={styles.deleteAccountText}>
-          {deletingAccount ? 'ط¬ط§ط±ظچ ط­ط°ظپ ط§ظ„ط­ط³ط§ط¨...' : 'ط­ط°ظپ ط§ظ„ط­ط³ط§ط¨ ظ†ظ‡ط§ط¦ظٹظ‹ط§'}
+          {deletingAccount ? 'جارٍ حذف الحساب...' : 'حذف الحساب نهائيًا'}
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
         <LogOut size={18} color={colors.danger} />
-        <Text style={styles.signOutText}>طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬</Text>
+        <Text style={styles.signOutText}>تسجيل الخروج</Text>
       </TouchableOpacity>
 
-      <Text style={styles.version}>Wattar آ· ظ†ط³ط®ط© طھط¬ط±ظٹط¨ظٹط© 1.0.0</Text>
+      <Text style={styles.version}>Wattar · نسخة تجريبية 1.0.0</Text>
     </ScrollView>
   );
 }

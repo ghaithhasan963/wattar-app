@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -50,7 +50,7 @@ export default function EditProfileScreen() {
         setLocalAvatarUri(result.assets[0].uri);
       }
     } catch (error: unknown) {
-      Alert.alert('طھط¹ط°ط± ظپطھط­ ط§ظ„طµظˆط±', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر فتح الصور', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     }
   };
 
@@ -60,19 +60,19 @@ export default function EditProfileScreen() {
     const normalizedBio = bio.trim();
 
     if (!USERNAME_PATTERN.test(normalizedUsername)) {
-      Alert.alert('ط§ط³ظ… ظ…ط³طھط®ط¯ظ… ط؛ظٹط± طµط§ظ„ط­', 'ط§ط³طھط®ط¯ظ… 3 ط¥ظ„ظ‰ 30 ط­ط±ظپظ‹ط§ ط£ظˆ ط±ظ‚ظ…ظ‹ط§ ط£ظˆ ط´ط±ط·ط© ط³ظپظ„ظٹط© ظپظ‚ط·.');
+      Alert.alert('اسم مستخدم غير صالح', 'استخدم 3 إلى 30 حرفًا أو رقمًا أو شرطة سفلية فقط.');
       return;
     }
     if (normalizedDisplayName.length > 80) {
-      Alert.alert('ط§ظ„ط§ط³ظ… ط·ظˆظٹظ„', 'ظٹط¬ط¨ ط£ظ„ط§ ظٹطھط¬ط§ظˆط² ط§ظ„ط§ط³ظ… 80 ط­ط±ظپظ‹ط§.');
+      Alert.alert('الاسم طويل', 'يجب ألا يتجاوز الاسم 80 حرفًا.');
       return;
     }
     if (normalizedBio.length > 160) {
-      Alert.alert('ط§ظ„ظ†ط¨ط°ط© ط·ظˆظٹظ„ط©', 'ظٹط¬ط¨ ط£ظ„ط§ طھطھط¬ط§ظˆط² ط§ظ„ظ†ط¨ط°ط© 160 ط­ط±ظپظ‹ط§.');
+      Alert.alert('النبذة طويلة', 'يجب ألا تتجاوز النبذة 160 حرفًا.');
       return;
     }
     if (!user?.id) {
-      Alert.alert('طھط¹ط°ط± ط§ظ„ط­ظپط¸', 'ط§ظ†طھظ‡طھ ط¬ظ„ط³ط© طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„. ط³ط¬ظ‘ظ„ ط§ظ„ط¯ط®ظˆظ„ ظ…ط¬ط¯ط¯ظ‹ط§.');
+      Alert.alert('تعذر الحفظ', 'انتهت جلسة تسجيل الدخول. سجّل الدخول مجددًا.');
       return;
     }
 
@@ -92,8 +92,8 @@ export default function EditProfileScreen() {
       router.back();
     } catch (error: unknown) {
       Alert.alert(
-        'طھط¹ط°ط± ط­ظپط¸ ط§ظ„ظ…ظ„ظپ ط§ظ„ط´ط®طµظٹ',
-        error instanceof Error ? error.message : 'طھط­ظ‚ظ‚ ظ…ظ† ط§طھطµط§ظ„ ط§ظ„ط¥ظ†طھط±ظ†طھ ظˆط­ط§ظˆظ„ ظ…ط¬ط¯ط¯ظ‹ط§.',
+        'تعذر حفظ الملف الشخصي',
+        error instanceof Error ? error.message : 'تحقق من اتصال الإنترنت وحاول مجددًا.',
       );
     } finally {
       setSaving(false);
@@ -113,11 +113,11 @@ export default function EditProfileScreen() {
             style={styles.backButton}
             onPress={() => router.back()}
             accessibilityRole="button"
-            accessibilityLabel="ط±ط¬ظˆط¹"
+            accessibilityLabel="رجوع"
           >
             <ChevronRight size={22} color={colors.textSecondary} />
           </TouchableOpacity>
-          <Text style={styles.title}>طھط¹ط¯ظٹظ„ ط§ظ„ظ…ظ„ظپ ط§ظ„ط´ط®طµظٹ</Text>
+          <Text style={styles.title}>تعديل الملف الشخصي</Text>
         </View>
 
         <TouchableOpacity
@@ -125,7 +125,7 @@ export default function EditProfileScreen() {
           onPress={pickAvatar}
           disabled={saving}
           accessibilityRole="button"
-          accessibilityLabel="ط§ط®طھظٹط§ط± طµظˆط±ط© ط´ط®طµظٹط©"
+          accessibilityLabel="اختيار صورة شخصية"
         >
           <View style={styles.avatar}>
             {displayedAvatar ? (
@@ -135,23 +135,23 @@ export default function EditProfileScreen() {
             )}
           </View>
           <View style={styles.cameraBadge}><Camera size={16} color={colors.text} /></View>
-          <Text style={styles.avatarHint}>طھط؛ظٹظٹط± ط§ظ„طµظˆط±ط©</Text>
+          <Text style={styles.avatarHint}>تغيير الصورة</Text>
         </TouchableOpacity>
 
         <View style={styles.form}>
-          <Text style={styles.label}>ط§ظ„ط§ط³ظ… ط§ظ„ط¸ط§ظ‡ط±</Text>
+          <Text style={styles.label}>الاسم الظاهر</Text>
           <TextInput
             style={styles.input}
             value={displayName}
             onChangeText={setDisplayName}
-            placeholder="ط§ظƒطھط¨ ط§ظ„ط§ط³ظ… ط§ظ„ط°ظٹ ظٹط¸ظ‡ط± ظ„ظ„ط¢ط®ط±ظٹظ†"
+            placeholder="اكتب الاسم الذي يظهر للآخرين"
             placeholderTextColor={colors.textSecondary}
             maxLength={80}
             editable={!saving}
             returnKeyType="next"
           />
 
-          <Text style={styles.label}>ط§ط³ظ… ط§ظ„ظ…ط³طھط®ط¯ظ…</Text>
+          <Text style={styles.label}>اسم المستخدم</Text>
           <TextInput
             style={styles.input}
             value={username}
@@ -164,14 +164,14 @@ export default function EditProfileScreen() {
             editable={!saving}
             returnKeyType="next"
           />
-          <Text style={styles.helper}>3 ط¥ظ„ظ‰ 30 ط­ط±ظپظ‹ط§طŒ ط£ط±ظ‚ط§ظ… ط£ظˆ ط´ط±ط·ط© ط³ظپظ„ظٹط©.</Text>
+          <Text style={styles.helper}>3 إلى 30 حرفًا، أرقام أو شرطة سفلية.</Text>
 
-          <Text style={styles.label}>ظ†ط¨ط°ط© ط¹ظ†ظƒ</Text>
+          <Text style={styles.label}>نبذة عنك</Text>
           <TextInput
             style={[styles.input, styles.bioInput]}
             value={bio}
             onChangeText={setBio}
-            placeholder="ط§ظƒطھط¨ ظ†ط¨ط°ط© ظ‚طµظٹط±ط© ط¹ظ†ظƒ"
+            placeholder="اكتب نبذة قصيرة عنك"
             placeholderTextColor={colors.textSecondary}
             multiline
             maxLength={160}
@@ -192,7 +192,7 @@ export default function EditProfileScreen() {
           ) : (
             <>
               <Save size={18} color={colors.text} />
-              <Text style={styles.saveText}>ط­ظپط¸ ط§ظ„طھط؛ظٹظٹط±ط§طھ</Text>
+              <Text style={styles.saveText}>حفظ التغييرات</Text>
             </>
           )}
         </TouchableOpacity>

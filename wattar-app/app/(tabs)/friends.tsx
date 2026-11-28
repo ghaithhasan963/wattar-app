@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -88,12 +88,12 @@ function formatRelativeTime(iso: string | null): string {
   if (!iso) return '';
   const date = new Date(iso);
   const diffMinutes = Math.floor((Date.now() - date.getTime()) / 60000);
-  if (diffMinutes < 1) return 'ط§ظ„ط¢ظ†';
-  if (diffMinutes < 60) return `ظ‚ط¨ظ„ ${diffMinutes} ط¯`;
+  if (diffMinutes < 1) return 'الآن';
+  if (diffMinutes < 60) return `قبل ${diffMinutes} د`;
   const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `ظ‚ط¨ظ„ ${diffHours} ط³`;
+  if (diffHours < 24) return `قبل ${diffHours} س`;
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `ظ‚ط¨ظ„ ${diffDays} ظٹ`;
+  if (diffDays < 7) return `قبل ${diffDays} ي`;
   return date.toLocaleDateString('ar', { day: 'numeric', month: 'short' });
 }
 
@@ -148,8 +148,8 @@ export default function FriendsScreen() {
       setFollowing((followingResult.data ?? []) as PublicUser[]);
     } catch (error: unknown) {
       Alert.alert(
-        'طھط¹ط°ط± طھط­ظ…ظٹظ„ ط§ظ„ظ…ط¬طھظ…ط¹',
-        error instanceof Error ? error.message : 'طھط­ظ‚ظ‚ ظ…ظ† ط§طھطµط§ظ„ ط§ظ„ط¥ظ†طھط±ظ†طھ ظˆط­ط§ظˆظ„ ظ…ط¬ط¯ط¯ظ‹ط§.',
+        'تعذر تحميل المجتمع',
+        error instanceof Error ? error.message : 'تحقق من اتصال الإنترنت وحاول مجددًا.',
       );
     } finally {
       setLoading(false);
@@ -203,8 +203,8 @@ export default function FriendsScreen() {
       setHasSearched(true);
     } catch (error: unknown) {
       Alert.alert(
-        'طھط¹ط°ط± ط§ظ„ط¨ط­ط«',
-        error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰ ط¨ط¹ط¯ ظ‚ظ„ظٹظ„.',
+        'تعذر البحث',
+        error instanceof Error ? error.message : 'حاول مرة أخرى بعد قليل.',
       );
     } finally {
       setSearching(false);
@@ -218,12 +218,12 @@ export default function FriendsScreen() {
         p_recipient_id: target.user_id,
       });
       if (error) throw error;
-      if (typeof data !== 'string') throw new Error('ظ„ظ… ظٹطھظ… ط¥ظ†ط´ط§ط، ط·ظ„ط¨ ط§ظ„طµط¯ط§ظ‚ط©');
-      Alert.alert('طھظ… ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨', `ط£ط±ط³ظ„ظ†ط§ ط·ظ„ط¨ طµط¯ط§ظ‚ط© ط¥ظ„ظ‰ ${target.display_name || target.username}.`);
+      if (typeof data !== 'string') throw new Error('لم يتم إنشاء طلب الصداقة');
+      Alert.alert('تم إرسال الطلب', `أرسلنا طلب صداقة إلى ${target.display_name || target.username}.`);
       setSearchResults((items) => items.filter((item) => item.user_id !== target.user_id));
       await loadSocialData();
     } catch (error: unknown) {
-      Alert.alert('طھط¹ط°ط± ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر إرسال الطلب', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     } finally {
       setBusyId(null);
     }
@@ -239,7 +239,7 @@ export default function FriendsScreen() {
       if (error) throw error;
       await loadSocialData();
     } catch (error: unknown) {
-      Alert.alert('طھط¹ط°ط± طھط­ط¯ظٹط« ط§ظ„ط·ظ„ط¨', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر تحديث الطلب', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     } finally {
       setBusyId(null);
     }
@@ -252,10 +252,10 @@ export default function FriendsScreen() {
         p_other_user_id: friend.user_id,
       });
       if (error) throw error;
-      if (!data) throw new Error('ظ„ظ… ظٹطھظ… ط¥ظ†ط´ط§ط، ط§ظ„ظ…ط­ط§ط¯ط«ط©');
+      if (!data) throw new Error('لم يتم إنشاء المحادثة');
       router.push(`/messages/${data}`);
     } catch (error: unknown) {
-      Alert.alert('طھط¹ط°ط± ظپطھط­ ط§ظ„ظ…ط­ط§ط¯ط«ط©', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر فتح المحادثة', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     } finally {
       setBusyId(null);
     }
@@ -275,8 +275,8 @@ export default function FriendsScreen() {
         : [person, ...current]);
     } catch (error: unknown) {
       Alert.alert(
-        isFollowing ? 'طھط¹ط°ط± ط¥ظ„ط؛ط§ط، ط§ظ„ظ…طھط§ط¨ط¹ط©' : 'طھط¹ط°ط±طھ ط§ظ„ظ…طھط§ط¨ط¹ط©',
-        error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.',
+        isFollowing ? 'تعذر إلغاء المتابعة' : 'تعذرت المتابعة',
+        error instanceof Error ? error.message : 'حاول مرة أخرى.',
       );
     } finally {
       setBusyId(null);
@@ -294,7 +294,7 @@ export default function FriendsScreen() {
       await loadSocialData();
       if (accept && data) router.push(`/room/${data}`);
     } catch (error: unknown) {
-      Alert.alert('طھط¹ط°ط± ظ…ط¹ط§ظ„ط¬ط© ط§ظ„ط¯ط¹ظˆط©', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر معالجة الدعوة', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     } finally {
       setBusyId(null);
     }
@@ -308,9 +308,9 @@ export default function FriendsScreen() {
 
   const createChallenge = async () => {
     if (selectedOpponents.length !== challengePlayers - 1) {
-      Alert.alert('ط§ط®طھط± ط§ظ„ظ„ط§ط¹ط¨ظٹظ†', challengePlayers === 2
-        ? 'ط§ط®طھط± طµط¯ظٹظ‚ظ‹ط§ ظˆط§ط­ط¯ظ‹ط§ ظ„ظ„طھط­ط¯ظٹ ط§ظ„ط«ظ†ط§ط¦ظٹ.'
-        : 'ط§ط®طھط± ط«ظ„ط§ط«ط© ط£طµط¯ظ‚ط§ط، ظ„ظ„طھط­ط¯ظٹ ط§ظ„ط±ط¨ط§ط¹ظٹ.');
+      Alert.alert('اختر اللاعبين', challengePlayers === 2
+        ? 'اختر صديقًا واحدًا للتحدي الثنائي.'
+        : 'اختر ثلاثة أصدقاء للتحدي الرباعي.');
       return;
     }
     setLoading(true);
@@ -320,12 +320,12 @@ export default function FriendsScreen() {
         p_max_players: challengePlayers,
       });
       if (error) throw error;
-      if (typeof data !== 'string') throw new Error('ظ„ظ… ظٹطھظ… ط¥ظ†ط´ط§ط، ط§ظ„طھط­ط¯ظٹ');
+      if (typeof data !== 'string') throw new Error('لم يتم إنشاء التحدي');
       setSelectedOpponents([]);
-      Alert.alert('طھظ… ط¥ط±ط³ط§ظ„ ط§ظ„طھط­ط¯ظٹ', 'ط§ظ„طھط­ط¯ظٹ ظ…ط¬ط§ظ†ظٹ ظˆظ„ط§ ظٹط³طھط®ط¯ظ… ط±طµظٹط¯ ط§ظ„ط°ظ‡ط¨.');
+      Alert.alert('تم إرسال التحدي', 'التحدي مجاني ولا يستخدم رصيد الذهب.');
       await loadSocialData();
     } catch (error: unknown) {
-      Alert.alert('طھط¹ط°ط± ط¥ظ†ط´ط§ط، ط§ظ„طھط­ط¯ظٹ', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر إنشاء التحدي', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     } finally {
       setLoading(false);
     }
@@ -341,7 +341,7 @@ export default function FriendsScreen() {
       if (error) throw error;
       await loadSocialData();
     } catch (error: unknown) {
-      Alert.alert('طھط¹ط°ط± طھط­ط¯ظٹط« ط§ظ„طھط­ط¯ظٹ', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر تحديث التحدي', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     } finally {
       setBusyId(null);
     }
@@ -356,72 +356,72 @@ export default function FriendsScreen() {
       if (error) throw error;
       await loadSocialData();
     } catch (error: unknown) {
-      Alert.alert('طھط¹ط°ط± ط±ظ…ظٹ ط§ظ„ظ†ط±ط¯', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر رمي النرد', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     } finally {
       setBusyId(null);
     }
   };
 
   const moderateUser = (person: PublicUser) => {
-    Alert.alert(person.display_name || person.username, 'ط¥ط¯ط§ط±ط© طھظپط§ط¹ظ„ظƒ ظ…ط¹ ظ‡ط°ط§ ط§ظ„ظ…ط³طھط®ط¯ظ…', [
+    Alert.alert(person.display_name || person.username, 'إدارة تفاعلك مع هذا المستخدم', [
       {
-        text: 'ط¥ط¨ظ„ط§ط؛',
+        text: 'إبلاغ',
         onPress: () => {
-          Alert.alert('ط¥ط±ط³ط§ظ„ ط¨ظ„ط§ط؛', 'ظ‡ظ„ طھط±ظٹط¯ ط§ظ„ط¥ط¨ظ„ط§ط؛ ط¹ظ† ظ‡ط°ط§ ط§ظ„ط­ط³ط§ط¨ ط¨ط³ط¨ط¨ ط³ظ„ظˆظƒ ط؛ظٹط± ظ…ظ†ط§ط³ط¨طں', [
-            { text: 'ط¥ظ„ط؛ط§ط،', style: 'cancel' },
+          Alert.alert('إرسال بلاغ', 'هل تريد الإبلاغ عن هذا الحساب بسبب سلوك غير مناسب؟', [
+            { text: 'إلغاء', style: 'cancel' },
             {
-              text: 'ط¥ط±ط³ط§ظ„ ط§ظ„ط¨ظ„ط§ط؛',
+              text: 'إرسال البلاغ',
               onPress: async () => {
                 const { error } = await supabase.rpc('report_wattar_user', {
                   p_user_id: person.user_id,
-                  p_reason: 'ط³ظ„ظˆظƒ ط؛ظٹط± ظ…ظ†ط§ط³ط¨',
+                  p_reason: 'سلوك غير مناسب',
                 });
-                if (error) Alert.alert('طھط¹ط°ط± ط¥ط±ط³ط§ظ„ ط§ظ„ط¨ظ„ط§ط؛', error.message);
-                else Alert.alert('طھظ… ط§ط³طھظ„ط§ظ… ط§ظ„ط¨ظ„ط§ط؛', 'ط³ظٹط±ط§ط¬ط¹ظ‡ ظپط±ظٹظ‚ Wattar.');
+                if (error) Alert.alert('تعذر إرسال البلاغ', error.message);
+                else Alert.alert('تم استلام البلاغ', 'سيراجعه فريق Wattar.');
               },
             },
           ]);
         },
       },
       {
-        text: 'ط­ط¸ط±',
+        text: 'حظر',
         style: 'destructive',
-        onPress: () => Alert.alert('ط­ط¸ط± ط§ظ„ظ…ط³طھط®ط¯ظ…طں', 'ظ„ظ† طھطھظ…ظƒظ†ظˆط§ ظ…ظ† ظ…ط±ط§ط³ظ„ط© ط£ظˆ ط¯ط¹ظˆط© ط¨ط¹ط¶ظƒظ…ط§.', [
-          { text: 'ط¥ظ„ط؛ط§ط،', style: 'cancel' },
+        onPress: () => Alert.alert('حظر المستخدم؟', 'لن تتمكنوا من مراسلة أو دعوة بعضكما.', [
+          { text: 'إلغاء', style: 'cancel' },
           {
-            text: 'ط­ط¸ط±',
+            text: 'حظر',
             style: 'destructive',
             onPress: async () => {
               const { error } = await supabase.rpc('block_wattar_user', { p_user_id: person.user_id });
-              if (error) Alert.alert('طھط¹ط°ط± ط­ط¸ط± ط§ظ„ظ…ط³طھط®ط¯ظ…', error.message);
+              if (error) Alert.alert('تعذر حظر المستخدم', error.message);
               else await loadSocialData();
             },
           },
         ]),
       },
-      { text: 'ط¥ظ„ط؛ط§ط،', style: 'cancel' },
+      { text: 'إلغاء', style: 'cancel' },
     ]);
   };
 
   const incomingRequestCount = requests.filter((request) => request.direction === 'incoming').length;
   const unreadMessageCount = conversations.reduce((total, conversation) => total + conversation.unread_count, 0);
   const sectionTabs: { key: SocialSection; label: string; count?: number }[] = [
-    { key: 'network', label: 'ط´ط¨ظƒطھظٹ', count: friends.length },
-    { key: 'inbox', label: 'ط§ظ„ظˆط§ط±ط¯', count: incomingRequestCount + invitations.length + unreadMessageCount },
-    { key: 'play', label: 'ط§ظ„طھط­ط¯ظٹط§طھ' },
+    { key: 'network', label: 'شبكتي', count: friends.length },
+    { key: 'inbox', label: 'الوارد', count: incomingRequestCount + invitations.length + unreadMessageCount },
+    { key: 'play', label: 'التحديات' },
   ];
   const tabs: { key: SocialTab; label: string; count?: number }[] = activeSection === 'network'
     ? [
-      { key: 'friends', label: 'ط£طµط¯ظ‚ط§ط¦ظٹ', count: friends.length },
-      { key: 'following', label: 'ط£طھط§ط¨ط¹', count: following.length },
+      { key: 'friends', label: 'أصدقائي', count: friends.length },
+      { key: 'following', label: 'أتابع', count: following.length },
     ]
     : activeSection === 'inbox'
       ? [
-        { key: 'messages', label: 'ط§ظ„ط±ط³ط§ط¦ظ„', count: unreadMessageCount },
-        { key: 'requests', label: 'ط·ظ„ط¨ط§طھ ط§ظ„طµط¯ط§ظ‚ط©', count: incomingRequestCount },
-        { key: 'invites', label: 'ط¯ط¹ظˆط§طھ ط§ظ„ط؛ط±ظپ', count: invitations.length },
+        { key: 'messages', label: 'الرسائل', count: unreadMessageCount },
+        { key: 'requests', label: 'طلبات الصداقة', count: incomingRequestCount },
+        { key: 'invites', label: 'دعوات الغرف', count: invitations.length },
       ]
-      : [{ key: 'challenges', label: 'طھط­ط¯ظٹط§طھ ط§ظ„ظ†ط±ط¯' }];
+      : [{ key: 'challenges', label: 'تحديات النرد' }];
 
   const selectSection = (section: SocialSection) => {
     setActiveSection(section);
@@ -434,10 +434,10 @@ export default function FriendsScreen() {
 
   const activeTabLabel = tabs.find((tab) => tab.key === activeTab)?.label ?? '';
   const sectionDescription = activeSection === 'network'
-    ? 'ط§ظƒطھط´ظپ ط£طµط¯ظ‚ط§ط،ظƒ ظˆطھط§ط¨ط¹ ط§ظ„ط­ط³ط§ط¨ط§طھ ط§ظ„طھظٹ طھظ‡ظ…ظƒ.'
+    ? 'اكتشف أصدقاءك وتابع الحسابات التي تهمك.'
     : activeSection === 'inbox'
-      ? 'ط±ط³ط§ط¦ظ„ظƒ ظˆط·ظ„ط¨ط§طھ ط§ظ„طھظˆط§طµظ„ ظˆط¯ط¹ظˆط§طھ ط§ظ„ط؛ط±ظپ ظپظٹ ظ…ظƒط§ظ† ظˆط§ط­ط¯.'
-      : 'طھط­ط¯ظٹط§طھ ظ…ط¬ط§ظ†ظٹط© ظ…ط¹ ط£طµط¯ظ‚ط§ط¦ظƒطŒ ط¨ط¹ظٹط¯ظ‹ط§ ط¹ظ† ط£ط±طµط¯ط© ط§ظ„ظ…ط­ظپط¸ط©.';
+      ? 'رسائلك وطلبات التواصل ودعوات الغرف في مكان واحد.'
+      : 'تحديات مجانية مع أصدقائك، بعيدًا عن أرصدة المحفظة.';
 
   const renderUser = (person: PublicUser, action: 'add' | 'message' | 'follow') => {
     const isFollowing = following.some((item) => item.user_id === person.user_id);
@@ -452,11 +452,11 @@ export default function FriendsScreen() {
         <TouchableOpacity
           onPress={() => router.push(`/user/${person.user_id}`)}
           accessibilityRole="button"
-          accessibilityLabel={`ط¹ط±ط¶ ظ…ظ„ظپ ${person.display_name || person.username}`}
+          accessibilityLabel={`عرض ملف ${person.display_name || person.username}`}
         >
           <Text style={styles.personName}>{person.display_name || person.username}</Text>
           <Text style={styles.personMeta}>
-            @{person.username} آ· {person.is_online ? 'ظ…طھطµظ„ ط§ظ„ط¢ظ†' : 'ط؛ظٹط± ظ…طھطµظ„'}
+            @{person.username} · {person.is_online ? 'متصل الآن' : 'غير متصل'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -469,7 +469,7 @@ export default function FriendsScreen() {
             : toggleFollow(person)}
         disabled={busyId === person.user_id}
         accessibilityRole="button"
-        accessibilityLabel={action === 'add' ? 'ط¥ط¶ط§ظپط© طµط¯ظٹظ‚' : 'ط¥ط±ط³ط§ظ„ ط±ط³ط§ظ„ط©'}
+        accessibilityLabel={action === 'add' ? 'إضافة صديق' : 'إرسال رسالة'}
       >
         {busyId === person.user_id
           ? <ActivityIndicator size="small" color={socialPalette.primary} />
@@ -479,7 +479,7 @@ export default function FriendsScreen() {
               ? <MessageCircle size={16} color={socialPalette.primary} />
               : <UserCheck size={16} color={isFollowing ? socialPalette.gold : socialPalette.primary} />}
         <Text style={styles.actionLabel}>
-          {action === 'add' ? 'ط¥ط¶ط§ظپط©' : action === 'message' ? 'ظ…ط±ط§ط³ظ„ط©' : isFollowing ? 'ظ…طھط§ط¨ظژط¹' : 'ظ…طھط§ط¨ط¹ط©'}
+          {action === 'add' ? 'إضافة' : action === 'message' ? 'مراسلة' : isFollowing ? 'متابَع' : 'متابعة'}
         </Text>
       </TouchableOpacity>
       {action === 'add' ? (
@@ -488,7 +488,7 @@ export default function FriendsScreen() {
           onPress={() => toggleFollow(person)}
           disabled={busyId === person.user_id}
           accessibilityRole="button"
-          accessibilityLabel={isFollowing ? 'ط¥ظ„ط؛ط§ط، ط§ظ„ظ…طھط§ط¨ط¹ط©' : 'ظ…طھط§ط¨ط¹ط© ط§ظ„ظ…ط³طھط®ط¯ظ…'}
+          accessibilityLabel={isFollowing ? 'إلغاء المتابعة' : 'متابعة المستخدم'}
         >
           {isFollowing
             ? <UserCheck size={16} color={socialPalette.gold} />
@@ -499,7 +499,7 @@ export default function FriendsScreen() {
         style={styles.moreButton}
         onPress={() => moderateUser(person)}
         accessibilityRole="button"
-        accessibilityLabel="ط®ظٹط§ط±ط§طھ ط§ظ„ط­ط¸ط± ظˆط§ظ„ط¥ط¨ظ„ط§ط؛"
+        accessibilityLabel="خيارات الحظر والإبلاغ"
       >
         <MoreHorizontal size={19} color={socialPalette.muted} />
       </TouchableOpacity>
@@ -514,9 +514,9 @@ export default function FriendsScreen() {
             <View style={styles.challengeCreateCard}>
               <View style={styles.challengeHeading}>
                 <Dices size={19} color={socialPalette.gold} />
-                <Text style={styles.challengeTitle}>طھط­ط¯ظچ ط§ط¬طھظ…ط§ط¹ظٹ ظ…ط¬ط§ظ†ظٹ</Text>
+                <Text style={styles.challengeTitle}>تحدٍ اجتماعي مجاني</Text>
               </View>
-              <Text style={styles.challengeDescription}>ط§ظ„ظ†ط±ط¯ ظٹط¯ط§ط± ط¹ظ„ظ‰ ط§ظ„ط®ط§ط¯ظ…ط› ظ„ط§ ظٹط³طھط®ط¯ظ… ط§ظ„ط°ظ‡ط¨ ط£ظˆ ط£ظٹ ط±طµظٹط¯ ظ…ط§ظ„ظٹ.</Text>
+              <Text style={styles.challengeDescription}>النرد يدار على الخادم؛ لا يستخدم الذهب أو أي رصيد مالي.</Text>
               <View style={styles.playerCountRow}>
                 {([2, 4] as const).map((count) => (
                   <TouchableOpacity
@@ -525,7 +525,7 @@ export default function FriendsScreen() {
                     onPress={() => { setChallengePlayers(count); setSelectedOpponents([]); }}
                   >
                     <Text style={[styles.playerCountText, challengePlayers === count && styles.playerCountTextActive]}>
-                      {count} ظ„ط§ط¹ط¨ظٹظ†
+                      {count} لاعبين
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -541,7 +541,7 @@ export default function FriendsScreen() {
                   >
                     <Text style={styles.personName}>{friend.display_name || friend.username}</Text>
                     <View style={[styles.checkbox, selected && styles.checkboxActive]}>
-                      {selected && <Text style={styles.checkboxCheck}>âœ“</Text>}
+                      {selected && <Text style={styles.checkboxCheck}>✓</Text>}
                     </View>
                   </TouchableOpacity>
                 );
@@ -551,55 +551,55 @@ export default function FriendsScreen() {
                 onPress={createChallenge}
                 disabled={loading || !friends.length}
               >
-                <Text style={styles.createChallengeText}>ط¥ط±ط³ط§ظ„ ط§ظ„طھط­ط¯ظٹ</Text>
+                <Text style={styles.createChallengeText}>إرسال التحدي</Text>
               </TouchableOpacity>
             </View>
             {challenges.filter((challenge) => challenge.challenge_status !== 'cancelled').map((challenge) => (
               <View key={challenge.challenge_id} style={styles.challengeCard}>
                 <View style={styles.challengeHeading}>
                   <Dices size={18} color={socialPalette.gold} />
-                  <Text style={styles.challengeTitle}>{challenge.max_players} ظ„ط§ط¹ط¨ظٹظ† آ· ظ†ط±ط¯</Text>
+                  <Text style={styles.challengeTitle}>{challenge.max_players} لاعبين · نرد</Text>
                 </View>
                 {challenge.participants.map((participant) => (
                   <View key={participant.user_id} style={styles.challengeParticipant}>
                     <Text style={styles.personMeta}>
-                      {participant.display_name}{participant.user_id === challenge.winner_id ? ' آ· ط§ظ„ظپط§ط¦ط²' : ''}
+                      {participant.display_name}{participant.user_id === challenge.winner_id ? ' · الفائز' : ''}
                     </Text>
                     <Text style={styles.challengeScore}>
                       {challenge.challenge_status === 'completed'
-                        ? participant.dice_roll ?? 'طھط¹ط§ط¯ظ„'
+                        ? participant.dice_roll ?? 'تعادل'
                         : participant.status === 'accepted' && participant.user_id === currentUserId
-                          ? challenge.my_roll ? `ط±ظ…ظٹطھ ${challenge.my_roll}` : 'ط¯ظˆط±ظƒ'
-                          : participant.status === 'pending' ? 'ط¨ط§ظ†طھط¸ط§ط± ط§ظ„ظ‚ط¨ظˆظ„' : 'ظ…ط³طھط¹ط¯'}
+                          ? challenge.my_roll ? `رميت ${challenge.my_roll}` : 'دورك'
+                          : participant.status === 'pending' ? 'بانتظار القبول' : 'مستعد'}
                     </Text>
                   </View>
                 ))}
                 {challenge.my_status === 'pending' && challenge.challenge_status === 'pending' ? (
                   <View style={styles.inviteActions}>
                     <TouchableOpacity style={styles.acceptInviteButton} onPress={() => respondToChallenge(challenge, true)} disabled={busyId === challenge.challenge_id}>
-                      <Text style={styles.acceptInviteText}>ظ‚ط¨ظˆظ„</Text>
+                      <Text style={styles.acceptInviteText}>قبول</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.declineInviteButton} onPress={() => respondToChallenge(challenge, false)} disabled={busyId === challenge.challenge_id}>
-                      <Text style={styles.declineText}>ط±ظپط¶</Text>
+                      <Text style={styles.declineText}>رفض</Text>
                     </TouchableOpacity>
                   </View>
                 ) : null}
                 {['ready', 'playing'].includes(challenge.challenge_status) && challenge.my_status === 'accepted' && challenge.my_roll === null ? (
                   <TouchableOpacity style={styles.rollButton} onPress={() => rollChallenge(challenge)} disabled={busyId === challenge.challenge_id}>
-                    {busyId === challenge.challenge_id ? <ActivityIndicator color={colors.text} /> : <Text style={styles.acceptInviteText}>ط§ط±ظ…ظگ ط§ظ„ظ†ط±ط¯</Text>}
+                    {busyId === challenge.challenge_id ? <ActivityIndicator color={colors.text} /> : <Text style={styles.acceptInviteText}>ارمِ النرد</Text>}
                   </TouchableOpacity>
                 ) : null}
                 {challenge.my_roll !== null && challenge.challenge_status !== 'completed' ? (
-                  <Text style={styles.challengeDescription}>ط¸ظ‡ط±طھ ظ„ظƒ {challenge.my_roll} آ· ط¨ط§ظ†طھط¸ط§ط± ط¨ظ‚ظٹط© ط§ظ„ظ„ط§ط¹ط¨ظٹظ†</Text>
+                  <Text style={styles.challengeDescription}>ظهرت لك {challenge.my_roll} · بانتظار بقية اللاعبين</Text>
                 ) : null}
                 {challenge.challenge_status === 'completed' ? (
                   <Text style={styles.challengeResult}>
-                    {challenge.winner_id ? 'ط§ظ†طھظ‡ظ‰ ط§ظ„طھط­ط¯ظٹ! ط§ظ„ظپط§ط¦ط² طµط§ط­ط¨ ط£ط¹ظ„ظ‰ ظ†طھظٹط¬ط©.' : 'ط§ظ†طھظ‡ظ‰ ط§ظ„طھط­ط¯ظٹ ط¨ط§ظ„طھط¹ط§ط¯ظ„.'}
+                    {challenge.winner_id ? 'انتهى التحدي! الفائز صاحب أعلى نتيجة.' : 'انتهى التحدي بالتعادل.'}
                   </Text>
                 ) : null}
               </View>
             ))}
-            {!challenges.length && <EmptyState text="ط£ط±ط³ظ„ طھط­ط¯ظٹظ‹ط§ ظ…ط¬ط§ظ†ظٹظ‹ط§ ظ„ظ„ط£طµط¯ظ‚ط§ط،. ط§ظ„طھط­ط¯ظٹط§طھ ظ„ط§ طھط³طھط®ط¯ظ… ط§ظ„ط°ظ‡ط¨." />}
+            {!challenges.length && <EmptyState text="أرسل تحديًا مجانيًا للأصدقاء. التحديات لا تستخدم الذهب." />}
           </View>
       );
     }
@@ -612,7 +612,7 @@ export default function FriendsScreen() {
               style={styles.searchInput}
               value={query}
               onChangeText={setQuery}
-              placeholder="ط§ط¨ط­ط« ط¨ط§ظ„ط§ط³ظ… ط£ظˆ ط§ط³ظ… ط§ظ„ظ…ط³طھط®ط¯ظ…"
+              placeholder="ابحث بالاسم أو اسم المستخدم"
               placeholderTextColor={socialPalette.muted}
               autoCapitalize="none"
               returnKeyType="search"
@@ -627,27 +627,27 @@ export default function FriendsScreen() {
                   Keyboard.dismiss();
                 }}
                 accessibilityRole="button"
-                accessibilityLabel="ظ…ط³ط­ ط§ظ„ط¨ط­ط«"
+                accessibilityLabel="مسح البحث"
               >
-                <Text style={styles.clearSearchText}>ظ…ط³ط­</Text>
+                <Text style={styles.clearSearchText}>مسح</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={searchUsers} disabled={searching} style={styles.searchButton}>
-              {searching ? <ActivityIndicator size="small" color={colors.text} /> : <Text style={styles.searchButtonText}>ط¨ط­ط«</Text>}
+              {searching ? <ActivityIndicator size="small" color={colors.text} /> : <Text style={styles.searchButtonText}>بحث</Text>}
             </TouchableOpacity>
           </View>
           {query.trim().length < 2 && (
-            <Text style={styles.searchHint}>ط§ظƒطھط¨ ط§ط³ظ…ظ‹ط§ ط£ظˆ ط§ط³ظ… ظ…ط³طھط®ط¯ظ… ظ…ظ† ط­ط±ظپظٹظ† ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„طŒ ط«ظ… ط§ط¶ط؛ط· ط¨ط­ط«.</Text>
+            <Text style={styles.searchHint}>اكتب اسمًا أو اسم مستخدم من حرفين على الأقل، ثم اضغط بحث.</Text>
           )}
           {searchResults.map((person) => renderUser(person, 'add'))}
           {hasSearched && !searching && searchResults.length === 0 && (
-            <EmptyState text="ظ…ط§ ظ„ظ‚ظٹظ†ط§ ط­ط³ط§ط¨ظ‹ط§ ظ…ط·ط§ط¨ظ‚ظ‹ط§. طھط£ظƒط¯ ظ…ظ† ط§ظ„ط§ط³ظ… ظˆط¬ط±ط¨ ظ…ط±ط© ط«ط§ظ†ظٹط©." />
+            <EmptyState text="ما لقينا حسابًا مطابقًا. تأكد من الاسم وجرب مرة ثانية." />
           )}
           {searchResults.length > 0 && <View style={styles.divider} />}
-          <SectionHeading text="ط£طµط¯ظ‚ط§ط¦ظٹ" count={friends.length} />
+          <SectionHeading text="أصدقائي" count={friends.length} />
           {friends.length
             ? friends.map((person) => renderUser(person, 'message'))
-            : <EmptyState text="ط£ط¶ظپ ط£طµط¯ظ‚ط§ط، ظ„طھط¨ط¯ط£ ط§ظ„ظ…ط­ط§ط¯ط«ط© ظˆطھط¯ط¹ظˆظ‡ظ… ط¥ظ„ظ‰ ط§ظ„ط؛ط±ظپ." />}
+            : <EmptyState text="أضف أصدقاء لتبدأ المحادثة وتدعوهم إلى الغرف." />}
         </View>
       );
     }
@@ -665,7 +665,7 @@ export default function FriendsScreen() {
               style={[styles.personRow, conversation.unread_count > 0 && styles.unreadRow]}
               onPress={() => router.push(`/messages/${conversation.conversation_id}`)}
               accessibilityRole="button"
-              accessibilityLabel={`ظپطھط­ ظ…ط­ط§ط¯ط«ط© ${conversation.display_name || conversation.username}`}
+              accessibilityLabel={`فتح محادثة ${conversation.display_name || conversation.username}`}
             >
               <View style={styles.avatar}>
                 {conversation.avatar_url
@@ -682,7 +682,7 @@ export default function FriendsScreen() {
                   style={[styles.personMeta, conversation.unread_count > 0 && styles.unreadPreview]}
                   numberOfLines={1}
                 >
-                  {conversation.last_message || 'ط§ط¨ط¯ط£ ط§ظ„ظ…ط­ط§ط¯ط«ط©'}
+                  {conversation.last_message || 'ابدأ المحادثة'}
                 </Text>
               </View>
               {conversation.unread_count > 0 && (
@@ -691,7 +691,7 @@ export default function FriendsScreen() {
                 </View>
               )}
             </TouchableOpacity>
-          )) : <EmptyState text="ظ„ط§ طھظˆط¬ط¯ ظ…ط­ط§ط¯ط«ط§طھ ط¨ط¹ط¯. ط§ط¨ط¯ط£ ظ…ط­ط§ط¯ط«ط© ظ…ظ† ظ‚ط§ط¦ظ…ط© ط§ظ„ط£طµط¯ظ‚ط§ط،." />}
+          )) : <EmptyState text="لا توجد محادثات بعد. ابدأ محادثة من قائمة الأصدقاء." />}
         </View>
       );
     }
@@ -700,7 +700,7 @@ export default function FriendsScreen() {
         <View>
           {following.length
             ? following.map((person) => renderUser(person, 'follow'))
-            : <EmptyState text="ظ„ط§ طھطھط§ط¨ط¹ ط£ط­ط¯ظ‹ط§ ط¨ط¹ط¯. ط§ط¨ط­ط« ط¹ظ† ط­ط³ط§ط¨ ظپظٹ طھط¨ظˆظٹط¨ ط§ظ„ط£طµط¯ظ‚ط§ط، ظˆط§ط¶ط؛ط· ظ…طھط§ط¨ط¹ط©." />}
+            : <EmptyState text="لا تتابع أحدًا بعد. ابحث عن حساب في تبويب الأصدقاء واضغط متابعة." />}
         </View>
       );
     }
@@ -711,7 +711,7 @@ export default function FriendsScreen() {
         <View>
           {incoming.length ? (
             <View>
-              <SectionHeading text="ط·ظ„ط¨ط§طھ ظˆط§ط±ط¯ط©" count={incoming.length} />
+              <SectionHeading text="طلبات واردة" count={incoming.length} />
               {incoming.map((request) => (
                 <View key={request.request_id} style={styles.personRow}>
                   <View style={styles.avatar}>
@@ -723,19 +723,19 @@ export default function FriendsScreen() {
                     <TouchableOpacity
                       onPress={() => router.push(`/user/${request.user_id}`)}
                       accessibilityRole="button"
-                      accessibilityLabel={`ط¹ط±ط¶ ظ…ظ„ظپ ${request.display_name || request.username}`}
+                      accessibilityLabel={`عرض ملف ${request.display_name || request.username}`}
                     >
                       <Text style={styles.personName}>{request.display_name || request.username}</Text>
-                      <Text style={styles.personMeta}>@{request.username} ط£ط±ط³ظ„ ط·ظ„ط¨ طµط¯ط§ظ‚ط©</Text>
+                      <Text style={styles.personMeta}>@{request.username} أرسل طلب صداقة</Text>
                     </TouchableOpacity>
                   </View>
-                  <TouchableOpacity style={styles.acceptButton} onPress={() => respondToRequest(request, true)} disabled={busyId === request.request_id} accessibilityLabel="ظ‚ط¨ظˆظ„ ط·ظ„ط¨ ط§ظ„طµط¯ط§ظ‚ط©">
+                  <TouchableOpacity style={styles.acceptButton} onPress={() => respondToRequest(request, true)} disabled={busyId === request.request_id} accessibilityLabel="قبول طلب الصداقة">
                     {busyId === request.request_id
                       ? <ActivityIndicator size="small" color={colors.text} />
                       : <UserCheck size={17} color={colors.text} />}
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.declineButton} onPress={() => respondToRequest(request, false)} disabled={busyId === request.request_id} accessibilityLabel="ط±ظپط¶ ط·ظ„ط¨ ط§ظ„طµط¯ط§ظ‚ط©">
-                    <Text style={styles.declineText}>ط±ظپط¶</Text>
+                  <TouchableOpacity style={styles.declineButton} onPress={() => respondToRequest(request, false)} disabled={busyId === request.request_id} accessibilityLabel="رفض طلب الصداقة">
+                    <Text style={styles.declineText}>رفض</Text>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -743,7 +743,7 @@ export default function FriendsScreen() {
           ) : null}
           {outgoing.length ? (
             <View>
-              <SectionHeading text="ط·ظ„ط¨ط§طھ ظ…ط±ط³ظ„ط©" count={outgoing.length} />
+              <SectionHeading text="طلبات مرسلة" count={outgoing.length} />
               {outgoing.map((request) => (
                 <View key={request.request_id} style={styles.personRow}>
                   <View style={styles.avatar}>
@@ -753,17 +753,17 @@ export default function FriendsScreen() {
                   </View>
                   <View style={styles.personDetails}>
                     <Text style={styles.personName}>{request.display_name || request.username}</Text>
-                    <Text style={styles.personMeta}>@{request.username} آ· ط¨ط§ظ†طھط¸ط§ط± ط§ظ„ط±ط¯</Text>
+                    <Text style={styles.personMeta}>@{request.username} · بانتظار الرد</Text>
                   </View>
                   <View style={styles.pendingChip}>
-                    <Text style={styles.pendingChipText}>ظ‚ظٹط¯ ط§ظ„ط§ظ†طھط¸ط§ط±</Text>
+                    <Text style={styles.pendingChipText}>قيد الانتظار</Text>
                   </View>
                 </View>
               ))}
             </View>
           ) : null}
           {incoming.length === 0 && outgoing.length === 0
-            ? <EmptyState text="ظ…ط§ ط¹ظ†ط¯ظƒ ط·ظ„ط¨ط§طھ طµط¯ط§ظ‚ط© ط¬ط¯ظٹط¯ط©." />
+            ? <EmptyState text="ما عندك طلبات صداقة جديدة." />
             : null}
         </View>
       );
@@ -772,18 +772,18 @@ export default function FriendsScreen() {
       <View>
         {invitations.length ? invitations.map((invitation) => (
           <View key={invitation.invitation_id} style={styles.invitationCard}>
-            <Text style={styles.personName}>{invitation.sender_name} ط¯ط¹ط§ظƒ ط¥ظ„ظ‰ ط؛ط±ظپط©</Text>
+            <Text style={styles.personName}>{invitation.sender_name} دعاك إلى غرفة</Text>
             <Text style={styles.personMeta}>{invitation.room_name}</Text>
             <View style={styles.inviteActions}>
               <TouchableOpacity style={styles.acceptInviteButton} onPress={() => respondToInvitation(invitation, true)} disabled={busyId === invitation.invitation_id}>
-                <Text style={styles.acceptInviteText}>ط§ظ†ط¶ظ…ط§ظ…</Text>
+                <Text style={styles.acceptInviteText}>انضمام</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.declineInviteButton} onPress={() => respondToInvitation(invitation, false)} disabled={busyId === invitation.invitation_id}>
-                <Text style={styles.declineText}>طھط¬ط§ظ‡ظ„</Text>
+                <Text style={styles.declineText}>تجاهل</Text>
               </TouchableOpacity>
             </View>
           </View>
-        )) : <EmptyState text="ظ…ط§ ط¹ظ†ط¯ظƒ ط¯ط¹ظˆط§طھ ط؛ط±ظپ ط­ط§ظ„ظٹظ‹ط§." />}
+        )) : <EmptyState text="ما عندك دعوات غرف حاليًا." />}
       </View>
     );
   };
@@ -794,8 +794,8 @@ export default function FriendsScreen() {
         <View style={styles.titleRow}>
           <View style={styles.titleIcon}><Users size={20} color={socialPalette.gold} /></View>
           <View>
-            <Text style={styles.title}>ط§ظ„ظ…ط¬طھظ…ط¹</Text>
-            <Text style={styles.subtitle}>ط£طµط¯ظ‚ط§ط¤ظƒ ظˆظ…طھط§ط¨ط¹ط§طھظƒ ظˆظ…ط­ط§ط¯ط«ط§طھظƒ</Text>
+            <Text style={styles.title}>المجتمع</Text>
+            <Text style={styles.subtitle}>أصدقاؤك ومتابعاتك ومحادثاتك</Text>
           </View>
         </View>
         <TouchableOpacity
@@ -804,7 +804,7 @@ export default function FriendsScreen() {
           accessibilityRole="button"
         >
           <Users size={16} color={socialPalette.gold} />
-          <Text style={styles.agentGroupButtonText}>ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظˆظƒظٹظ„</Text>
+          <Text style={styles.agentGroupButtonText}>مجموعة الوكيل</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.sectionTabs}>
@@ -861,12 +861,12 @@ export default function FriendsScreen() {
               <View style={styles.networkStats}>
                 <View style={styles.networkStat}>
                   <Text style={styles.networkStatValue}>{friends.length}</Text>
-                  <Text style={styles.networkStatLabel}>ط£طµط¯ظ‚ط§ط،</Text>
+                  <Text style={styles.networkStatLabel}>أصدقاء</Text>
                 </View>
                 <View style={styles.networkStatDivider} />
                 <View style={styles.networkStat}>
                   <Text style={styles.networkStatValue}>{following.length}</Text>
-                  <Text style={styles.networkStatLabel}>ظ…طھط§ط¨ط¹ط©</Text>
+                  <Text style={styles.networkStatLabel}>متابعة</Text>
                 </View>
               </View>
             ) : null}

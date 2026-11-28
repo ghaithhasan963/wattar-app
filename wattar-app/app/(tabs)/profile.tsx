@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Image,
@@ -76,7 +76,7 @@ export default function ProfileScreen() {
       const row = Array.isArray(data) ? data[0] : data;
       setProgress(row && typeof row === 'object' ? row as SocialProgress : null);
     } catch (error: unknown) {
-      setProgressError(error instanceof Error ? error.message : 'طھط¹ط°ط± طھط­ظ…ظٹظ„ ط§ظ„طھظ‚ط¯ظ… ط§ظ„ط§ط¬طھظ…ط§ط¹ظٹ.');
+      setProgressError(error instanceof Error ? error.message : 'تعذر تحميل التقدم الاجتماعي.');
     }
   }, [profile?.id]);
 
@@ -88,28 +88,28 @@ export default function ProfileScreen() {
     if (!profile?.referral_code) return;
     try {
       await Share.share({
-        message: `ط§ظ†ط¶ظ… ط¥ظ„ظ‰ Wattar ظ…ط¹ظٹ! ط§ط³طھط®ط¯ظ… ظƒظˆط¯ ط§ظ„ط¥ط­ط§ظ„ط©: ${profile.referral_code}`,
+        message: `انضم إلى Wattar معي! استخدم كود الإحالة: ${profile.referral_code}`,
       });
     } catch (error: unknown) {
-      Alert.alert('طھط¹ط°ط±طھ ط§ظ„ظ…ط´ط§ط±ظƒط©', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذرت المشاركة', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     }
   };
 
   const handleSignOut = async () => {
     Alert.alert(
-      'طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬',
-      'ظ‡ظ„ طھط±ظٹط¯ طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬ ظ…ظ† ط­ط³ط§ط¨ظƒطں',
+      'تسجيل الخروج',
+      'هل تريد تسجيل الخروج من حسابك؟',
       [
-        { text: 'ط¥ظ„ط؛ط§ط،', style: 'cancel' },
+        { text: 'إلغاء', style: 'cancel' },
         {
-          text: 'ط®ط±ظˆط¬',
+          text: 'خروج',
           style: 'destructive',
           onPress: async () => {
             try {
               await signOut();
               router.replace('/(auth)/login');
             } catch (error: unknown) {
-              Alert.alert('طھط¹ط°ط± طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+              Alert.alert('تعذر تسجيل الخروج', error instanceof Error ? error.message : 'حاول مرة أخرى.');
             }
           },
         },
@@ -124,7 +124,7 @@ export default function ProfileScreen() {
     try {
       await updateProfileVisibility(nextVisibility);
     } catch (error: unknown) {
-      Alert.alert('طھط¹ط°ط± طھط­ط¯ظٹط« ط§ظ„ط®طµظˆطµظٹط©', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر تحديث الخصوصية', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     } finally {
       setPrivacyBusy(false);
     }
@@ -136,7 +136,7 @@ export default function ProfileScreen() {
   const levelStart = (level - 1) ** 2 * 100;
   const nextLevelAt = level ** 2 * 100;
   const levelProgress = Math.max(0, Math.min(1, (experience - levelStart) / (nextLevelAt - levelStart)));
-  const displayName = profile?.display_name || profile?.username || 'ظ…ط³طھط®ط¯ظ… Wattar';
+  const displayName = profile?.display_name || profile?.username || 'مستخدم Wattar';
   const isPrivate = profile?.profile_visibility === 'friends';
   const giftsSent = Number(profile?.total_gifts_sent ?? 0);
   const giftsReceived = Number(profile?.total_gifts_received ?? 0);
@@ -145,8 +145,8 @@ export default function ProfileScreen() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.topBar}>
         <View>
-          <Text style={styles.pageTitle}>ظ…ظ„ظپظٹ ط§ظ„ط´ط®طµظٹ</Text>
-          <Text style={styles.pageSubtitle}>ظ‡ظˆظٹطھظƒ ظˆظ…ظƒط§ظ†طھظƒ ط¯ط§ط®ظ„ Wattar</Text>
+          <Text style={styles.pageTitle}>ملفي الشخصي</Text>
+          <Text style={styles.pageSubtitle}>هويتك ومكانتك داخل Wattar</Text>
         </View>
         <View style={styles.topActions}>
           <NotificationBell />
@@ -162,12 +162,12 @@ export default function ProfileScreen() {
           <View style={styles.visibilityPill}>
             {isPrivate ? <LockKeyhole size={11} color={palette.gold} /> : <Users size={11} color={palette.teal} />}
             <Text style={[styles.visibilityText, isPrivate && styles.visibilityTextPrivate]}>
-              {isPrivate ? 'ط®ط§طµ ط¨ط§ظ„ط£طµط¯ظ‚ط§ط،' : 'ظ…ظ„ظپ ط¹ط§ظ…'}
+              {isPrivate ? 'خاص بالأصدقاء' : 'ملف عام'}
             </Text>
           </View>
           <TouchableOpacity style={styles.editChip} onPress={() => router.push('/profile/edit')} accessibilityRole="button">
             <Pencil size={13} color={colors.text} />
-            <Text style={styles.editChipText}>طھط¹ط¯ظٹظ„</Text>
+            <Text style={styles.editChipText}>تعديل</Text>
           </TouchableOpacity>
         </View>
 
@@ -191,19 +191,19 @@ export default function ProfileScreen() {
         <View style={styles.chipsRow}>
           <View style={styles.chip}>
             <Star size={11} color={palette.gold} />
-            <Text style={styles.chipText}>ط§ظ„ظ…ط³طھظˆظ‰ {level}</Text>
+            <Text style={styles.chipText}>المستوى {level}</Text>
           </View>
           {profile?.gender ? (
             <View style={styles.chip}>
               <User size={11} color={palette.muted} />
               <Text style={styles.chipText}>
-                {profile.gender === 'female' ? 'ط£ظ†ط«ظ‰' : profile.gender === 'male' ? 'ط°ظƒط±' : 'ط¢ط®ط±'}
+                {profile.gender === 'female' ? 'أنثى' : profile.gender === 'male' ? 'ذكر' : 'آخر'}
               </Text>
             </View>
           ) : null}
           <TouchableOpacity style={[styles.chip, styles.chipInteractive]} onPress={toggleProfileVisibility} disabled={privacyBusy}>
             <LockKeyhole size={11} color={palette.gold} />
-            <Text style={styles.chipText}>{privacyBusy ? 'ط¬ط§ط±ظچ ط§ظ„ط­ظپط¸â€¦' : isPrivate ? 'ط£طµط¯ظ‚ط§ط،' : 'ط¹ط§ظ…'}</Text>
+            <Text style={styles.chipText}>{privacyBusy ? 'جارٍ الحفظ…' : isPrivate ? 'أصدقاء' : 'عام'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -211,22 +211,22 @@ export default function ProfileScreen() {
       <View style={styles.statsRow}>
         <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/friends')} activeOpacity={0.8}>
           <Text style={styles.statValue}>{(progress?.follower_count ?? 0).toLocaleString()}</Text>
-          <Text style={styles.statLabel}>ظ…طھط§ط¨ط¹ظˆظ†</Text>
+          <Text style={styles.statLabel}>متابعون</Text>
         </TouchableOpacity>
         <View style={styles.statDivider} />
         <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(tabs)/friends')} activeOpacity={0.8}>
           <Text style={styles.statValue}>{(progress?.following_count ?? 0).toLocaleString()}</Text>
-          <Text style={styles.statLabel}>ط£طھط§ط¨ط¹</Text>
+          <Text style={styles.statLabel}>أتابع</Text>
         </TouchableOpacity>
         <View style={styles.statDivider} />
         <View style={styles.statCard}>
           <Text style={[styles.statValue, { color: palette.gold }]}>{giftsSent.toLocaleString()}</Text>
-          <Text style={styles.statLabel}>ظ‡ط¯ط§ظٹط§ ط£ط±ط³ظ„طھ</Text>
+          <Text style={styles.statLabel}>هدايا أرسلت</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statCard}>
           <Text style={[styles.statValue, { color: palette.teal }]}>{giftsReceived.toLocaleString()}</Text>
-          <Text style={styles.statLabel}>ظ‡ط¯ط§ظٹط§ ظˆطµظ„طھ</Text>
+          <Text style={styles.statLabel}>هدايا وصلت</Text>
         </View>
       </View>
 
@@ -234,8 +234,8 @@ export default function ProfileScreen() {
         <View style={styles.levelTop}>
           <View style={styles.levelIcon}><Sparkles size={17} color={palette.gold} /></View>
           <View style={styles.levelCopy}>
-            <Text style={styles.levelTitle}>ط§ظ„طھظ‚ط¯ظ… ط¥ظ„ظ‰ ط§ظ„ظ…ط³طھظˆظ‰ {level + 1}</Text>
-            <Text style={styles.levelCaption}>ط§ظ„ظ…ط³طھظˆظٹط§طھ طھظڈظƒطھط³ط¨ ط¨ط§ظ„ظ†ط´ط§ط· ظˆط§ظ„ظ…ط´ط§ط±ظƒط© ظˆظ„ط§ طھظڈط´طھط±ظ‰</Text>
+            <Text style={styles.levelTitle}>التقدم إلى المستوى {level + 1}</Text>
+            <Text style={styles.levelCaption}>المستويات تُكتسب بالنشاط والمشاركة ولا تُشترى</Text>
           </View>
           <Text style={styles.xpValue}>{experience.toLocaleString()} XP</Text>
         </View>
@@ -243,16 +243,16 @@ export default function ProfileScreen() {
           <View style={[styles.progressFill, { width: `${Math.round(levelProgress * 100)}%` }]} />
         </View>
         <Text style={styles.nextLevelText}>
-          {Math.max(0, nextLevelAt - experience).toLocaleString()} XP ظ…طھط¨ظ‚ظٹط© ظ„ظ„ظ…ط³طھظˆظ‰ ط§ظ„طھط§ظ„ظٹ
+          {Math.max(0, nextLevelAt - experience).toLocaleString()} XP متبقية للمستوى التالي
         </Text>
         {progressError ? <Text style={styles.progressError}>{progressError}</Text> : null}
       </View>
 
       <View style={styles.walletCard}>
         <View style={styles.walletHeading}>
-          <Text style={styles.sectionTitle}>ط£ط±طµط¯طھظٹ</Text>
+          <Text style={styles.sectionTitle}>أرصدتي</Text>
           <TouchableOpacity onPress={() => router.push('/(tabs)/wallet')} style={styles.walletLink}>
-            <Text style={styles.walletLinkText}>ظپطھط­ ط§ظ„ظ…ط­ظپط¸ط©</Text>
+            <Text style={styles.walletLinkText}>فتح المحفظة</Text>
             <ChevronLeft size={15} color={palette.gold} />
           </TouchableOpacity>
         </View>
@@ -261,7 +261,7 @@ export default function ProfileScreen() {
             <View style={styles.coinsIcon}><Coins size={18} color={palette.gold} /></View>
             <View>
               <Text style={styles.balanceValue}>{Number(profile?.balance_gold ?? 0).toLocaleString()}</Text>
-              <Text style={styles.balanceLabel}>Coin ظ„ظ„ط§ط³طھط®ط¯ط§ظ… ط¯ط§ط®ظ„ ط§ظ„طھط·ط¨ظٹظ‚</Text>
+              <Text style={styles.balanceLabel}>Coin للاستخدام داخل التطبيق</Text>
             </View>
           </View>
           <View style={styles.balanceDivider} />
@@ -269,61 +269,61 @@ export default function ProfileScreen() {
             <View style={styles.gemsIcon}><Gem size={18} color={palette.teal} /></View>
             <View>
               <Text style={styles.balanceValue}>{Number(profile?.balance_diamond ?? 0).toLocaleString()}</Text>
-              <Text style={styles.balanceLabel}>Diamond ظ‚ط§ط¨ظ„ ظ„ظ„طھط­ظˆظٹظ„ ط£ظˆ ط§ظ„ط³ط­ط¨</Text>
+              <Text style={styles.balanceLabel}>Diamond قابل للتحويل أو السحب</Text>
             </View>
           </View>
         </View>
         <View style={styles.walletActions}>
           <TouchableOpacity style={styles.walletAction} onPress={() => router.push('/(tabs)/wallet')}>
             <Wallet size={14} color={palette.gold} />
-            <Text style={styles.walletActionText}>ط´ط­ظ† / طھط­ظˆظٹظ„</Text>
+            <Text style={styles.walletActionText}>شحن / تحويل</Text>
           </TouchableOpacity>
           {profile?.referral_code ? (
             <TouchableOpacity style={styles.walletAction} onPress={handleShare}>
               <Gift size={14} color={palette.teal} />
-              <Text style={styles.walletActionText}>ط¯ط¹ظˆط© طµط¯ظٹظ‚</Text>
+              <Text style={styles.walletActionText}>دعوة صديق</Text>
             </TouchableOpacity>
           ) : null}
         </View>
       </View>
 
       <View style={styles.quickGrid}>
-        <QuickAction icon={ImagePlus} label="ظ…ظ„ظپظٹ ظˆط§ظ„ظ…ظ†ط´ظˆط±ط§طھ" color={palette.primary} onPress={() => profile?.id && router.push(`/user/${profile.id}`)} />
-        <QuickAction icon={BadgeCheck} label="طھظˆط«ظٹظ‚ ط§ظ„ط­ط³ط§ط¨" color={palette.gold} onPress={() => router.push('/host-application')} />
-        <QuickAction icon={LockKeyhole} label={isPrivate ? 'ط§ظ„ظ…ظ„ظپ ظ„ظ„ط£طµط¯ظ‚ط§ط،' : 'ط§ظ„ظ…ظ„ظپ ط¹ط§ظ…'} color={palette.teal} onPress={toggleProfileVisibility} />
-        <QuickAction icon={Crown} label="ط¹ط¶ظˆظٹط© VIP" color={colors.gold} onPress={() => router.push('/membership')} />
-        <QuickAction icon={ShieldCheck} label="ط­ظ…ط§ظٹط§طھ ط§ظ„ط؛ط±ظپ" color={colors.teal} onPress={() => router.push('/protection')} />
-        <QuickAction icon={Flame} label="ط³ظ„ط³ظ„ط© ط§ظ„ظˆظ„ط§ط،" color={colors.gold} onPress={() => router.push('/loyalty')} />
+        <QuickAction icon={ImagePlus} label="ملفي والمنشورات" color={palette.primary} onPress={() => profile?.id && router.push(`/user/${profile.id}`)} />
+        <QuickAction icon={BadgeCheck} label="توثيق الحساب" color={palette.gold} onPress={() => router.push('/host-application')} />
+        <QuickAction icon={LockKeyhole} label={isPrivate ? 'الملف للأصدقاء' : 'الملف عام'} color={palette.teal} onPress={toggleProfileVisibility} />
+        <QuickAction icon={Crown} label="عضوية VIP" color={colors.gold} onPress={() => router.push('/membership')} />
+        <QuickAction icon={ShieldCheck} label="حمايات الغرف" color={colors.teal} onPress={() => router.push('/protection')} />
+        <QuickAction icon={Flame} label="سلسلة الولاء" color={colors.gold} onPress={() => router.push('/loyalty')} />
       </View>
 
       {profile?.referral_code ? (
         <TouchableOpacity style={styles.referralCard} onPress={handleShare} activeOpacity={0.85}>
           <View style={styles.referralIcon}><Gift size={17} color={palette.gold} /></View>
           <View style={styles.referralCopy}>
-            <Text style={styles.referralTitle}>ظƒظˆط¯ ط§ظ„ط¯ط¹ظˆط© ط§ظ„ط®ط§طµ ط¨ظƒ</Text>
+            <Text style={styles.referralTitle}>كود الدعوة الخاص بك</Text>
             <Text style={styles.referralCode}>{profile.referral_code}</Text>
           </View>
-          <View style={styles.referralShare}><Text style={styles.referralShareText}>ظ…ط´ط§ط±ظƒط©</Text></View>
+          <View style={styles.referralShare}><Text style={styles.referralShareText}>مشاركة</Text></View>
         </TouchableOpacity>
       ) : null}
 
-      <MenuSection title="ط§ظ„ط­ط³ط§ط¨ ظˆط§ظ„ط£ظ…ط§ظ†">
-        <MenuItem icon={Settings} label="ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط­ط³ط§ط¨" hint="ط§ظ„طھظپط¶ظٹظ„ط§طھ ظˆط§ظ„ط¥ط´ط¹ط§ط±ط§طھ" onPress={() => router.push('/settings')} />
-        <MenuItem icon={LockKeyhole} label="ط§ظ„ط®طµظˆطµظٹط©" hint={isPrivate ? 'ط§ظ„ط£طµط¯ظ‚ط§ط، ظپظ‚ط·' : 'ط¹ط§ظ…'} onPress={() => router.push('/privacy-settings')} />
-        <MenuItem icon={ShieldBan} label="ط§ظ„ظ…ط³طھط®ط¯ظ…ظˆظ† ط§ظ„ظ…ط­ط¸ظˆط±ظˆظ†" onPress={() => router.push('/blocked-users')} />
+      <MenuSection title="الحساب والأمان">
+        <MenuItem icon={Settings} label="إعدادات الحساب" hint="التفضيلات والإشعارات" onPress={() => router.push('/settings')} />
+        <MenuItem icon={LockKeyhole} label="الخصوصية" hint={isPrivate ? 'الأصدقاء فقط' : 'عام'} onPress={() => router.push('/privacy-settings')} />
+        <MenuItem icon={ShieldBan} label="المستخدمون المحظورون" onPress={() => router.push('/blocked-users')} />
       </MenuSection>
 
-      <MenuSection title="ط§ظ„ظ…ط¬طھظ…ط¹">
-        <MenuItem icon={Users} label="ط§ظ„ط£طµط¯ظ‚ط§ط، ظˆط§ظ„ظ…طھط§ط¨ط¹ط©" onPress={() => router.push('/(tabs)/friends')} />
-        <MenuItem icon={Wallet} label="ط§ظ„ظ…ط­ظپط¸ط© ظˆط³ط¬ظ„ ط§ظ„ظ…ط¹ط§ظ…ظ„ط§طھ" onPress={() => router.push('/(tabs)/wallet')} />
-        <MenuItem icon={Headset} label="ط§ظ„ط¯ط¹ظ… ظˆط§ظ„ظ…ط³ط§ط¹ط¯ط©" onPress={() => router.push('/support')} />
+      <MenuSection title="المجتمع">
+        <MenuItem icon={Users} label="الأصدقاء والمتابعة" onPress={() => router.push('/(tabs)/friends')} />
+        <MenuItem icon={Wallet} label="المحفظة وسجل المعاملات" onPress={() => router.push('/(tabs)/wallet')} />
+        <MenuItem icon={Headset} label="الدعم والمساعدة" onPress={() => router.push('/support')} />
       </MenuSection>
 
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
         <LogOut size={17} color={palette.danger} />
-        <Text style={styles.signOutText}>طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬</Text>
+        <Text style={styles.signOutText}>تسجيل الخروج</Text>
       </TouchableOpacity>
-      <Text style={styles.version}>Wattar آ· ظ…ط¬طھظ…ط¹ ط§ظ„طµظˆطھ</Text>
+      <Text style={styles.version}>Wattar · مجتمع الصوت</Text>
     </ScrollView>
   );
 }

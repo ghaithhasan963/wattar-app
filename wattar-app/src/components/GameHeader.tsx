@@ -1,4 +1,4 @@
-﻿import { ArrowRight } from 'lucide-react-native';
+import { ArrowRight } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CurrencyIcon } from '@/components/CurrencyIcon';
@@ -21,15 +21,15 @@ export function GameHeader({ title, subtitle, balance }: GameHeaderProps) {
           style={styles.backButton}
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel="ط§ظ„ط¹ظˆط¯ط© ط¥ظ„ظ‰ ط§ظ„ط£ظ„ط¹ط§ط¨"
+          accessibilityLabel="العودة إلى الألعاب"
         >
           <ArrowRight size={19} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.titleCopy}>
-          <Text style={styles.eyebrow}>WATTAR آ· ط£ظ„ط¹ط§ط¨ COIN</Text>
+          <Text style={styles.eyebrow}>WATTAR · ألعاب COIN</Text>
           <Text style={styles.title}>{title}</Text>
         </View>
-        <View style={styles.balanceCard} accessibilityLabel={`ط±طµظٹط¯ Coin ${coinBalance.toLocaleString('ar')}`}>
+        <View style={styles.balanceCard} accessibilityLabel={`رصيد Coin ${coinBalance.toLocaleString('ar')}`}>
           <CurrencyIcon currency="coin" size={34} />
           <View style={styles.balanceCopy}>
             <Text style={styles.balanceLabel}>Coin</Text>

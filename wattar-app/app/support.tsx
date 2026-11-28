@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -27,19 +27,19 @@ interface SupportTicket {
 }
 
 const categories = [
-  { id: 'account', label: 'ط§ظ„ط­ط³ط§ط¨' },
-  { id: 'deposit', label: 'ط§ظ„ط´ط­ظ†' },
-  { id: 'withdrawal', label: 'ط§ظ„ط³ط­ط¨' },
-  { id: 'technical', label: 'ظ…ط´ظƒظ„ط© طھظ‚ظ†ظٹط©' },
-  { id: 'report', label: 'ط¨ظ„ط§ط؛' },
-  { id: 'other', label: 'ط£ط®ط±ظ‰' },
+  { id: 'account', label: 'الحساب' },
+  { id: 'deposit', label: 'الشحن' },
+  { id: 'withdrawal', label: 'السحب' },
+  { id: 'technical', label: 'مشكلة تقنية' },
+  { id: 'report', label: 'بلاغ' },
+  { id: 'other', label: 'أخرى' },
 ] as const;
 
 const ticketStatus = (status: string) => {
-  if (status === 'in_progress') return 'ظ‚ظٹط¯ ط§ظ„ظ…طھط§ط¨ط¹ط©';
-  if (status === 'resolved') return 'طھظ… ط§ظ„ط­ظ„';
-  if (status === 'closed') return 'ظ…ط؛ظ„ظ‚';
-  return 'ظ…ظپطھظˆط­';
+  if (status === 'in_progress') return 'قيد المتابعة';
+  if (status === 'resolved') return 'تم الحل';
+  if (status === 'closed') return 'مغلق';
+  return 'مفتوح';
 };
 
 export default function SupportScreen() {
@@ -65,7 +65,7 @@ export default function SupportScreen() {
       if (queryError) throw queryError;
       setTickets((data ?? []) as SupportTicket[]);
     } catch (loadError: unknown) {
-      const message = loadError instanceof Error ? loadError.message : 'طھط¹ط°ط± طھط­ظ…ظٹظ„ ط·ظ„ط¨ط§طھ ط§ظ„ط¯ط¹ظ….';
+      const message = loadError instanceof Error ? loadError.message : 'تعذر تحميل طلبات الدعم.';
       setError(message);
     } finally {
       setLoading(false);
@@ -88,13 +88,13 @@ export default function SupportScreen() {
       });
       if (createError) throw createError;
       const result = data as { ticket_id?: string } | null;
-      if (!result?.ticket_id) throw new Error('ظ„ظ… ظٹطµظ„ ط±ظ‚ظ… ط·ظ„ط¨ ط§ظ„ط¯ط¹ظ….');
+      if (!result?.ticket_id) throw new Error('لم يصل رقم طلب الدعم.');
       setCreateVisible(false);
       setSubject('');
       setBody('');
       router.push(`/support/${result.ticket_id}`);
     } catch (createError: unknown) {
-      setError(createError instanceof Error ? createError.message : 'طھط¹ط°ط± ط¥ط±ط³ط§ظ„ ط·ظ„ط¨ ط§ظ„ط¯ط¹ظ….');
+      setError(createError instanceof Error ? createError.message : 'تعذر إرسال طلب الدعم.');
     } finally {
       setSubmitting(false);
     }
@@ -103,12 +103,12 @@ export default function SupportScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="ط±ط¬ظˆط¹">
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="رجوع">
           <ChevronLeft size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerCopy}>
-          <Text style={styles.eyebrow}>WATTAR آ· ظ…ط³ط§ط¹ط¯ط© ظ…ط¨ط§ط´ط±ط©</Text>
-          <Text style={styles.title}>ظ…ط±ظƒط² ط§ظ„ط¯ط¹ظ…</Text>
+          <Text style={styles.eyebrow}>WATTAR · مساعدة مباشرة</Text>
+          <Text style={styles.title}>مركز الدعم</Text>
         </View>
         <View style={styles.headerIcon}><CircleHelp size={22} color={colors.teal} /></View>
       </View>
@@ -116,19 +116,19 @@ export default function SupportScreen() {
       <View style={styles.introCard}>
         <View style={styles.introIcon}><TicketCheck size={20} color={colors.primary} /></View>
         <View style={styles.introCopy}>
-          <Text style={styles.introTitle}>ظ†ط­ظ† ظ‡ظ†ط§ ظ„ظ…ط³ط§ط¹ط¯طھظƒ</Text>
-          <Text style={styles.introText}>ط£ظ†ط´ط¦ ط·ظ„ط¨ظ‹ط§ ظ…ط¹ ظˆطµظپ ظˆط§ط¶ط­طŒ ظˆطھط§ط¨ط¹ ط§ظ„ط±ط¯ظˆط¯ ظˆط­ط§ظ„ط© ط§ظ„ظ…ط¹ط§ظ„ط¬ط© ظ…ظ† ظ‡ظ†ط§.</Text>
+          <Text style={styles.introTitle}>نحن هنا لمساعدتك</Text>
+          <Text style={styles.introText}>أنشئ طلبًا مع وصف واضح، وتابع الردود وحالة المعالجة من هنا.</Text>
         </View>
       </View>
 
       <View style={styles.sectionHeading}>
         <View>
-          <Text style={styles.sectionTitle}>ط·ظ„ط¨ط§طھظٹ</Text>
-          <Text style={styles.sectionHint}>ظ…طھط§ط¨ط¹ط© ط®ط§طµط© ط¨ظٹظ†ظƒ ظˆط¨ظٹظ† ظپط±ظٹظ‚ ط§ظ„ط¯ط¹ظ…</Text>
+          <Text style={styles.sectionTitle}>طلباتي</Text>
+          <Text style={styles.sectionHint}>متابعة خاصة بينك وبين فريق الدعم</Text>
         </View>
         <TouchableOpacity style={styles.newButton} onPress={() => setCreateVisible(true)} accessibilityRole="button">
           <Plus size={17} color={colors.text} />
-          <Text style={styles.newButtonText}>ط·ظ„ط¨ ط¬ط¯ظٹط¯</Text>
+          <Text style={styles.newButtonText}>طلب جديد</Text>
         </TouchableOpacity>
       </View>
 
@@ -149,7 +149,7 @@ export default function SupportScreen() {
               style={styles.ticketCard}
               onPress={() => router.push(`/support/${ticket.ticket_id}`)}
               accessibilityRole="button"
-              accessibilityLabel={`ط·ظ„ط¨ ${ticket.subject}طŒ ط§ظ„ط­ط§ظ„ط© ${ticketStatus(ticket.status)}`}
+              accessibilityLabel={`طلب ${ticket.subject}، الحالة ${ticketStatus(ticket.status)}`}
             >
               <View style={styles.ticketTop}>
                 <View style={[styles.statusPill, ticket.status === 'resolved' && styles.statusResolved]}>
@@ -162,15 +162,15 @@ export default function SupportScreen() {
               <Text style={styles.ticketSubject}>{ticket.subject}</Text>
               <Text style={styles.ticketPreview} numberOfLines={2}>{ticket.last_message}</Text>
               <Text style={styles.ticketCategory}>
-                {categories.find((item) => item.id === ticket.category)?.label ?? 'ط£ط®ط±ظ‰'}
+                {categories.find((item) => item.id === ticket.category)?.label ?? 'أخرى'}
               </Text>
             </TouchableOpacity>
           ))}
           {tickets.length === 0 && (
             <View style={styles.empty}>
               <TicketCheck size={28} color={colors.textSecondary} />
-              <Text style={styles.emptyTitle}>ظ„ط§ طھظˆط¬ط¯ ط·ظ„ط¨ط§طھ ط¨ط¹ط¯</Text>
-              <Text style={styles.emptyText}>ط³ظٹط¸ظ‡ط± ط·ظ„ط¨ظƒ ظ‡ظ†ط§ ط¨ظ…ط¬ط±ط¯ ط¥ط±ط³ط§ظ„ظ‡.</Text>
+              <Text style={styles.emptyTitle}>لا توجد طلبات بعد</Text>
+              <Text style={styles.emptyText}>سيظهر طلبك هنا بمجرد إرساله.</Text>
             </View>
           )}
         </ScrollView>
@@ -180,12 +180,12 @@ export default function SupportScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>ظپطھط­ ط·ظ„ط¨ ط¯ط¹ظ…</Text>
-              <TouchableOpacity onPress={() => setCreateVisible(false)} accessibilityLabel="ط¥ط؛ظ„ط§ظ‚">
-                <Text style={styles.cancelText}>ط¥ظ„ط؛ط§ط،</Text>
+              <Text style={styles.modalTitle}>فتح طلب دعم</Text>
+              <TouchableOpacity onPress={() => setCreateVisible(false)} accessibilityLabel="إغلاق">
+                <Text style={styles.cancelText}>إلغاء</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.fieldLabel}>ط§ظ„طھطµظ†ظٹظپ</Text>
+            <Text style={styles.fieldLabel}>التصنيف</Text>
             <View style={styles.categoryGrid}>
               {categories.map((item) => (
                 <TouchableOpacity
@@ -199,27 +199,27 @@ export default function SupportScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={styles.fieldLabel}>ط¹ظ†ظˆط§ظ† ط§ظ„ط·ظ„ط¨</Text>
+            <Text style={styles.fieldLabel}>عنوان الطلب</Text>
             <TextInput
               style={styles.modalInput}
               value={subject}
               onChangeText={setSubject}
-              placeholder="ظ…ط«ط§ظ„: ظ…ط´ظƒظ„ط© ظپظٹ ط·ظ„ط¨ ط§ظ„ط´ط­ظ†"
+              placeholder="مثال: مشكلة في طلب الشحن"
               placeholderTextColor={colors.textSecondary}
               maxLength={120}
             />
-            <Text style={styles.fieldLabel}>ط§ط´ط±ط­ ط§ظ„ظ…ط´ظƒظ„ط©</Text>
+            <Text style={styles.fieldLabel}>اشرح المشكلة</Text>
             <TextInput
               style={[styles.modalInput, styles.bodyInput]}
               value={body}
               onChangeText={setBody}
-              placeholder="ط§ظƒطھط¨ ط§ظ„طھظپط§طµظٹظ„ ط§ظ„طھظٹ طھط³ط§ط¹ط¯ظ†ط§ ط¹ظ„ظ‰ ظپظ‡ظ… ط§ظ„ظ…ط´ظƒظ„ط©..."
+              placeholder="اكتب التفاصيل التي تساعدنا على فهم المشكلة..."
               placeholderTextColor={colors.textSecondary}
               multiline
               textAlignVertical="top"
               maxLength={3000}
             />
-            <Text style={styles.privacyNote}>ظ„ط§ طھظƒطھط¨ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط£ظˆ ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ط£ظˆ ط¨ظٹط§ظ†ط§طھ ط¨ط·ط§ظ‚طھظƒ.</Text>
+            <Text style={styles.privacyNote}>لا تكتب كلمة المرور أو رمز التحقق أو بيانات بطاقتك.</Text>
             <TouchableOpacity
               style={[styles.submitButton, submitting && styles.disabled]}
               onPress={() => void submitTicket()}
@@ -227,7 +227,7 @@ export default function SupportScreen() {
               accessibilityRole="button"
             >
               {submitting ? <ActivityIndicator color={colors.text} /> : <Send size={17} color={colors.text} />}
-              <Text style={styles.submitText}>{submitting ? 'ط¬ط§ط±ظچ ط§ظ„ط¥ط±ط³ط§ظ„...' : 'ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨'}</Text>
+              <Text style={styles.submitText}>{submitting ? 'جارٍ الإرسال...' : 'إرسال الطلب'}</Text>
             </TouchableOpacity>
           </View>
         </View>

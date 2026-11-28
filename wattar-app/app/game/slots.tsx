@@ -1,7 +1,7 @@
-﻿/**
- * Wattar App â€” Slots (M9.4)
- * ط¬ط¯ظˆظ„ ط§ظ„ط¬ظˆط§ط¦ط² ظˆط±ظ…ظˆط² ط§ظ„ط®ط³ط§ط±ط© ظ…ظ† ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط®ط§ط¯ظ…. ط§ظ„ط®ط§ط¯ظ… ظٹط³ط­ط¨ ط§ظ„ظپط¦ط© ظˆظپظ‚
- * ط§ظ„ط§ط­طھظ…ط§ظ„ط§طھ ط§ظ„ظ…ط¹ظ„ظ†ط© ظˆظٹط¹ظٹط¯ ط§ظ„ط±ظ…ظˆط²ط› ط§ظ„ط¹ظ…ظٹظ„ ظٹط¹ط±ط¶ ظپظ‚ط· ظˆظ„ط§ ظٹظ‚ط±ط± ط§ظ„ظ†طھظٹط¬ط©.
+/**
+ * Wattar App — Slots (M9.4)
+ * جدول الجوائز ورموز الخسارة من إعدادات الخادم. الخادم يسحب الفئة وفق
+ * الاحتمالات المعلنة ويعيد الرموز؛ العميل يعرض فقط ولا يقرر النتيجة.
  */
 import React, { useMemo, useRef, useState } from 'react';
 import {
@@ -35,7 +35,7 @@ interface SlotsResponse {
 
 const CELL_HEIGHT = 96;
 const STRIP_LENGTH = 14;
-const IDLE_REELS = ['ًںچ‹', 'â­گ', 'ًںچ‡'];
+const IDLE_REELS = ['🍋', '⭐', '🍇'];
 const REEL_DURATIONS = [820, 1080, 1340];
 
 export default function SlotsGame() {
@@ -81,11 +81,11 @@ export default function SlotsGame() {
     const bet = parseValidGameBet(betAmount, profile?.balance_gold ?? 0);
     if (bet === null || loading || spinning) return;
     if (game && !game.available) {
-      setErrorMessage('ظ‡ط°ظ‡ ط§ظ„ظ„ط¹ط¨ط© ط؛ظٹط± ظ…طھط§ط­ط© ظ„ط­ط³ط§ط¨ظƒ ط­ط§ظ„ظٹط§ظ‹.');
+      setErrorMessage('هذه اللعبة غير متاحة لحسابك حالياً.');
       return;
     }
     if (game && (bet < game.min_bet || bet > game.max_bet)) {
-      setErrorMessage(`ط§ظ„ط­ط¯ ط§ظ„ظ…ط³ظ…ظˆط­ ظ…ظ† ${game.min_bet} ط¥ظ„ظ‰ ${game.max_bet} Coin.`);
+      setErrorMessage(`الحد المسموح من ${game.min_bet} إلى ${game.max_bet} Coin.`);
       return;
     }
 
@@ -111,7 +111,7 @@ export default function SlotsGame() {
         || response.multiplier < 0
         || response.payout < 0
       ) {
-        throw new Error('ظ„ظ… طھطµظ„ ظ†طھظٹط¬ط© ط§ظ„ط¨ظƒط±ط§طھ ط¨ط´ظƒظ„ طµط­ظٹط­.');
+        throw new Error('لم تصل نتيجة البكرات بشكل صحيح.');
       }
 
       setLoading(false);
@@ -163,7 +163,7 @@ export default function SlotsGame() {
       setSpinning(false);
       setLoading(false);
       setResult(null);
-      setErrorMessage(error instanceof Error ? error.message : 'طھط¹ط°ط± ط¥ظƒظ…ط§ظ„ ط§ظ„ط¬ظˆظ„ط©.');
+      setErrorMessage(error instanceof Error ? error.message : 'تعذر إكمال الجولة.');
     }
   };
 
@@ -178,7 +178,7 @@ export default function SlotsGame() {
     >
       <GameHeader
         title={game?.display_name ?? 'Slots'}
-        subtitle={game?.description ?? 'ط·ط§ط¨ظ‚ ط§ظ„ط±ظ…ظˆط² ط§ظ„ط«ظ„ط§ط«ط©. ط§ظ„ظپط¦ط© طھظڈط³ط­ط¨ ط¹ظ„ظ‰ ط§ظ„ط®ط§ط¯ظ… ظˆظپظ‚ ط§ظ„ط§ط­طھظ…ط§ظ„ط§طھ ط§ظ„ظ…ط¹ظ„ظ†ط©.'}
+        subtitle={game?.description ?? 'طابق الرموز الثلاثة. الفئة تُسحب على الخادم وفق الاحتمالات المعلنة.'}
         balance={profile?.balance_gold ?? 0}
       />
 
@@ -231,39 +231,39 @@ export default function SlotsGame() {
         </View>
 
         <View style={styles.machineBase}>
-          <Text style={styles.payline}>WATTAR آ· RTP {formatPercent(game?.declared_rtp ?? 0)}</Text>
+          <Text style={styles.payline}>WATTAR · RTP {formatPercent(game?.declared_rtp ?? 0)}</Text>
         </View>
       </Animated.View>
 
       {result ? (
         <View style={[styles.resultCard, result.is_win ? styles.winCard : styles.lossCard]}>
           <Text style={styles.resultTitle}>
-            {result.is_win ? `ط±ظ…ظˆط² ظ…طھط·ط§ط¨ظ‚ط© آ· أ—${result.multiplier}` : 'ط¬ظˆظ„ط© ط¬ط¯ظٹط¯ط©طŒ ط­ط¸ ط£ظˆظپط±!'}
+            {result.is_win ? `رموز متطابقة · ×${result.multiplier}` : 'جولة جديدة، حظ أوفر!'}
           </Text>
           <Text style={styles.resultText}>
             {result.is_win
-              ? `ط§ظ„ط¬ط§ط¦ط²ط© ${result.payout.toLocaleString()} Coin`
-              : 'ظ„ظ… طھط·ط§ط¨ظ‚ ط§ظ„ط±ظ…ظˆط² ظ‡ط°ظ‡ ط§ظ„ظ…ط±ط©.'}
-            {result.test_mode ? ' آ· ظ…ط­ط§ظƒط§ط© ط¨ظ„ط§ ط£ط±طµط¯ط© ط­ظ‚ظٹظ‚ظٹط©' : ''}
-            {result.promo_reward ? ' آ· ظ…ظƒط§ظپط£ط© ظ…ط¹ظ„ظ†ط©' : ''}
+              ? `الجائزة ${result.payout.toLocaleString()} Coin`
+              : 'لم تطابق الرموز هذه المرة.'}
+            {result.test_mode ? ' · محاكاة بلا أرصدة حقيقية' : ''}
+            {result.promo_reward ? ' · مكافأة معلنة' : ''}
           </Text>
         </View>
       ) : null}
       {errorMessage ? <Text accessibilityRole="alert" style={styles.error}>{errorMessage}</Text> : null}
 
       <View style={styles.controls}>
-        <Text style={styles.tableTitle}>ط¬ط¯ظˆظ„ ط§ظ„ط¬ظˆط§ط¦ط² ط§ظ„ظ…ط¹ظ„ظ†</Text>
+        <Text style={styles.tableTitle}>جدول الجوائز المعلن</Text>
         <View style={styles.tableRow}>
           {config.tiers.map((tier) => (
             <View key={tier.symbol} style={styles.tableCell}>
               <Text style={styles.tableSymbol}>{tier.symbol}</Text>
-              <Text style={styles.tableMult}>أ—{tier.multiplier}</Text>
+              <Text style={styles.tableMult}>×{tier.multiplier}</Text>
               <Text style={styles.tableProb}>{formatPercent(tier.probability * 100)}</Text>
             </View>
           ))}
         </View>
         <Text style={styles.tableHint}>
-          ظ†ط³ط¨ط© ط§ظ„ط¥طµط§ط¨ط© {formatPercent(hitRate * 100)} â€” ط±ظ…ط²ط§ظ† ظ…ط®طھظ„ظپط§ظ† ط£ظˆ ط£ظƒط«ط± ظٹط¹ظ†ظٹط§ظ† ط®ط³ط§ط±ط© ط§ظ„ط¬ظˆظ„ط©.
+          نسبة الإصابة {formatPercent(hitRate * 100)} — رمزان مختلفان أو أكثر يعنيان خسارة الجولة.
         </Text>
 
         <GameBetControl
@@ -277,7 +277,7 @@ export default function SlotsGame() {
         />
         {game ? (
           <Text style={styles.limitHint}>
-            ط§ظ„ط­ط¯: {game.min_bet.toLocaleString()} â€“ {game.max_bet.toLocaleString()} Coin
+            الحد: {game.min_bet.toLocaleString()} – {game.max_bet.toLocaleString()} Coin
           </Text>
         ) : null}
 
@@ -289,10 +289,10 @@ export default function SlotsGame() {
         >
           {loading || spinning
             ? <ActivityIndicator color={colors.background} />
-            : <Text style={styles.spinText}>ط¬ط±ظ‘ط¨ ط­ط¸ظƒ</Text>}
+            : <Text style={styles.spinText}>جرّب حظك</Text>}
         </TouchableOpacity>
         <Text style={styles.disclaimer}>
-          ط§ظ„ط±ظ‡ط§ظ† ظٹظڈط®طµظ… ظ…ظ† ط±طµظٹط¯ CoinطŒ ظˆط§ظ„ط£ط±ط¨ط§ط­ طھط¹ظˆط¯ ط¥ظ„ظ‰ Coin. ظƒظ„ ط¬ظˆظ„ط© طھظڈط³ط¬ظژظ‘ظ„ ط¨ط´ظƒظ„ ظ…ط³طھظ‚ظ„.
+          الرهان يُخصم من رصيد Coin، والأرباح تعود إلى Coin. كل جولة تُسجَّل بشكل مستقل.
         </Text>
       </View>
 

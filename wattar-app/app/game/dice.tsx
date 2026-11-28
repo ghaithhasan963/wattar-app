@@ -1,7 +1,7 @@
-﻿/**
- * Wattar App â€” ظ†ط±ط¯ (M9.4)
- * ط­ط¯ ط§ظ„طھظˆظ‚ط¹ ظˆط§طھط¬ط§ظ‡ظ‡ ظ…ظ† ط§ظ„ظ…ط³طھط®ط¯ظ…طŒ ظˆط§ظ„ظ†طھظٹط¬ط© ظˆط§ظ„ظ…ط¶ط§ط¹ظپ ظ…ظ† ط§ظ„ط®ط§ط¯ظ….
- * ط§ظ„ظ…ط¶ط§ط¹ظپ ط§ظ„ظ…ط¹ط±ظˆط¶ = (1 أ· ط§ط­طھظ…ط§ظ„ ط§ظ„ظپظˆط²) أ— RTP ط§ظ„ظ…ط¹ظ„ظ†.
+/**
+ * Wattar App — نرد (M9.4)
+ * حد التوقع واتجاهه من المستخدم، والنتيجة والمضاعف من الخادم.
+ * المضاعف المعروض = (1 ÷ احتمال الفوز) × RTP المعلن.
  */
 import React, { useRef, useState } from 'react';
 import {
@@ -65,11 +65,11 @@ export default function DiceGame() {
       || loading
     ) return;
     if (game && !game.available) {
-      Alert.alert('ط§ظ„ظ„ط¹ط¨ط© ط؛ظٹط± ظ…طھط§ط­ط©', 'ظ‡ط°ظ‡ ط§ظ„ظ„ط¹ط¨ط© ط؛ظٹط± ظ…طھط§ط­ط© ظ„ط­ط³ط§ط¨ظƒ ط­ط§ظ„ظٹط§ظ‹.');
+      Alert.alert('اللعبة غير متاحة', 'هذه اللعبة غير متاحة لحسابك حالياً.');
       return;
     }
     if (game && (bet < game.min_bet || bet > game.max_bet)) {
-      Alert.alert('ط§ظ„ط±ظ‡ط§ظ† ط®ط§ط±ط¬ ط§ظ„ط­ط¯ظˆط¯', `ط§ظ„ط­ط¯ ط§ظ„ظ…ط³ظ…ظˆط­ ظ…ظ† ${game.min_bet} ط¥ظ„ظ‰ ${game.max_bet} Coin.`);
+      Alert.alert('الرهان خارج الحدود', `الحد المسموح من ${game.min_bet} إلى ${game.max_bet} Coin.`);
       return;
     }
     setLoading(true);
@@ -109,7 +109,7 @@ export default function DiceGame() {
         || !Number.isFinite(response.multiplier)
         || response.multiplier < 0
       ) {
-        throw new Error('ظ„ظ… طھطµظ„ ظ†طھظٹط¬ط© ط§ظ„ظ†ط±ط¯ ط¨ط´ظƒظ„ طµط­ظٹط­.');
+        throw new Error('لم تصل نتيجة النرد بشكل صحيح.');
       }
 
       rollAnimation.stop();
@@ -133,7 +133,7 @@ export default function DiceGame() {
         console.warn('[Wattar] Failed to refresh Coin balance after dice:', error);
       });
     } catch (err: unknown) {
-      Alert.alert('ط®ط·ط£', err instanceof Error ? err.message : 'طھط¹ط°ط± ط¥ظƒظ…ط§ظ„ ط§ظ„ط¬ظˆظ„ط©.');
+      Alert.alert('خطأ', err instanceof Error ? err.message : 'تعذر إكمال الجولة.');
     } finally {
       rollAnimation.stop();
       dieRotation.stopAnimation();
@@ -149,8 +149,8 @@ export default function DiceGame() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <StatusBar style="light" />
       <GameHeader
-        title={game?.display_name ?? 'ظ†ط±ط¯'}
-        subtitle={game?.description ?? 'طھظˆظ‚ط¹ ط£ظ† طھظƒظˆظ† ط§ظ„ظ†طھظٹط¬ط© ط£ط¹ظ„ظ‰ ط£ظˆ ط£ط¯ظ†ظ‰ ظ…ظ† ط­ط¯ظ‘ظƒ. ط§ظ„ظ…ط¶ط§ط¹ظپ ظٹظڈط­ط³ط¨ ط¹ظ„ظ‰ ط§ظ„ط®ط§ط¯ظ… ظ…ظ† RTP.'}
+        title={game?.display_name ?? 'نرد'}
+        subtitle={game?.description ?? 'توقع أن تكون النتيجة أعلى أو أدنى من حدّك. المضاعف يُحسب على الخادم من RTP.'}
         balance={profile?.balance_gold ?? 0}
       />
 
@@ -192,16 +192,16 @@ export default function DiceGame() {
         <View style={[styles.resultBanner, result.won ? styles.winBanner : styles.loseBanner]}>
           <Text style={styles.resultText}>
             {result.won
-              ? `ًںژ‰ ط§ظ„ط±ظ‚ظ… ${result.roll} â€” ط±ط¨ط­طھ ${result.payout.toLocaleString()} Coin (أ—${result.mult})`
-              : `ط§ظ„ط±ظ‚ظ… ${result.roll} â€” ط®ط³ط±طھ`}
+              ? `🎉 الرقم ${result.roll} — ربحت ${result.payout.toLocaleString()} Coin (×${result.mult})`
+              : `الرقم ${result.roll} — خسرت`}
           </Text>
         </View>
       )}
 
       <View style={styles.targetCard}>
         <View style={styles.targetHeading}>
-          <Text style={styles.targetLabel}>ط­ط¯ظ‘ ط§ظ„طھظˆظ‚ط¹</Text>
-          <Text style={styles.targetRange}>ظ…ظ† 2 ط¥ظ„ظ‰ 98</Text>
+          <Text style={styles.targetLabel}>حدّ التوقع</Text>
+          <Text style={styles.targetRange}>من 2 إلى 98</Text>
         </View>
         <View style={styles.targetStepper}>
           <TouchableOpacity
@@ -209,28 +209,28 @@ export default function DiceGame() {
             onPress={() => changeTarget(-1)}
             disabled={Number(target) <= 2 || loading}
             accessibilityRole="button"
-            accessibilityLabel="ط®ظپط¶ ط­ط¯ ط§ظ„طھظˆظ‚ط¹"
+            accessibilityLabel="خفض حد التوقع"
           >
             <Minus size={18} color={colors.roomText} />
           </TouchableOpacity>
           <View style={styles.targetValueCard}>
             <Text style={styles.targetValue}>{Number(target)}</Text>
-            <Text style={styles.targetValueCaption}>ظ…ظ† 100</Text>
+            <Text style={styles.targetValueCaption}>من 100</Text>
           </View>
           <TouchableOpacity
             style={styles.stepButton}
             onPress={() => changeTarget(1)}
             disabled={Number(target) >= 98 || loading}
             accessibilityRole="button"
-            accessibilityLabel="ط±ظپط¹ ط­ط¯ ط§ظ„طھظˆظ‚ط¹"
+            accessibilityLabel="رفع حد التوقع"
           >
             <Plus size={18} color={colors.roomText} />
           </TouchableOpacity>
         </View>
         <Text style={styles.targetSummary}>
           {direction === 'under'
-            ? `طھط±ط¨ط­ ط¥ط°ط§ ظƒط§ظ†طھ ط§ظ„ظ†طھظٹط¬ط© ظ…ظ† 1 ط¥ظ„ظ‰ ${Number(target) - 1}`
-            : `طھط±ط¨ط­ ط¥ط°ط§ ظƒط§ظ†طھ ط§ظ„ظ†طھظٹط¬ط© ظ…ظ† ${Number(target) + 1} ط¥ظ„ظ‰ 100`}
+            ? `تربح إذا كانت النتيجة من 1 إلى ${Number(target) - 1}`
+            : `تربح إذا كانت النتيجة من ${Number(target) + 1} إلى 100`}
         </Text>
         <View style={styles.targetPresets}>
           {[25, 50, 75].map((preset) => (
@@ -257,24 +257,24 @@ export default function DiceGame() {
             onPress={() => setDirection('under')}
           >
             <TrendingDown size={18} color={direction === 'under' ? colors.text : colors.textMuted} />
-            <Text style={[styles.dirText, direction === 'under' && styles.dirTextActive]}>طھط­طھ {Number(target) - 1}</Text>
+            <Text style={[styles.dirText, direction === 'under' && styles.dirTextActive]}>تحت {Number(target) - 1}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.dirBtn, direction === 'over' && styles.dirBtnActive]}
             onPress={() => setDirection('over')}
           >
             <TrendingUp size={18} color={direction === 'over' ? colors.text : colors.textMuted} />
-            <Text style={[styles.dirText, direction === 'over' && styles.dirTextActive]}>ظپظˆظ‚ {Number(target)}</Text>
+            <Text style={[styles.dirText, direction === 'over' && styles.dirTextActive]}>فوق {Number(target)}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>ط§ط­طھظ…ط§ظ„ ط§ظ„ظپظˆط²</Text>
+            <Text style={styles.statLabel}>احتمال الفوز</Text>
             <Text style={styles.statValue}>{formatPercent(quote.pWin * 100)}</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statLabel}>ط§ظ„ظ…ط¶ط§ط¹ظپ ط§ظ„ظ…ط¹ظ„ظ†</Text>
+            <Text style={styles.statLabel}>المضاعف المعلن</Text>
             <Text style={styles.statValue}>{quote.multiplier.toFixed(2)}x</Text>
           </View>
           <View style={styles.statBox}>
@@ -291,7 +291,7 @@ export default function DiceGame() {
         />
         {game ? (
           <Text style={styles.limitHint}>
-            ط§ظ„ط­ط¯: {game.min_bet.toLocaleString()} â€“ {game.max_bet.toLocaleString()} Coin
+            الحد: {game.min_bet.toLocaleString()} – {game.max_bet.toLocaleString()} Coin
           </Text>
         ) : null}
 
@@ -301,7 +301,7 @@ export default function DiceGame() {
           disabled={rolling || loading || validBet === null}
         >
           <Text style={styles.playButtonText}>
-            {rolling ? 'ًںژ² ظٹط¯ظˆط±...' : loading ? 'ط¬ط§ط±ظٹ...' : 'ط§ط±ظ…ظگ ط§ظ„ظ†ط±ط¯'}
+            {rolling ? '🎲 يدور...' : loading ? 'جاري...' : 'ارمِ النرد'}
           </Text>
         </TouchableOpacity>
       </View>

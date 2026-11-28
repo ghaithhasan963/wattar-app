@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -45,19 +45,19 @@ export default function EmailAuthScreen() {
     setError(null);
     const normalizedEmail = email.trim().toLowerCase();
     if (!EMAIL_PATTERN.test(normalizedEmail)) {
-      setError('ط£ط¯ط®ظ„ ط¨ط±ظٹط¯ظ‹ط§ ط¥ظ„ظƒطھط±ظˆظ†ظٹظ‹ط§ طµط­ظٹط­ظ‹ط§.');
+      setError('أدخل بريدًا إلكترونيًا صحيحًا.');
       return;
     }
     if (!password) {
-      setError('ط£ط¯ط®ظ„ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظ„ظ„ظ…طھط§ط¨ط¹ط©.');
+      setError('أدخل كلمة المرور للمتابعة.');
       return;
     }
     if (mode === 'sign-up' && (password.length < 8 || password.length > 128)) {
-      setError('ط§ط³طھط®ط¯ظ… ظƒظ„ظ…ط© ظ…ط±ظˆط± ظ…ظ† 8 ط¥ظ„ظ‰ 128 ط­ط±ظپظ‹ط§ ظ„ط²ظٹط§ط¯ط© ط£ظ…ط§ظ† ط­ط³ط§ط¨ظƒ.');
+      setError('استخدم كلمة مرور من 8 إلى 128 حرفًا لزيادة أمان حسابك.');
       return;
     }
     if (mode === 'sign-up' && password !== confirmPassword) {
-      setError('ظƒظ„ظ…طھط§ ط§ظ„ظ…ط±ظˆط± ط؛ظٹط± ظ…طھط·ط§ط¨ظ‚طھظٹظ†.');
+      setError('كلمتا المرور غير متطابقتين.');
       return;
     }
 
@@ -78,9 +78,9 @@ export default function EmailAuthScreen() {
       const emailConfirmationRequired = await signUpWithEmail(normalizedEmail, password);
       if (emailConfirmationRequired) {
         Alert.alert(
-          'ط¨ط§ظ‚ظٹ ط®ط·ظˆط© ظˆط§ط­ط¯ط©',
-          'ط£ط±ط³ظ„ظ†ط§ ط±ط§ط¨ط· طھط£ظƒظٹط¯ ط¥ظ„ظ‰ ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ. ط§ظپطھط­ظ‡ ظ„ظ„ط¹ظˆط¯ط© ط¥ظ„ظ‰ ط§ظ„طھط·ط¨ظٹظ‚ ظˆظ…طھط§ط¨ط¹ط© ط¥ط¹ط¯ط§ط¯ ط­ط³ط§ط¨ظƒ.',
-          [{ text: 'ط­ط³ظ†ظ‹ط§', onPress: () => setMode('sign-in') }],
+          'باقي خطوة واحدة',
+          'أرسلنا رابط تأكيد إلى بريدك الإلكتروني. افتحه للعودة إلى التطبيق ومتابعة إعداد حسابك.',
+          [{ text: 'حسنًا', onPress: () => setMode('sign-in') }],
         );
         return;
       }
@@ -99,13 +99,13 @@ export default function EmailAuthScreen() {
   const sendPasswordReset = async () => {
     const normalizedEmail = email.trim().toLowerCase();
     if (!EMAIL_PATTERN.test(normalizedEmail)) {
-      setError('ط£ط¯ط®ظ„ ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط£ظˆظ„ظ‹ط§ ظ„ط¥ط±ط³ط§ظ„ ط±ط§ط¨ط· ط¥ط¹ط§ط¯ط© ط§ظ„طھط¹ظٹظٹظ†.');
+      setError('أدخل بريدك الإلكتروني أولًا لإرسال رابط إعادة التعيين.');
       return;
     }
 
     setError(null);
 
-    // ط­ط¯ظ‘ ظ…ط­ط§ظˆظ„ط§طھ ظ…ط­ظ„ظٹ (ظٹظڈظƒظ…ظ„ظ‡ ط­ط¯ظ‘ Supabase ط¹ظ„ظ‰ ط§ظ„ط®ط§ط¯ظ…).
+    // حدّ محاولات محلي (يُكمله حدّ Supabase على الخادم).
     const requestedAt = Date.now();
     try {
       const allowance = checkRecoveryAllowance(await readAttempts(AsyncStorage, requestedAt), requestedAt);
@@ -114,7 +114,7 @@ export default function EmailAuthScreen() {
         return;
       }
     } catch {
-      // طھط¹ط°ظ‘ط± ظ‚ط±ط§ط،ط© ط§ظ„طھط®ط²ظٹظ† ط§ظ„ظ…ط­ظ„ظٹ: ظ†ظƒظ…ظ„طŒ ظˆط§ظ„ط®ط§ط¯ظ… ظٹظپط±ط¶ ط­ط¯ظ‘ظ‡.
+      // تعذّر قراءة التخزين المحلي: نكمل، والخادم يفرض حدّه.
     }
 
     setResetSending(true);
@@ -123,15 +123,15 @@ export default function EmailAuthScreen() {
         redirectTo: Linking.createURL('callback', { queryParams: { flow: 'recovery' } }),
       });
       if (resetError) throw resetError;
-      // ط±ط³ط§ظ„ط© ظ…ط­ط§ظٹط¯ط©: ظ„ط§ طھظƒط´ظپ ط¥ظ† ظƒط§ظ† ط§ظ„ط¨ط±ظٹط¯ ظ…ط³ط¬ظ‘ظ„ط§ظ‹.
-      Alert.alert('طھط­ظ‚ظ‚ ظ…ظ† ط¨ط±ظٹط¯ظƒ', RECOVERY_EMAIL_SENT_MESSAGE);
+      // رسالة محايدة: لا تكشف إن كان البريد مسجّلاً.
+      Alert.alert('تحقق من بريدك', RECOVERY_EMAIL_SENT_MESSAGE);
     } catch (resetError: unknown) {
       setError(describeRecoveryRequestError(resetError));
     } finally {
       try {
         await recordAttempt(AsyncStorage, Date.now());
       } catch {
-        // ظ„ط§ ظ†ظڈظپط´ظ„ ط§ظ„ط·ظ„ط¨ ط¨ط³ط¨ط¨ ط§ظ„طھط®ط²ظٹظ† ط§ظ„ظ…ط­ظ„ظٹ.
+        // لا نُفشل الطلب بسبب التخزين المحلي.
       }
       setResetSending(false);
     }
@@ -151,10 +151,10 @@ export default function EmailAuthScreen() {
           style={styles.backButton}
           onPress={() => router.replace('/(auth)/login')}
           accessibilityRole="button"
-          accessibilityLabel="ط§ظ„ط¹ظˆط¯ط© ط¥ظ„ظ‰ ط®ظٹط§ط±ط§طھ ط§ظ„ط¯ط®ظˆظ„"
+          accessibilityLabel="العودة إلى خيارات الدخول"
         >
           <ChevronRight size={20} color={colors.textSecondary} />
-          <Text style={styles.backText}>ط®ظٹط§ط±ط§طھ ط§ظ„ط¯ط®ظˆظ„</Text>
+          <Text style={styles.backText}>خيارات الدخول</Text>
         </TouchableOpacity>
 
         <View style={styles.brand}>
@@ -163,11 +163,11 @@ export default function EmailAuthScreen() {
           </View>
           <View style={styles.brandEyebrow}>
             <Sparkles size={13} color={colors.gold} />
-            <Text style={styles.brandEyebrowText}>ط£ظ‡ظ„ط§ظ‹ ط¨ظƒ ظپظٹ ظˆطھط±</Text>
+            <Text style={styles.brandEyebrowText}>أهلاً بك في وتر</Text>
           </View>
-          <Text style={styles.title}>{mode === 'sign-in' ? 'ط³ط¹ط¯ط§ط، ط¨ط¹ظˆط¯طھظƒ' : 'ظ…ظƒط§ظ†ظƒ ط¨ظٹظ†ظ†ط§'}</Text>
+          <Text style={styles.title}>{mode === 'sign-in' ? 'سعداء بعودتك' : 'مكانك بيننا'}</Text>
           <Text style={styles.subtitle}>
-            {mode === 'sign-in' ? 'ط³ط¬ظ‘ظ„ ط¯ط®ظˆظ„ظƒ ظˆطھط§ط¨ط¹ ط¹ط§ظ„ظ…ظƒ ط§ظ„طµظˆطھظٹ.' : 'ط£ظ†ط´ط¦ ط­ط³ط§ط¨ظƒ ظˆط§ط¨ط¯ط£ ط­ظƒط§ظٹطھظƒ ط¨طµظˆطھظƒ.'}
+            {mode === 'sign-in' ? 'سجّل دخولك وتابع عالمك الصوتي.' : 'أنشئ حسابك وابدأ حكايتك بصوتك.'}
           </Text>
         </View>
 
@@ -180,7 +180,7 @@ export default function EmailAuthScreen() {
               accessibilityRole="tab"
               accessibilityState={{ selected: mode === 'sign-up' }}
             >
-              <Text style={[styles.modeTabText, mode === 'sign-up' && styles.modeTabTextActive]}>ط­ط³ط§ط¨ ط¬ط¯ظٹط¯</Text>
+              <Text style={[styles.modeTabText, mode === 'sign-up' && styles.modeTabTextActive]}>حساب جديد</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modeTab, mode === 'sign-in' && styles.modeTabActive]}
@@ -189,11 +189,11 @@ export default function EmailAuthScreen() {
               accessibilityRole="tab"
               accessibilityState={{ selected: mode === 'sign-in' }}
             >
-              <Text style={[styles.modeTabText, mode === 'sign-in' && styles.modeTabTextActive]}>طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„</Text>
+              <Text style={[styles.modeTabText, mode === 'sign-in' && styles.modeTabTextActive]}>تسجيل الدخول</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.label}>ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ</Text>
+          <Text style={styles.label}>البريد الإلكتروني</Text>
           <View style={styles.inputWrap}>
             <Mail size={18} color={colors.textSecondary} />
             <TextInput
@@ -212,14 +212,14 @@ export default function EmailAuthScreen() {
             />
           </View>
 
-          <Text style={styles.label}>ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</Text>
+          <Text style={styles.label}>كلمة المرور</Text>
           <View style={styles.inputWrap}>
             <Lock size={18} color={colors.textSecondary} />
             <TextInput
               style={styles.input}
               value={password}
               onChangeText={(value) => { setPassword(value); setError(null); }}
-              placeholder={mode === 'sign-up' ? '8 ط£ط­ط±ظپ ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„' : 'ط£ط¯ط®ظ„ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±'}
+              placeholder={mode === 'sign-up' ? '8 أحرف على الأقل' : 'أدخل كلمة المرور'}
               placeholderTextColor={colors.textMuted}
               secureTextEntry={!passwordVisible}
               autoCapitalize="none"
@@ -232,7 +232,7 @@ export default function EmailAuthScreen() {
             <TouchableOpacity
               onPress={() => setPasswordVisible((visible) => !visible)}
               accessibilityRole="button"
-              accessibilityLabel={passwordVisible ? 'ط¥ط®ظپط§ط، ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±' : 'ط¥ط¸ظ‡ط§ط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±'}
+              accessibilityLabel={passwordVisible ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
               hitSlop={8}
             >
               {passwordVisible
@@ -243,14 +243,14 @@ export default function EmailAuthScreen() {
 
           {mode === 'sign-up' && (
             <>
-              <Text style={styles.label}>طھط£ظƒظٹط¯ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</Text>
+              <Text style={styles.label}>تأكيد كلمة المرور</Text>
               <View style={styles.inputWrap}>
                 <ShieldCheck size={18} color={colors.textSecondary} />
                 <TextInput
                   style={styles.input}
                   value={confirmPassword}
                   onChangeText={(value) => { setConfirmPassword(value); setError(null); }}
-                  placeholder="ط£ط¹ط¯ ظƒطھط§ط¨ط© ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±"
+                  placeholder="أعد كتابة كلمة المرور"
                   placeholderTextColor={colors.textMuted}
                   secureTextEntry={!passwordVisible}
                   autoCapitalize="none"
@@ -274,7 +274,7 @@ export default function EmailAuthScreen() {
               accessibilityRole="button"
             >
               <Text style={styles.forgotPasswordText}>
-                {resetSending ? 'ط¬ط§ط±ظچ ط¥ط±ط³ط§ظ„ ط§ظ„ط±ط§ط¨ط·...' : 'ظ†ط³ظٹطھ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±طں'}
+                {resetSending ? 'جارٍ إرسال الرابط...' : 'نسيت كلمة المرور؟'}
               </Text>
             </TouchableOpacity>
           )}
@@ -289,26 +289,26 @@ export default function EmailAuthScreen() {
               <ActivityIndicator color={colors.text} />
             ) : (
               <Text style={styles.submitText}>
-                {mode === 'sign-in' ? 'طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„' : 'ط¥ظ†ط´ط§ط، ط­ط³ط§ط¨ظٹ'}
+                {mode === 'sign-in' ? 'تسجيل الدخول' : 'إنشاء حسابي'}
               </Text>
             )}
           </TouchableOpacity>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              {mode === 'sign-in' ? 'ظ„ظٹط³ ظ„ط¯ظٹظƒ ط­ط³ط§ط¨طں' : 'ظ„ط¯ظٹظƒ ط­ط³ط§ط¨ ط¨ط§ظ„ظپط¹ظ„طں'}
+              {mode === 'sign-in' ? 'ليس لديك حساب؟' : 'لديك حساب بالفعل؟'}
             </Text>
             <TouchableOpacity
               onPress={() => switchMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}
               disabled={loading}
               accessibilityRole="button"
             >
-              <Text style={styles.footerLink}>{mode === 'sign-in' ? 'ط¥ظ†ط´ط§ط، ط­ط³ط§ط¨' : 'طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„'}</Text>
+              <Text style={styles.footerLink}>{mode === 'sign-in' ? 'إنشاء حساب' : 'تسجيل الدخول'}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <Text style={styles.terms}>ط¨ظٹط§ظ†ط§طھظƒ ظ…ط­ظپظˆط¸ط© ط¨ط£ظ…ط§ظ†. ط¨ط§ظ„ظ…طھط§ط¨ط¹ط©طŒ ط£ظ†طھ طھظˆط§ظپظ‚ ط¹ظ„ظ‰ ط´ط±ظˆط· ط§ظ„ط§ط³طھط®ط¯ط§ظ… ظˆط³ظٹط§ط³ط© ط§ظ„ط®طµظˆطµظٹط©.</Text>
+        <Text style={styles.terms}>بياناتك محفوظة بأمان. بالمتابعة، أنت توافق على شروط الاستخدام وسياسة الخصوصية.</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );

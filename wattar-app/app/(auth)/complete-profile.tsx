@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -19,9 +19,9 @@ type Gender = 'female' | 'male' | 'other';
 type Visibility = 'public' | 'friends';
 
 const genderOptions: { value: Gender; label: string }[] = [
-  { value: 'female', label: 'ط£ظ†ط«ظ‰' },
-  { value: 'male', label: 'ط°ظƒط±' },
-  { value: 'other', label: 'ط£ظپط¶ظ„ ظˆطµظپظ‹ط§ ط¢ط®ط±' },
+  { value: 'female', label: 'أنثى' },
+  { value: 'male', label: 'ذكر' },
+  { value: 'other', label: 'أفضل وصفًا آخر' },
 ];
 
 export default function CompleteProfileScreen() {
@@ -36,18 +36,18 @@ export default function CompleteProfileScreen() {
   const submit = async () => {
     setError(null);
     if (!gender) {
-      setError('ط§ط®طھط± ط§ظ„ط¬ظ†ط³ ظ„ظ„ظ…طھط§ط¨ط¹ط©.');
+      setError('اختر الجنس للمتابعة.');
       return;
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
-      setError('ط£ط¯ط®ظ„ طھط§ط±ظٹط® ط§ظ„ظ…ظٹظ„ط§ط¯ ط¨طµظٹط؛ط© ط³ظ†ط©-ط´ظ‡ط±-ظٹظˆظ…طŒ ظ…ط«ظ„ 2000-05-21.');
+      setError('أدخل تاريخ الميلاد بصيغة سنة-شهر-يوم، مثل 2000-05-21.');
       return;
     }
 
     const [year, month, day] = birthDate.split('-').map(Number);
     const parsedDate = new Date(Date.UTC(year, month - 1, day));
     if (Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== birthDate) {
-      setError('طھط§ط±ظٹط® ط§ظ„ظ…ظٹظ„ط§ط¯ ط؛ظٹط± طµط­ظٹط­.');
+      setError('تاريخ الميلاد غير صحيح.');
       return;
     }
 
@@ -56,7 +56,7 @@ export default function CompleteProfileScreen() {
       await completeOnboarding({ gender, birthDate, profileVisibility: visibility });
       router.replace('/(tabs)');
     } catch (caught: unknown) {
-      setError(caught instanceof Error ? caught.message : 'طھط¹ط°ط± ط­ظپط¸ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظ„ظپ. ط­ط§ظˆظ„ ظ…ط¬ط¯ط¯ظ‹ط§.');
+      setError(caught instanceof Error ? caught.message : 'تعذر حفظ بيانات الملف. حاول مجددًا.');
     } finally {
       setSaving(false);
     }
@@ -71,11 +71,11 @@ export default function CompleteProfileScreen() {
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.icon}><ShieldCheck size={27} color={colors.primary} /></View>
-        <Text style={styles.title}>ظ„ظ†ط¬ظ‡ظ‘ط² ظ…ظ„ظپظƒ</Text>
-        <Text style={styles.subtitle}>ظ‡ط°ظ‡ ط§ظ„ظ…ط¹ظ„ظˆظ…ط§طھ طھط³ط§ط¹ط¯ظ†ط§ ط¹ظ„ظ‰ ط­ظ…ط§ظٹط© ط§ظ„ظ…ط¬طھظ…ط¹ ظˆط¶ط¨ط· ط®طµظˆطµظٹط© ط­ط³ط§ط¨ظƒ.</Text>
+        <Text style={styles.title}>لنجهّز ملفك</Text>
+        <Text style={styles.subtitle}>هذه المعلومات تساعدنا على حماية المجتمع وضبط خصوصية حسابك.</Text>
 
         <View style={styles.card}>
-          <Text style={styles.label}>ط§ظ„ط¬ظ†ط³ <Text style={styles.required}>ظ…ط·ظ„ظˆط¨</Text></Text>
+          <Text style={styles.label}>الجنس <Text style={styles.required}>مطلوب</Text></Text>
           <View style={styles.optionRow}>
             {genderOptions.map((option) => (
               <TouchableOpacity
@@ -92,7 +92,7 @@ export default function CompleteProfileScreen() {
             ))}
           </View>
 
-          <Text style={styles.label}>طھط§ط±ظٹط® ط§ظ„ظ…ظٹظ„ط§ط¯</Text>
+          <Text style={styles.label}>تاريخ الميلاد</Text>
           <TextInput
             style={styles.input}
             value={birthDate}
@@ -107,11 +107,11 @@ export default function CompleteProfileScreen() {
             editable={!saving && !loading}
           />
 
-          <Text style={styles.label}>ظ…ظ† ظٹظ…ظƒظ†ظ‡ ط±ط¤ظٹط© ظ…ظ„ظپظƒطں</Text>
+          <Text style={styles.label}>من يمكنه رؤية ملفك؟</Text>
           <View style={styles.visibilityRow}>
             {([
-              { value: 'public', label: 'ط¹ط§ظ…', detail: 'ظٹط¸ظ‡ط± ظ„ظ„ط£ط¹ط¶ط§ط،' },
-              { value: 'friends', label: 'ط§ظ„ط£طµط¯ظ‚ط§ط، ظپظ‚ط·', detail: 'ط¥ط®ظپط§ط، طھظپط§طµظٹظ„ ط§ظ„ظ…ظ„ظپ' },
+              { value: 'public', label: 'عام', detail: 'يظهر للأعضاء' },
+              { value: 'friends', label: 'الأصدقاء فقط', detail: 'إخفاء تفاصيل الملف' },
             ] as const).map((option) => (
               <TouchableOpacity
                 key={option.value}
@@ -130,7 +130,7 @@ export default function CompleteProfileScreen() {
           <View style={styles.privacyNote}>
             <LockKeyhole size={16} color={colors.gold} />
             <Text style={styles.privacyText}>
-              ظ†طھط­ظ‚ظ‚ ظ…ظ† ط¨ظ„ظˆط؛ 18 ط¹ط§ظ…ظ‹ط§ ط¹ظ„ظ‰ ط§ظ„ط®ط§ط¯ظ… ظˆظ„ط§ ظ†ط­طھظپط¸ ط¨طھط§ط±ظٹط® ظ…ظٹظ„ط§ط¯ظƒ. ظ‡ط°ط§ ظ„ظٹط³ طھظˆط«ظٹظ‚ ظ‡ظˆظٹط©ط› ظ„ظ† ظ†ط·ظ„ط¨ ط±ظپط¹ طµظˆط±ط© ظ‡ظˆظٹطھظƒ ظ‡ظ†ط§.
+              نتحقق من بلوغ 18 عامًا على الخادم ولا نحتفظ بتاريخ ميلادك. هذا ليس توثيق هوية؛ لن نطلب رفع صورة هويتك هنا.
             </Text>
           </View>
 
@@ -141,11 +141,11 @@ export default function CompleteProfileScreen() {
             disabled={saving || loading}
             accessibilityRole="button"
           >
-            {saving ? <ActivityIndicator color={colors.text} /> : <Text style={styles.submitText}>ط­ظپط¸ ظˆظ…طھط§ط¨ط¹ط©</Text>}
+            {saving ? <ActivityIndicator color={colors.text} /> : <Text style={styles.submitText}>حفظ ومتابعة</Text>}
           </TouchableOpacity>
         </View>
         <TouchableOpacity style={styles.leaveButton} onPress={leave} disabled={saving}>
-          <Text style={styles.leaveText}>طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬</Text>
+          <Text style={styles.leaveText}>تسجيل الخروج</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

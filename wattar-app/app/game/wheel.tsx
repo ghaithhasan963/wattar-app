@@ -1,7 +1,7 @@
-﻿/**
- * Wattar App â€” ط¹ط¬ظ„ط© ط§ظ„ط­ط¸ (M9.4)
- * ط§ظ„ط®ط§ظ†ط§طھ ظˆط§ظ„ط§ط­طھظ…ط§ظ„ط§طھ ظˆط§ظ„ط¹ط§ط¦ط¯ طھط£طھظٹ ظ…ظ† ط§ظ„ط®ط§ط¯ظ…ط› ط§ظ„ظ…ط³طھط®ط¯ظ… ظٹط®طھط§ط± ط®ط§ظ†طھظ‡ ظپظ‚ط·طŒ
- * ظˆط§ظ„ط®ط§ط¯ظ… ظٹط®طھط§ط± ط§ظ„ط®ط§ظ†ط© ط§ظ„ظپط§ط¦ط²ط© ظˆظپظ‚ ط§ظ„ط£ظˆط²ط§ظ† ط§ظ„ظ…ط¹ظ„ظ†ط©.
+/**
+ * Wattar App — عجلة الحظ (M9.4)
+ * الخانات والاحتمالات والعائد تأتي من الخادم؛ المستخدم يختار خانته فقط،
+ * والخادم يختار الخانة الفائزة وفق الأوزان المعلنة.
  */
 import React, { useMemo, useRef, useState } from 'react';
 import {
@@ -60,11 +60,11 @@ export default function WheelGame() {
     const bet = parseValidGameBet(betAmount, profile?.balance_gold ?? 0);
     if (bet === null || spinning || loading) return;
     if (game && !game.available) {
-      Alert.alert('ط§ظ„ظ„ط¹ط¨ط© ط؛ظٹط± ظ…طھط§ط­ط©', 'ظ‡ط°ظ‡ ط§ظ„ظ„ط¹ط¨ط© ط؛ظٹط± ظ…طھط§ط­ط© ظ„ط­ط³ط§ط¨ظƒ ط­ط§ظ„ظٹط§ظ‹.');
+      Alert.alert('اللعبة غير متاحة', 'هذه اللعبة غير متاحة لحسابك حالياً.');
       return;
     }
     if (game && (bet < game.min_bet || bet > game.max_bet)) {
-      Alert.alert('ط§ظ„ط±ظ‡ط§ظ† ط®ط§ط±ط¬ ط§ظ„ط­ط¯ظˆط¯', `ط§ظ„ط­ط¯ ط§ظ„ظ…ط³ظ…ظˆط­ ظ…ظ† ${game.min_bet} ط¥ظ„ظ‰ ${game.max_bet} Coin.`);
+      Alert.alert('الرهان خارج الحدود', `الحد المسموح من ${game.min_bet} إلى ${game.max_bet} Coin.`);
       return;
     }
     setLoading(true);
@@ -86,7 +86,7 @@ export default function WheelGame() {
         || !Number.isFinite(response.payout)
         || response.payout < 0
       ) {
-        throw new Error('ظ„ظ… طھطµظ„ ظ†طھظٹط¬ط© ط§ظ„ط¹ط¬ظ„ط© ط¨ط´ظƒظ„ طµط­ظٹط­.');
+        throw new Error('لم تصل نتيجة العجلة بشكل صحيح.');
       }
 
       setLoading(false);
@@ -117,7 +117,7 @@ export default function WheelGame() {
       });
     } catch (err: unknown) {
       setLoading(false);
-      Alert.alert('ط®ط·ط£', err instanceof Error ? err.message : 'طھط¹ط°ط± ط¥ظƒظ…ط§ظ„ ط§ظ„ط¬ظˆظ„ط©.');
+      Alert.alert('خطأ', err instanceof Error ? err.message : 'تعذر إكمال الجولة.');
     }
   };
 
@@ -140,8 +140,8 @@ export default function WheelGame() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <StatusBar style="light" />
       <GameHeader
-        title={game?.display_name ?? 'ط¹ط¬ظ„ط© ط§ظ„ط­ط¸'}
-        subtitle={game?.description ?? 'ط§ط®طھط± ط®ط§ظ†طھظƒطŒ ط«ظ… ط£ط¯ط± ط§ظ„ط¹ط¬ظ„ط©. ظƒظ„ ط®ط§ظ†ط© ظ„ظ‡ط§ ط§ط­طھظ…ط§ظ„ ظˆط¹ط§ط¦ط¯ ظ…ط¹ظ„ظ†.'}
+        title={game?.display_name ?? 'عجلة الحظ'}
+        subtitle={game?.description ?? 'اختر خانتك، ثم أدر العجلة. كل خانة لها احتمال وعائد معلن.'}
         balance={profile?.balance_gold ?? 0}
       />
 
@@ -188,17 +188,17 @@ export default function WheelGame() {
         <View style={[styles.resultBanner, result.won ? styles.winBanner : styles.loseBanner]}>
           <Text style={styles.resultText}>
             {result.won
-              ? `ًںژ‰ ط±ط¨ط­طھ ${result.payout.toLocaleString()} Coin!`
-              : `ط®ط³ط±طھ â€” ظˆظ‚ظپطھ ط¹ظ„ظ‰ ${segments[result.segment]?.label ?? ''}`}
+              ? `🎉 ربحت ${result.payout.toLocaleString()} Coin!`
+              : `خسرت — وقفت على ${segments[result.segment]?.label ?? ''}`}
           </Text>
         </View>
       )}
 
       <View style={styles.controlsCard}>
         <View style={styles.segmentHeading}>
-          <Text style={styles.label}>ط§ط®طھط± ط®ط§ظ†طھظƒ</Text>
+          <Text style={styles.label}>اختر خانتك</Text>
           <Text style={styles.labelHint}>
-            RTP ط§ظ„ظ…ط¹ظ„ظ† {formatPercent(game?.declared_rtp ?? 0)}
+            RTP المعلن {formatPercent(game?.declared_rtp ?? 0)}
           </Text>
         </View>
         <View style={styles.segmentsRow}>
@@ -229,7 +229,7 @@ export default function WheelGame() {
         />
         {game ? (
           <Text style={styles.limitHint}>
-            ط§ظ„ط­ط¯: {game.min_bet.toLocaleString()} â€“ {game.max_bet.toLocaleString()} Coin
+            الحد: {game.min_bet.toLocaleString()} – {game.max_bet.toLocaleString()} Coin
           </Text>
         ) : null}
 
@@ -239,7 +239,7 @@ export default function WheelGame() {
           disabled={spinning || loading || validBet === null}
         >
           <Text style={styles.spinButtonText}>
-            {loading ? 'ط¬ط§ط±ظٹ...' : spinning ? 'ظٹط¯ظˆط±...' : 'ًںژ، ط£ط¯ط± ط§ظ„ط¹ط¬ظ„ط©'}
+            {loading ? 'جاري...' : spinning ? 'يدور...' : '🎡 أدر العجلة'}
           </Text>
         </TouchableOpacity>
       </View>

@@ -1,7 +1,7 @@
-﻿/**
- * Wattar App â€” طµظپط­ط© ط§ظ„ط£ظ„ط¹ط§ط¨ (M9.4)
- * ط§ظ„ظ‚ط§ط¦ظ…ط© طھظڈط¨ظ†ظ‰ ظ…ظ† get_public_games(): ط§ظ„ط£ظ„ط¹ط§ط¨ ط§ظ„ظ…ظپط¹ظ‘ظ„ط© ظپظ‚ط· طھط¸ظ‡ط±طŒ ظ…ط¹ ط­ط§ظ„ط©
- * ط§ظ„ط¥طھط§ط­ط© (ط¥ظٹظ‚ط§ظپ/ظ…ظ†ط·ظ‚ط©/ط¹ظ…ط±)طŒ RTP ط§ظ„ظ…ط¹ظ„ظ†طŒ ظˆط§ظ„ط¹ط±ظˆط¶ ط§ظ„طھط±ظˆظٹط¬ظٹط© ط§ظ„ظ…ط¹ظ„ظ†ط©.
+/**
+ * Wattar App — صفحة الألعاب (M9.4)
+ * القائمة تُبنى من get_public_games(): الألعاب المفعّلة فقط تظهر، مع حالة
+ * الإتاحة (إيقاف/منطقة/عمر)، RTP المعلن، والعروض الترويجية المعلنة.
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Easing, View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
@@ -63,12 +63,12 @@ export default function GamesScreen() {
       if (rpcError) throw rpcError;
       if (data?.claimed) {
         await loadProfile();
-        Alert.alert('طھظ…طھ ط§ظ„ط¥ط¶ط§ظپط©', `ط£ط¶ظپظ†ط§ ${Number(data.granted).toLocaleString()} Coin ط¥ظ„ظ‰ ط±طµظٹط¯ظƒ.`);
+        Alert.alert('تمت الإضافة', `أضفنا ${Number(data.granted).toLocaleString()} Coin إلى رصيدك.`);
       } else {
-        Alert.alert('طھظ… ط§ط³طھط®ط¯ط§ظ… ط§ظ„ظ…ظƒط§ظپط£ط© ط§ظ„ظٹظˆظ…ظٹط©', 'ظٹظ…ظƒظ†ظƒ ط§ط³طھظ„ط§ظ… ظ…ظƒط§ظپط£ط© ط§ظ„ط¯ط®ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰ ط¨ط¹ط¯ ظ…ط±ظˆط± 24 ط³ط§ط¹ط©.');
+        Alert.alert('تم استخدام المكافأة اليومية', 'يمكنك استلام مكافأة الدخول مرة أخرى بعد مرور 24 ساعة.');
       }
     } catch (caught: unknown) {
-      Alert.alert('طھط¹ط°ط±طھ ط§ظ„ظ…ظƒط§ظپط£ط© ط§ظ„ظٹظˆظ…ظٹط©', caught instanceof Error ? caught.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذرت المكافأة اليومية', caught instanceof Error ? caught.message : 'حاول مرة أخرى.');
     } finally {
       setClaimingBonus(false);
     }
@@ -85,11 +85,11 @@ export default function GamesScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.title}>ط§ظ„ط£ظ„ط¹ط§ط¨</Text>
+        <Text style={styles.title}>الألعاب</Text>
         <View style={styles.balanceCard}>
           <View style={styles.balanceHeading}>
             <CurrencyIcon currency="coin" size={30} />
-            <Text style={styles.balanceLabel}>ط±طµظٹط¯ Coin</Text>
+            <Text style={styles.balanceLabel}>رصيد Coin</Text>
           </View>
           <Text style={styles.balanceValue}>{profile?.balance_gold?.toLocaleString() ?? 0}</Text>
         </View>
@@ -105,22 +105,22 @@ export default function GamesScreen() {
           ? <ActivityIndicator size="small" color={colors.background} />
           : <Gift size={18} color={colors.background} />}
         <Text style={styles.claimButtonText}>
-          {claimingBonus ? 'ط¬ط§ط±ظٹ ط§ظ„ط§ط³طھظ„ط§ظ…...' : 'ط§ط³طھظ„ط§ظ… Coin ط§ظ„ظٹظˆظ…ظٹط©'}
+          {claimingBonus ? 'جاري الاستلام...' : 'استلام Coin اليومية'}
         </Text>
       </TouchableOpacity>
-      <Text style={styles.pointsNotice}>ظ…ظƒط§ظپط£ط© ظٹظˆظ…ظٹط© ظ…ط­ط¯ظˆط¯ط© ط¨ط§ظ„ظ€Coin. ط§ظ„ط£ظ„ط¹ط§ط¨ طھظڈظ„ط¹ط¨ ط¨ط±طµظٹط¯ CoinطŒ ظˆط§ظ„ظ†طھط§ط¦ط¬ طھظڈط­ط³ط¨ ط¹ظ„ظ‰ ط§ظ„ط®ط§ط¯ظ… ظپظ‚ط·.</Text>
+      <Text style={styles.pointsNotice}>مكافأة يومية محدودة بالـCoin. الألعاب تُلعب برصيد Coin، والنتائج تُحسب على الخادم فقط.</Text>
 
       <Animated.View style={[styles.communityCard, entranceStyle]}>
         <View style={styles.communityIcon}><Users size={22} color={colors.primary} /></View>
         <View style={styles.communityCopy}>
-          <Text style={styles.communityTitle}>طھط­ط¯ظٹط§طھ ط§ظ„ط£طµط¯ظ‚ط§ط،</Text>
-          <Text style={styles.communityDescription}>ظ†ط±ط¯ ظ…ط¬ط§ظ†ظٹ ظ„ط´ط®طµظٹظ† ط£ظˆ ط£ط±ط¨ط¹ط© â€” ط¨ط¯ظˆظ† ط¹ظ…ظ„ط§طھ</Text>
+          <Text style={styles.communityTitle}>تحديات الأصدقاء</Text>
+          <Text style={styles.communityDescription}>نرد مجاني لشخصين أو أربعة — بدون عملات</Text>
         </View>
         <TouchableOpacity
           style={styles.communityButton}
           onPress={() => router.push('/(tabs)/friends')}
           accessibilityRole="button"
-          accessibilityLabel="ط§ظپطھط­ طھط­ط¯ظٹط§طھ ط§ظ„ط£طµط¯ظ‚ط§ط،"
+          accessibilityLabel="افتح تحديات الأصدقاء"
         >
           <ArrowLeft size={18} color={colors.text} />
         </TouchableOpacity>
@@ -128,11 +128,11 @@ export default function GamesScreen() {
 
       <View style={styles.sectionHeading}>
         <View>
-          <Text style={styles.sectionTitle}>ط§ط®طھط± ظ„ط¹ط¨طھظƒ</Text>
-          <Text style={styles.sectionSubtitle}>ط¬ظˆظ„ط§طھ ط³ط±ظٹط¹ط© ط¨ط±طµظٹط¯ Coin ظپظ‚ط·</Text>
+          <Text style={styles.sectionTitle}>اختر لعبتك</Text>
+          <Text style={styles.sectionSubtitle}>جولات سريعة برصيد Coin فقط</Text>
         </View>
         <View style={styles.gamesCount}>
-          <Text style={styles.gamesCountText}>{games.length} ط£ظ„ط¹ط§ط¨</Text>
+          <Text style={styles.gamesCountText}>{games.length} ألعاب</Text>
         </View>
       </View>
 
@@ -142,11 +142,11 @@ export default function GamesScreen() {
         <View style={styles.errorCard}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={() => void reload()} accessibilityRole="button">
-            <Text style={styles.retryText}>ط¥ط¹ط§ط¯ط© ط§ظ„ظ…ط­ط§ظˆظ„ط©</Text>
+            <Text style={styles.retryText}>إعادة المحاولة</Text>
           </TouchableOpacity>
         </View>
       ) : games.length === 0 ? (
-        <Text style={styles.pointsNotice}>ظ„ط§ طھظˆط¬ط¯ ط£ظ„ط¹ط§ط¨ ظ…طھط§ط­ط© ط­ط§ظ„ظٹط§ظ‹.</Text>
+        <Text style={styles.pointsNotice}>لا توجد ألعاب متاحة حالياً.</Text>
       ) : (
         <Animated.View style={[styles.gamesGrid, entranceStyle]}>
           {games.map((game) => {
@@ -159,7 +159,7 @@ export default function GamesScreen() {
                 onPress={() => openGame(game)}
                 activeOpacity={0.85}
                 accessibilityRole="button"
-                accessibilityLabel={`ط§ظپطھط­ ظ„ط¹ط¨ط© ${game.display_name}`}
+                accessibilityLabel={`افتح لعبة ${game.display_name}`}
               >
                 <View style={styles.gameCardTop}>
                   <View style={[styles.gameIconBg, { backgroundColor: `${accent}22` }]}>
@@ -170,7 +170,7 @@ export default function GamesScreen() {
                 <View style={styles.gameInfo}>
                   <Text style={styles.gameName}>{game.display_name}</Text>
                   <Text style={styles.gameDesc} numberOfLines={2}>
-                    {game.description ?? 'ط¬ظˆظ„ط© ط³ط±ظٹط¹ط© ط¨ط±طµظٹط¯ Coin.'}
+                    {game.description ?? 'جولة سريعة برصيد Coin.'}
                   </Text>
                   <View style={styles.badgeRow}>
                     <View style={styles.rtpPill}>
@@ -178,12 +178,12 @@ export default function GamesScreen() {
                     </View>
                     {game.promo ? (
                       <View style={styles.promoPill}>
-                        <Text style={styles.promoPillText}>أ—{game.promo.multiplier} ط¹ط±ط¶</Text>
+                        <Text style={styles.promoPillText}>×{game.promo.multiplier} عرض</Text>
                       </View>
                     ) : null}
                     {game.test_mode_enabled ? (
                       <View style={styles.testPill}>
-                        <Text style={styles.testPillText}>ظ…ط­ط§ظƒط§ط©</Text>
+                        <Text style={styles.testPillText}>محاكاة</Text>
                       </View>
                     ) : null}
                   </View>
@@ -198,8 +198,8 @@ export default function GamesScreen() {
       )}
 
       <Animated.View style={[styles.statsCard, entranceStyle]}>
-        <Text style={styles.statsTitle}>ط§ظ„ط¹ط¨ ط¨ط£ظ…ط§ظ†</Text>
-        <Text style={styles.pointsNotice}>ط§ظ„ظ†طھط§ط¦ط¬ طھظڈط­ط¯ط¯ ط¹ظ„ظ‰ ط§ظ„ط®ط§ط¯ظ… ط¨ط¹ط´ظˆط§ط¦ظٹط© ط¢ظ…ظ†ط©طŒ ظˆظƒظ„ ط¬ظˆظ„ط© طھظڈط³ط¬ظژظ‘ظ„ ط¨ط´ظƒظ„ ظ…ط³طھظ‚ظ„. Coin ظ„ط§ طھظڈط³ط­ط¨ ظ†ظ‚ط¯ظ‹ط§ط› ط§ظ„ط³ط­ط¨ ظ…طھط§ط­ ظ„ط£ط±ط¨ط§ط­ Diamond ظپظ‚ط·.</Text>
+        <Text style={styles.statsTitle}>العب بأمان</Text>
+        <Text style={styles.pointsNotice}>النتائج تُحدد على الخادم بعشوائية آمنة، وكل جولة تُسجَّل بشكل مستقل. Coin لا تُسحب نقدًا؛ السحب متاح لأرباح Diamond فقط.</Text>
       </Animated.View>
     </ScrollView>
   );

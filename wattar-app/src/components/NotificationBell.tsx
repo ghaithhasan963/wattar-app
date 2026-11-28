@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Bell } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -54,7 +54,7 @@ export function NotificationBell() {
       style={styles.button}
       onPress={() => router.push('/(tabs)/notifications')}
       accessibilityRole="button"
-      accessibilityLabel={unreadCount > 0 ? `ط§ظ„ط¥ط´ط¹ط§ط±ط§طھطŒ ${unreadCount} ط؛ظٹط± ظ…ظ‚ط±ظˆط،ط©` : 'ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ'}
+      accessibilityLabel={unreadCount > 0 ? `الإشعارات، ${unreadCount} غير مقروءة` : 'الإشعارات'}
     >
       <Bell size={19} color={colors.text} />
       {unreadCount > 0 && (

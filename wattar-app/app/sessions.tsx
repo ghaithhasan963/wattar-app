@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -41,7 +41,7 @@ export default function SessionsScreen() {
       if (error) throw error;
       setSessions(toSessionDevices(data));
     } catch (error: unknown) {
-      Alert.alert('طھط¹ط°ط± طھط­ظ…ظٹظ„ ط§ظ„ط¬ظ„ط³ط§طھ', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر تحميل الجلسات', error instanceof Error ? error.message : 'حاول مرة أخرى.');
     } finally {
       setLoading(false);
     }
@@ -53,12 +53,12 @@ export default function SessionsScreen() {
 
   const revokeOthers = () => {
     Alert.alert(
-      'ط¥ظ†ظ‡ط§ط، ط§ظ„ط¬ظ„ط³ط§طھ ط§ظ„ط£ط®ط±ظ‰',
-      'ط³ظٹطھظ… طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬ ظ…ظ† ط¬ظ…ظٹط¹ ط§ظ„ط£ط¬ظ‡ط²ط© ط§ظ„ط£ط®ط±ظ‰ ط§ظ„ظ…ط±طھط¨ط·ط© ط¨ط­ط³ط§ط¨ظƒ. ظٹط¨ظ‚ظ‰ ظ‡ط°ط§ ط§ظ„ط¬ظ‡ط§ط² ظ…ط³ط¬ظ‘ظ„ظ‹ط§.',
+      'إنهاء الجلسات الأخرى',
+      'سيتم تسجيل الخروج من جميع الأجهزة الأخرى المرتبطة بحسابك. يبقى هذا الجهاز مسجّلًا.',
       [
-        { text: 'ط¥ظ„ط؛ط§ط،', style: 'cancel' },
+        { text: 'إلغاء', style: 'cancel' },
         {
-          text: 'ط¥ظ†ظ‡ط§ط، ط§ظ„ط¬ظ„ط³ط§طھ ط§ظ„ط£ط®ط±ظ‰',
+          text: 'إنهاء الجلسات الأخرى',
           style: 'destructive',
           onPress: () => {
             void (async () => {
@@ -72,8 +72,8 @@ export default function SessionsScreen() {
                 await load();
               } catch (error: unknown) {
                 Alert.alert(
-                  'طھط¹ط°ط± ط¥ظ†ظ‡ط§ط، ط§ظ„ط¬ظ„ط³ط§طھ',
-                  error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.',
+                  'تعذر إنهاء الجلسات',
+                  error instanceof Error ? error.message : 'حاول مرة أخرى.',
                 );
               } finally {
                 setRevoking(false);
@@ -86,10 +86,10 @@ export default function SessionsScreen() {
   };
 
   const signOutThisDevice = () => {
-    Alert.alert('طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬', 'ظ‡ظ„ طھط±ظٹط¯ طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬ ظ…ظ† ظ‡ط°ط§ ط§ظ„ط¬ظ‡ط§ط²طں', [
-      { text: 'ط¥ظ„ط؛ط§ط،', style: 'cancel' },
+    Alert.alert('تسجيل الخروج', 'هل تريد تسجيل الخروج من هذا الجهاز؟', [
+      { text: 'إلغاء', style: 'cancel' },
       {
-        text: 'طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬',
+        text: 'تسجيل الخروج',
         style: 'destructive',
         onPress: async () => {
           await signOut();
@@ -106,24 +106,24 @@ export default function SessionsScreen() {
       refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} />}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="ط±ط¬ظˆط¹">
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="رجوع">
           <ChevronLeft size={22} color={colors.textSecondary} />
         </TouchableOpacity>
-        <Text style={styles.title}>ط§ظ„ط£ط¬ظ‡ط²ط© ظˆط§ظ„ط¬ظ„ط³ط§طھ</Text>
+        <Text style={styles.title}>الأجهزة والجلسات</Text>
       </View>
 
       <View style={styles.noteCard}>
         <ShieldCheck size={20} color={colors.primary} />
         <Text style={styles.noteText}>
-          ظ‡ط°ظ‡ ط§ظ„ط£ط¬ظ‡ط²ط© ط³ط¬ظ‘ظ„طھ ط§ظ„ط¯ط®ظˆظ„ ط¥ظ„ظ‰ ط­ط³ط§ط¨ظƒ. ط¥ظ†ظ‡ط§ط، ط¬ظ…ظٹط¹ ط§ظ„ط¬ظ„ط³ط§طھ ط§ظ„ط£ط®ط±ظ‰ ظٹط®ط±ط¬ظ‡ط§ ظپط¹ظ„ظٹظ‹ط§طŒ
-          ط¨ظٹظ†ظ…ط§ ط¥ظ†ظ‡ط§ط، ط¬ظ‡ط§ط² ظˆط§ط­ط¯ ظٹظڈط¨ط¹ط¯ظ‡ ط¹ظ† ظ‡ط°ظ‡ ط§ظ„ظ‚ط§ط¦ظ…ط© ظپظ‚ط·.
+          هذه الأجهزة سجّلت الدخول إلى حسابك. إنهاء جميع الجلسات الأخرى يخرجها فعليًا،
+          بينما إنهاء جهاز واحد يُبعده عن هذه القائمة فقط.
         </Text>
       </View>
 
       {loading && sessions.length === 0 ? (
         <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
       ) : sessions.length === 0 ? (
-        <Text style={styles.empty}>ظ„ط§ طھظˆط¬ط¯ ط¬ظ„ط³ط§طھ ظ…ط³ط¬ظ‘ظ„ط© ط¨ط¹ط¯.</Text>
+        <Text style={styles.empty}>لا توجد جلسات مسجّلة بعد.</Text>
       ) : (
         <View style={styles.group}>
           {sessions.map((session, index) => {
@@ -139,11 +139,11 @@ export default function SessionsScreen() {
                 <View style={styles.rowCopy}>
                   <View style={styles.nameLine}>
                     <Text style={styles.rowLabel}>{getPlatformLabel(session)}</Text>
-                    {current && <View style={styles.badge}><Text style={styles.badgeText}>ظ‡ط°ط§ ط§ظ„ط¬ظ‡ط§ط²</Text></View>}
+                    {current && <View style={styles.badge}><Text style={styles.badgeText}>هذا الجهاز</Text></View>}
                   </View>
                   <Text style={styles.rowDescription}>{getDeviceSubtitle(session)}</Text>
                   <Text style={styles.rowMeta}>
-                    {session.is_active ? 'ظ†ط´ط·ط©' : 'ظ…ظ†طھظ‡ظٹط©'} آ· ط¢ط®ط± ط§ط³طھط®ط¯ط§ظ… {formatLastUsed(session.last_used_at)}
+                    {session.is_active ? 'نشطة' : 'منتهية'} · آخر استخدام {formatLastUsed(session.last_used_at)}
                   </Text>
                 </View>
               </View>
@@ -161,13 +161,13 @@ export default function SessionsScreen() {
       >
         <LogOut size={18} color={colors.text} />
         <Text style={styles.secondaryText}>
-          {revoking ? 'ط¬ط§ط±ظچ ط¥ظ†ظ‡ط§ط، ط§ظ„ط¬ظ„ط³ط§طھ...' : 'ط¥ظ†ظ‡ط§ط، ط¬ظ…ظٹط¹ ط§ظ„ط¬ظ„ط³ط§طھ ط§ظ„ط£ط®ط±ظ‰'}
+          {revoking ? 'جارٍ إنهاء الجلسات...' : 'إنهاء جميع الجلسات الأخرى'}
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.signOutButton} onPress={signOutThisDevice} accessibilityRole="button">
         <LogOut size={18} color={colors.danger} />
-        <Text style={styles.signOutText}>طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬ ظ…ظ† ظ‡ط°ط§ ط§ظ„ط¬ظ‡ط§ط²</Text>
+        <Text style={styles.signOutText}>تسجيل الخروج من هذا الجهاز</Text>
       </TouchableOpacity>
     </ScrollView>
   );

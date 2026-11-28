@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -122,9 +122,9 @@ export default function AgentGroupScreen() {
         setMembers([]);
       }
     } catch (loadError: unknown) {
-      const message = loadError instanceof Error ? loadError.message : 'طھط¹ط°ط± طھط­ظ…ظٹظ„ ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظˆظƒظٹظ„.';
+      const message = loadError instanceof Error ? loadError.message : 'تعذر تحميل مجموعة الوكيل.';
       setError(message);
-      if (showLoading) Alert.alert('طھط¹ط°ط± طھط­ظ…ظٹظ„ ط§ظ„ظ…ط¬ظ…ظˆط¹ط©', message);
+      if (showLoading) Alert.alert('تعذر تحميل المجموعة', message);
     } finally {
       if (showLoading) setLoading(false);
     }
@@ -147,10 +147,10 @@ export default function AgentGroupScreen() {
         p_agent_id: agentId,
       });
       if (requestError) throw requestError;
-      Alert.alert('طھظ… ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨', 'ط¨ط§ظ†طھط¸ط§ط± ظ…ظˆط§ظپظ‚ط© ط§ظ„ظˆظƒظٹظ„ ط£ظˆ ط§ظ„ط¥ط¯ط§ط±ط©.');
+      Alert.alert('تم إرسال الطلب', 'بانتظار موافقة الوكيل أو الإدارة.');
       await loadScreen();
     } catch (requestError: unknown) {
-      Alert.alert('طھط¹ط°ط± ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨', requestError instanceof Error ? requestError.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر إرسال الطلب', requestError instanceof Error ? requestError.message : 'حاول مرة أخرى.');
     } finally {
       setBusy(false);
     }
@@ -166,7 +166,7 @@ export default function AgentGroupScreen() {
       if (reviewError) throw reviewError;
       await loadScreen();
     } catch (reviewError: unknown) {
-      Alert.alert('طھط¹ط°ط± طھط­ط¯ظٹط« ط§ظ„ط·ظ„ط¨', reviewError instanceof Error ? reviewError.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر تحديث الطلب', reviewError instanceof Error ? reviewError.message : 'حاول مرة أخرى.');
     } finally {
       setBusy(false);
     }
@@ -182,25 +182,25 @@ export default function AgentGroupScreen() {
       if (moderationError) throw moderationError;
       await loadScreen();
     } catch (moderationError: unknown) {
-      Alert.alert('طھط¹ط°ط± طھظ†ظپظٹط° ط§ظ„ط¥ط¬ط±ط§ط،', moderationError instanceof Error ? moderationError.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر تنفيذ الإجراء', moderationError instanceof Error ? moderationError.message : 'حاول مرة أخرى.');
     } finally {
       setBusy(false);
     }
   };
 
   const reportMessage = (message: GroupMessage) => {
-    Alert.alert('ط§ظ„ط¥ط¨ظ„ط§ط؛ ط¹ظ† ط§ظ„ط±ط³ط§ظ„ط©', 'ط³ظٹطµظ„ ط§ظ„ط¨ظ„ط§ط؛ ط¥ظ„ظ‰ ظپط±ظٹظ‚ ط§ظ„ط¥ط´ط±ط§ظپ.', [
-      { text: 'ط¥ظ„ط؛ط§ط،', style: 'cancel' },
+    Alert.alert('الإبلاغ عن الرسالة', 'سيصل البلاغ إلى فريق الإشراف.', [
+      { text: 'إلغاء', style: 'cancel' },
       {
-        text: 'ط¥ط¨ظ„ط§ط؛',
+        text: 'إبلاغ',
         style: 'destructive',
         onPress: async () => {
           const { error: reportError } = await supabase.rpc('report_agent_group_message', {
             p_message_id: message.message_id,
-            p_reason: 'ظ…ط­طھظˆظ‰ ط؛ظٹط± ظ…ظ†ط§ط³ط¨',
+            p_reason: 'محتوى غير مناسب',
           });
-          if (reportError) Alert.alert('طھط¹ط°ط± ط¥ط±ط³ط§ظ„ ط§ظ„ط¨ظ„ط§ط؛', reportError.message);
-          else Alert.alert('طھظ… ط§ط³طھظ„ط§ظ… ط§ظ„ط¨ظ„ط§ط؛', 'ط³ظٹط±ط§ط¬ط¹ظ‡ ظپط±ظٹظ‚ Wattar.');
+          if (reportError) Alert.alert('تعذر إرسال البلاغ', reportError.message);
+          else Alert.alert('تم استلام البلاغ', 'سيراجعه فريق Wattar.');
         },
       },
     ]);
@@ -218,7 +218,7 @@ export default function AgentGroupScreen() {
       setDraft('');
       await loadScreen(false);
     } catch (sendError: unknown) {
-      Alert.alert('طھط¹ط°ط± ط¥ط±ط³ط§ظ„ ط§ظ„ط±ط³ط§ظ„ط©', sendError instanceof Error ? sendError.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر إرسال الرسالة', sendError instanceof Error ? sendError.message : 'حاول مرة أخرى.');
     } finally {
       setBusy(false);
     }
@@ -239,8 +239,8 @@ export default function AgentGroupScreen() {
         </TouchableOpacity>
         <View style={styles.titleIcon}><Users size={20} color={palette.gold} /></View>
         <View style={styles.headerCopy}>
-          <Text style={styles.title}>ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظˆظƒظٹظ„</Text>
-          <Text style={styles.subtitle}>ظ…ط¬ظ…ظˆط¹ط© ط®ط§طµط© ظˆظ…ط­ط§ط¯ط«ط© ط¨ط¥ط´ط±ط§ظپ ط§ظ„ظˆظƒظٹظ„</Text>
+          <Text style={styles.title}>مجموعة الوكيل</Text>
+          <Text style={styles.subtitle}>مجموعة خاصة ومحادثة بإشراف الوكيل</Text>
         </View>
       </View>
 
@@ -256,9 +256,9 @@ export default function AgentGroupScreen() {
               <View style={styles.groupIcon}><Shield size={19} color={palette.gold} /></View>
               <View style={styles.headerCopy}>
                 <Text style={styles.cardTitle}>{selectedGroup.group_name}</Text>
-                <Text style={styles.meta}>ط¨ط¥ط´ط±ط§ظپ {selectedGroup.agent_name}</Text>
+                <Text style={styles.meta}>بإشراف {selectedGroup.agent_name}</Text>
               </View>
-              <View style={styles.privateBadge}><Text style={styles.privateText}>ط®ط§طµط©</Text></View>
+              <View style={styles.privateBadge}><Text style={styles.privateText}>خاصة</Text></View>
             </View>
 
             <View style={styles.messageList}>
@@ -275,12 +275,12 @@ export default function AgentGroupScreen() {
                     <Text style={styles.messageText}>{message.body}</Text>
                   </View>
                   {!selectedGroup.is_agent ? (
-                    <TouchableOpacity onPress={() => reportMessage(message)} accessibilityLabel="ط§ظ„ط¥ط¨ظ„ط§ط؛ ط¹ظ† ط§ظ„ط±ط³ط§ظ„ط©">
+                    <TouchableOpacity onPress={() => reportMessage(message)} accessibilityLabel="الإبلاغ عن الرسالة">
                       <Flag size={16} color={palette.muted} />
                     </TouchableOpacity>
                   ) : null}
                 </View>
-              )) : <Text style={styles.empty}>ظ„ط§ طھظˆط¬ط¯ ط±ط³ط§ط¦ظ„ ط¨ط¹ط¯. ط§ط¨ط¯ط£ ط§ظ„ط­ط¯ظٹط« ظ…ط¹ ظ…ط¬ظ…ظˆط¹طھظƒ.</Text>}
+              )) : <Text style={styles.empty}>لا توجد رسائل بعد. ابدأ الحديث مع مجموعتك.</Text>}
             </View>
 
             <View style={styles.composer}>
@@ -288,7 +288,7 @@ export default function AgentGroupScreen() {
                 style={styles.input}
                 value={draft}
                 onChangeText={setDraft}
-                placeholder="ط§ظƒطھط¨ ط±ط³ط§ظ„ط© ظ„ظ„ظ…ط¬ظ…ظˆط¹ط©..."
+                placeholder="اكتب رسالة للمجموعة..."
                 placeholderTextColor={palette.muted}
                 maxLength={2000}
                 multiline
@@ -298,7 +298,7 @@ export default function AgentGroupScreen() {
                 onPress={sendMessage}
                 disabled={!draft.trim() || busy}
                 accessibilityRole="button"
-                accessibilityLabel="ط¥ط±ط³ط§ظ„ ط§ظ„ط±ط³ط§ظ„ط©"
+                accessibilityLabel="إرسال الرسالة"
               >
                 {busy ? <ActivityIndicator size="small" color={colors.text} /> : <Send size={17} color={colors.text} />}
               </TouchableOpacity>
@@ -310,16 +310,16 @@ export default function AgentGroupScreen() {
           <View style={styles.statusCard}>
             <Clock3 size={20} color={palette.gold} />
             <View style={styles.headerCopy}>
-              <Text style={styles.cardTitle}>ط·ظ„ط¨ظƒ ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©</Text>
-              <Text style={styles.meta}>ط³طھط¸ظ‡ط± ط§ظ„ظ…ط¬ظ…ظˆط¹ط© ط¨ط¹ط¯ ظ…ظˆط§ظپظ‚ط© ط§ظ„ظˆظƒظٹظ„ ط£ظˆ ط§ظ„ط¥ط¯ط§ط±ط©.</Text>
+              <Text style={styles.cardTitle}>طلبك قيد المراجعة</Text>
+              <Text style={styles.meta}>ستظهر المجموعة بعد موافقة الوكيل أو الإدارة.</Text>
             </View>
           </View>
         ) : null}
 
         {!hasActiveGroup ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>ط§ط®طھط± ظˆظƒظٹظ„ظ‹ط§ ظ„ظ„ط§ظ†ط¶ظ…ط§ظ…</Text>
-            <Text style={styles.sectionHint}>ط§ظ„ظ…ط­ظپط¸ط© ظˆط§ظ„ط´ط­ظ† ظٹطھط§ط­ط§ظ† ط¨ط¹ط¯ ظ‚ط¨ظˆظ„ ط·ظ„ط¨ظƒ ظ…ظ† ظˆظƒظٹظ„ ظ†ط´ط·.</Text>
+            <Text style={styles.sectionTitle}>اختر وكيلًا للانضمام</Text>
+            <Text style={styles.sectionHint}>المحفظة والشحن يتاحان بعد قبول طلبك من وكيل نشط.</Text>
             {availableGroups.map((group) => {
               const isPending = group.membership_status === 'pending' || myPendingAgentIds.has(group.agent_id);
               const isActive = group.membership_status === 'active';
@@ -328,37 +328,37 @@ export default function AgentGroupScreen() {
                   <View style={styles.groupIcon}><Users size={18} color={palette.primary} /></View>
                   <View style={styles.headerCopy}>
                     <Text style={styles.cardTitle}>{group.agent_name}</Text>
-                    <Text style={styles.meta}>{group.group_name} آ· ظ…ط¬ظ…ظˆط¹ط© ط®ط§طµط©</Text>
+                    <Text style={styles.meta}>{group.group_name} · مجموعة خاصة</Text>
                   </View>
                   {isActive ? (
-                    <Text style={styles.activeText}>ط¹ط¶ظˆ</Text>
+                    <Text style={styles.activeText}>عضو</Text>
                   ) : (
                     <TouchableOpacity
                       style={[styles.requestButton, (isPending || busy) && styles.disabled]}
                       onPress={() => requestMembership(group.agent_id)}
                       disabled={isPending || busy}
                     >
-                      <Text style={styles.requestText}>{isPending ? 'ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©' : 'ط·ظ„ط¨ ط§ظ†ط¶ظ…ط§ظ…'}</Text>
+                      <Text style={styles.requestText}>{isPending ? 'قيد المراجعة' : 'طلب انضمام'}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
               );
             })}
             {!availableGroups.length && !loading ? (
-              <Text style={styles.empty}>ظ„ط§ ظٹظˆط¬ط¯ ظˆظƒظ„ط§ط، ظ†ط´ط·ظˆظ† ظ…طھط§ط­ظˆظ† ط­ط§ظ„ظٹظ‹ط§.</Text>
+              <Text style={styles.empty}>لا يوجد وكلاء نشطون متاحون حاليًا.</Text>
             ) : null}
           </View>
         ) : null}
 
         {selectedGroup?.is_agent ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>ط¥ط¯ط§ط±ط© ط§ظ„ط£ط¹ط¶ط§ط، ظˆط§ظ„ط·ظ„ط¨ط§طھ</Text>
+            <Text style={styles.sectionTitle}>إدارة الأعضاء والطلبات</Text>
             {members.map((member) => (
               <View key={member.membership_id} style={styles.memberRow}>
                 <View style={styles.headerCopy}>
                   <Text style={styles.cardTitle}>{member.display_name || member.username}</Text>
                   <Text style={styles.meta}>
-                    {member.membership_status === 'pending' ? 'ط·ظ„ط¨ ط§ظ†ط¶ظ…ط§ظ… ط¬ط¯ظٹط¯' : `@${member.username}`}
+                    {member.membership_status === 'pending' ? 'طلب انضمام جديد' : `@${member.username}`}
                   </Text>
                 </View>
                 {member.membership_status === 'pending' ? (
@@ -367,7 +367,7 @@ export default function AgentGroupScreen() {
                       <Check size={18} color={palette.success} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => reviewMembership(member.membership_id, false)} disabled={busy} style={styles.iconAction}>
-                      <Text style={styles.decline}>ط±ظپط¶</Text>
+                      <Text style={styles.decline}>رفض</Text>
                     </TouchableOpacity>
                   </>
                 ) : (
@@ -377,23 +377,23 @@ export default function AgentGroupScreen() {
                       disabled={busy}
                       style={styles.iconAction}
                     >
-                      <Text style={styles.decline}>{member.muted_until ? 'ط¥ظ„ط؛ط§ط، ط§ظ„ظƒطھظ…' : 'ظƒطھظ… 24ط³'}</Text>
+                      <Text style={styles.decline}>{member.muted_until ? 'إلغاء الكتم' : 'كتم 24س'}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={() => Alert.alert('ط¥ط²ط§ظ„ط© ط§ظ„ط¹ط¶ظˆطں', 'ط³ظٹط­طھط§ط¬ ط¥ظ„ظ‰ ط·ظ„ط¨ ط¬ط¯ظٹط¯ ظ„ظ„ط§ظ†ط¶ظ…ط§ظ… ظ…ط±ط© ط£ط®ط±ظ‰.', [
-                        { text: 'ط¥ظ„ط؛ط§ط،', style: 'cancel' },
-                        { text: 'ط¥ط²ط§ظ„ط©', style: 'destructive', onPress: () => { void moderateMember(member, 'remove'); } },
+                      onPress={() => Alert.alert('إزالة العضو؟', 'سيحتاج إلى طلب جديد للانضمام مرة أخرى.', [
+                        { text: 'إلغاء', style: 'cancel' },
+                        { text: 'إزالة', style: 'destructive', onPress: () => { void moderateMember(member, 'remove'); } },
                       ])}
                       disabled={busy}
                       style={styles.iconAction}
                     >
-                      <Text style={styles.decline}>ط¥ط²ط§ظ„ط©</Text>
+                      <Text style={styles.decline}>إزالة</Text>
                     </TouchableOpacity>
                   </>
                 )}
               </View>
             ))}
-            {!members.length ? <Text style={styles.empty}>ظ„ط§ طھظˆط¬ط¯ ط·ظ„ط¨ط§طھ ط£ظˆ ط£ط¹ط¶ط§ط، ظ„ط¹ط±ط¶ظ‡ظ….</Text> : null}
+            {!members.length ? <Text style={styles.empty}>لا توجد طلبات أو أعضاء لعرضهم.</Text> : null}
           </View>
         ) : null}
       </ScrollView>

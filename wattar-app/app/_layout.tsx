@@ -1,5 +1,5 @@
-﻿/**
- * Wattar App â€” ط§ظ„طھط®ط·ظٹط· ط§ظ„ط±ط¦ظٹط³ظٹ (Root Layout)
+/**
+ * Wattar App — التخطيط الرئيسي (Root Layout)
  */
 import { Href, Stack, useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
@@ -77,10 +77,10 @@ export default function RootLayout() {
         const audioPermission = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
           {
-            title: 'ط¥ط°ظ† ط§ظ„ظ…ظٹظƒط±ظˆظپظˆظ†',
-            message: 'ظٹط­طھط§ط¬ Wattar ط¥ظ„ظ‰ ط¥ط°ظ† ط§ظ„ظ…ظٹظƒط±ظˆظپظˆظ† ط¹ظ†ط¯ ط§ظ„ظ…ط´ط§ط±ظƒط© ظپظٹ ط§ظ„ط؛ط±ظپ ط§ظ„طµظˆطھظٹط©.',
-            buttonPositive: 'ط§ظ„ط³ظ…ط§ط­',
-            buttonNegative: 'ظ„ط§ط­ظ‚ظ‹ط§',
+            title: 'إذن الميكروفون',
+            message: 'يحتاج Wattar إلى إذن الميكروفون عند المشاركة في الغرف الصوتية.',
+            buttonPositive: 'السماح',
+            buttonNegative: 'لاحقًا',
           },
         );
         if (audioPermission !== PermissionsAndroid.RESULTS.GRANTED) {
@@ -104,7 +104,7 @@ export default function RootLayout() {
     let lastHandledNotificationId: string | null = null;
     const openNotificationRoute = (route: unknown) => {
       if (typeof route !== 'string') return;
-      // ظƒظ„ ظ…ط³ط§ط±ط§طھ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ط§ظ„ط¯ط§ط®ظ„ظٹط© ظپظ‚ط· (ط§ظ„ظ…طµط¯ط±: ط²ظ†ط§ط¯ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ظپظٹ ط§ظ„ظ‚ط§ط¹ط¯ط©).
+      // كل مسارات الإشعارات الداخلية فقط (المصدر: زناد الإشعارات في القاعدة).
       const allowed = /^\/(?:\(tabs\)\/[a-z0-9-]+|messages\/[0-9a-f-]{36}|room\/[0-9a-f-]{36}|host-application|membership|privacy-settings|notification-settings|support)$/i;
       const clean = route.split('?')[0];
       if (!allowed.test(clean)) return;
@@ -127,7 +127,7 @@ export default function RootLayout() {
     return () => responseSubscription.remove();
   }, [initialized, router, session?.user.id]);
 
-  // F2: طھط³ط¬ظٹظ„ ط±ظ…ط² ط§ظ„ط¯ظپط¹ طھظ„ظ‚ط§ط¦ظٹط§ظ‹ ط¨ط¹ط¯ ط§ظ„ط¯ط®ظˆظ„ (ط¨ط¯ظ„ ط§ظ„ط§ط¹طھظ…ط§ط¯ ط¹ظ„ظ‰ ظ…ظپطھط§ط­ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ).
+  // F2: تسجيل رمز الدفع تلقائياً بعد الدخول (بدل الاعتماد على مفتاح الإعدادات).
   useEffect(() => {
     if (!initialized || !session) return;
     let active = true;
@@ -227,9 +227,9 @@ export default function RootLayout() {
             },
           ]}
         />
-        <Text style={styles.brandName}>ظˆطھط± | Wattar</Text>
-        <Text style={styles.loadingText}>طµظˆطھظƒ ظٹظ„ط§ظ‚ظٹ ظ…ط¬طھظ…ط¹ظ‡</Text>
-        <Text style={styles.loadingHint}>ظ†ط¬ظ‡ظ‘ط² ظ…ط³ط§ط­طھظƒ ط§ظ„طµظˆطھظٹط©...</Text>
+        <Text style={styles.brandName}>وتر | Wattar</Text>
+        <Text style={styles.loadingText}>صوتك يلاقي مجتمعه</Text>
+        <Text style={styles.loadingHint}>نجهّز مساحتك الصوتية...</Text>
         <View style={styles.loadingTrack}>
           <Animated.View
             style={[

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -39,7 +39,7 @@ export default function PrivacySettingsScreen() {
     const ok = await update({ [key]: value });
     setSaving(null);
     if (!ok) {
-      Alert.alert('طھط¹ط°ط± ط§ظ„ط­ظپط¸', error || 'ط­ط¯ط« ط®ط·ط£ ط؛ظٹط± ظ…طھظˆظ‚ط¹. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+      Alert.alert('تعذر الحفظ', error || 'حدث خطأ غير متوقع. حاول مرة أخرى.');
     }
   };
 
@@ -61,7 +61,7 @@ export default function PrivacySettingsScreen() {
   if (loading) {
     return (
       <View style={styles.loader}>
-        <Text style={styles.loaderText}>ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط®طµظˆطµظٹط©â€¦</Text>
+        <Text style={styles.loaderText}>جاري تحميل إعدادات الخصوصية…</Text>
       </View>
     );
   }
@@ -69,16 +69,16 @@ export default function PrivacySettingsScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="ط±ط¬ظˆط¹">
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="رجوع">
           <ChevronLeft size={22} color={colors.textSecondary} />
         </TouchableOpacity>
-        <Text style={styles.title}>ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط®طµظˆطµظٹط©</Text>
+        <Text style={styles.title}>إعدادات الخصوصية</Text>
       </View>
 
       <View style={styles.descCard}>
         <Lock size={20} color={colors.primary} />
         <Text style={styles.descText}>
-          ط§ط®طھط± ظ…ظ† ظٹط³طھط·ظٹط¹ طھظ†ظپظٹط° ظƒظ„ ط¥ط¬ط±ط§ط، ط¹ظ„ظ‰ ط­ط³ط§ط¨ظƒ. ط§ظ„طھط؛ظٹظٹط± ظپظˆط±ظٹ ظˆظٹظڈط­ظپط¸ ط¹ظ„ظ‰ ط§ظ„ط®ط§ط¯ظ….
+          اختر من يستطيع تنفيذ كل إجراء على حسابك. التغيير فوري ويُحفظ على الخادم.
         </Text>
       </View>
 
@@ -102,8 +102,8 @@ export default function PrivacySettingsScreen() {
       <View style={styles.noteCard}>
         <Shield size={18} color={colors.primary} />
         <Text style={styles.noteText}>
-          آ«ط§ظ„ط£طµط¯ظ‚ط§ط، ظپظ‚ط·آ» = طµط¯ط§ظ‚ط© ظ…ظ‚ط¨ظˆظ„ط© ظ…ظ† ط§ظ„ط·ط±ظپظٹظ†. آ«ظ„ط§ ط£ط­ط¯آ» = ظ„ط§ ظٹط³طھط·ظٹط¹ ط£ط­ط¯ (ط­طھظ‰ ط§ظ„ط£طµط¯ظ‚ط§ط،).
-          ط§ظ„ط­ط¸ط± ظٹطھظ‚ط¯ظ… ط¹ظ„ظ‰ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط®طµظˆطµظٹط© ط¯ط§ط¦ظ…ط§ظ‹.
+          «الأصدقاء فقط» = صداقة مقبولة من الطرفين. «لا أحد» = لا يستطيع أحد (حتى الأصدقاء).
+          الحظر يتقدم على إعدادات الخصوصية دائماً.
         </Text>
       </View>
     </ScrollView>

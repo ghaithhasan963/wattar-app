@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -32,7 +32,7 @@ export default function LoginScreen() {
 
   const handleSendOtp = async () => {
     if (!phone.trim()) {
-      setLocalError('ط£ط¯ط®ظ„ ط±ظ‚ظ… ظ‡ط§طھظپظƒ ظ„ظ„ظ…طھط§ط¨ط¹ط©.');
+      setLocalError('أدخل رقم هاتفك للمتابعة.');
       return;
     }
     setLocalError(null);
@@ -41,7 +41,7 @@ export default function LoginScreen() {
       await setPendingPhone(phone.trim());
       router.push('/(auth)/verify');
     } catch (caught: unknown) {
-      setLocalError(caught instanceof Error ? caught.message : 'طھط¹ط°ط± ط¥ط±ط³ط§ظ„ ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚.');
+      setLocalError(caught instanceof Error ? caught.message : 'تعذر إرسال رمز التحقق.');
     }
   };
 
@@ -49,7 +49,7 @@ export default function LoginScreen() {
     if (provider === 'facebook') {
       setLocalError(null);
       useAuthStore.setState({ error: null });
-      Alert.alert('Facebook ط؛ظٹط± ظ…طھط§ط­ ط­ط§ظ„ظٹظ‹ط§', 'ط³ظ†ظپط¹ظ‘ظ„ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¹ط¨ط± Facebook ط¨ط¹ط¯ ط¥ظƒظ…ط§ظ„ ط¥ط¹ط¯ط§ط¯ ط§ظ„ط®ط¯ظ…ط©.');
+      Alert.alert('Facebook غير متاح حاليًا', 'سنفعّل تسجيل الدخول عبر Facebook بعد إكمال إعداد الخدمة.');
       return;
     }
     setLocalError(null);
@@ -85,22 +85,22 @@ export default function LoginScreen() {
           </View>
           <View style={styles.brandEyebrow}>
             <Sparkles size={14} color={colors.gold} />
-            <Text style={styles.brandEyebrowText}>ظ…ط¬طھظ…ط¹ظƒ ط§ظ„طµظˆطھظٹ ط§ظ„ط¹ط±ط¨ظٹ</Text>
+            <Text style={styles.brandEyebrowText}>مجتمعك الصوتي العربي</Text>
           </View>
-          <Text style={styles.title}>طµظˆطھظƒ ظٹظ‚ط±ظ‘ط¨ظ†ط§</Text>
-          <Text style={styles.subtitle}>ط؛ط±ظپ ط­ظٹط©طŒ ط£طµط¯ظ‚ط§ط، ط¬ط¯ط¯طŒ ظˆظ„ط­ط¸ط§طھ طھط³طھط­ظ‚ ط§ظ„ظ…ط´ط§ط±ظƒط©.</Text>
+          <Text style={styles.title}>صوتك يقرّبنا</Text>
+          <Text style={styles.subtitle}>غرف حية، أصدقاء جدد، ولحظات تستحق المشاركة.</Text>
         </View>
 
         <View style={styles.features}>
-          <Feature icon={Mic2} label="ط؛ط±ظپ طµظˆطھظٹط©" />
-          <Feature icon={UsersRound} label="ظ…ط¬طھظ…ط¹ ظˆط£طµط¯ظ‚ط§ط،" />
-          <Feature icon={Gamepad2} label="ط£ظ„ط¹ط§ط¨ ظˆطھط­ط¯ظٹط§طھ" />
+          <Feature icon={Mic2} label="غرف صوتية" />
+          <Feature icon={UsersRound} label="مجتمع وأصدقاء" />
+          <Feature icon={Gamepad2} label="ألعاب وتحديات" />
         </View>
 
         <View style={styles.authCard}>
-          <Text style={styles.cardTitle}>{showPhoneForm ? 'ط§ظ„ط¯ط®ظˆظ„ ط¨ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ' : 'ط£ظ‡ظ„ظ‹ط§ ط¨ظƒ ظپظٹ ظˆطھط±'}</Text>
+          <Text style={styles.cardTitle}>{showPhoneForm ? 'الدخول برقم الهاتف' : 'أهلًا بك في وتر'}</Text>
           <Text style={styles.cardSubtitle}>
-            {showPhoneForm ? 'ط³ظ†ط±ط³ظ„ ظ„ظƒ ط±ظ…ط² طھط­ظ‚ظ‚ ظ„ظ…ط±ط© ظˆط§ط­ط¯ط©.' : 'ط³ط¬ظ‘ظ„ ط¯ط®ظˆظ„ظƒ ط£ظˆ ط£ظ†ط´ط¦ ط­ط³ط§ط¨ظƒ ظˆط§ط¨ط¯ط£ ط§ظ„ظ…ط´ط§ط±ظƒط©.'}
+            {showPhoneForm ? 'سنرسل لك رمز تحقق لمرة واحدة.' : 'سجّل دخولك أو أنشئ حسابك وابدأ المشاركة.'}
           </Text>
 
           {showPhoneForm ? (
@@ -125,11 +125,11 @@ export default function LoginScreen() {
                 disabled={loading}
                 accessibilityRole="button"
               >
-                {loading ? <ActivityIndicator color={colors.text} /> : <Text style={styles.primaryButtonText}>ط¥ط±ط³ط§ظ„ ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚</Text>}
+                {loading ? <ActivityIndicator color={colors.text} /> : <Text style={styles.primaryButtonText}>إرسال رمز التحقق</Text>}
                 {!loading && <ArrowLeft size={18} color={colors.text} />}
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setShowPhoneForm(false)} disabled={loading}>
-                <Text style={styles.backText}>ط§ظ„ط¹ظˆط¯ط© ط¥ظ„ظ‰ ط®ظٹط§ط±ط§طھ ط§ظ„ط¯ط®ظˆظ„</Text>
+                <Text style={styles.backText}>العودة إلى خيارات الدخول</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -144,7 +144,7 @@ export default function LoginScreen() {
                 accessibilityRole="button"
               >
                 <Phone size={19} color={colors.text} />
-                <Text style={styles.primaryButtonText}>ط§ظ„ظ…طھط§ط¨ط¹ط© ط¨ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ</Text>
+                <Text style={styles.primaryButtonText}>المتابعة برقم الهاتف</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -154,12 +154,12 @@ export default function LoginScreen() {
                 accessibilityRole="button"
               >
                 <Mail size={18} color={colors.text} />
-                <Text style={styles.emailButtonText}>ط§ظ„ط¯ط®ظˆظ„ ط¨ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ</Text>
+                <Text style={styles.emailButtonText}>الدخول بالبريد الإلكتروني</Text>
               </TouchableOpacity>
 
               <View style={styles.divider}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>ط£ظˆ طھط§ط¨ط¹ ط¨ط§ط³طھط®ط¯ط§ظ…</Text>
+                <Text style={styles.dividerText}>أو تابع باستخدام</Text>
                 <View style={styles.dividerLine} />
               </View>
 
@@ -177,7 +177,7 @@ export default function LoginScreen() {
                   onPress={() => handleSocialSignIn('facebook')}
                   disabled={loading}
                   accessibilityRole="button"
-                  accessibilityLabel="طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¹ط¨ط± Facebook"
+                  accessibilityLabel="تسجيل الدخول عبر Facebook"
                 >
                   <Text style={styles.socialButtonText}>Facebook</Text>
                 </TouchableOpacity>
@@ -199,10 +199,10 @@ export default function LoginScreen() {
           disabled={loading}
           accessibilityRole="button"
         >
-          <Text style={styles.signupPromptText}>ط¬ط¯ظٹط¯ ظپظٹ ظˆطھط±طں <Text style={styles.signupLink}>ط£ظ†ط´ط¦ ط­ط³ط§ط¨ظƒ ط§ظ„ط¢ظ†</Text></Text>
+          <Text style={styles.signupPromptText}>جديد في وتر؟ <Text style={styles.signupLink}>أنشئ حسابك الآن</Text></Text>
         </TouchableOpacity>
 
-        <Text style={styles.terms}>ط¨ط§ظ„ظ…طھط§ط¨ط¹ط©طŒ ط£ظ†طھ طھظˆط§ظپظ‚ ط¹ظ„ظ‰ ط´ط±ظˆط· ط§ظ„ط§ط³طھط®ط¯ط§ظ… ظˆط³ظٹط§ط³ط© ط§ظ„ط®طµظˆطµظٹط©.</Text>
+        <Text style={styles.terms}>بالمتابعة، أنت توافق على شروط الاستخدام وسياسة الخصوصية.</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
