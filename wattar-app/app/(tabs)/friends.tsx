@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +16,7 @@ import { useRouter } from 'expo-router';
 import { Dices, MessageCircle, MoreHorizontal, Search, UserCheck, UserPlus, Users } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
-import { colors } from '@/lib/theme';
+import { colors, fonts, radius } from '@/lib/theme';
 
 interface PublicUser {
   user_id: string;
@@ -72,28 +72,28 @@ type SocialTab = 'friends' | 'following' | 'messages' | 'requests' | 'invites' |
 type SocialSection = 'network' | 'inbox' | 'play';
 
 const socialPalette = {
-  background: '#090611',
-  surface: '#171128',
-  elevated: '#211638',
-  border: '#352449',
-  text: '#F8F3FF',
-  muted: '#B2A6C3',
-  primary: '#B44BFF',
-  primaryDeep: '#7624D7',
-  gold: '#F4BD55',
-  online: '#43D69A',
+  background: colors.background,
+  surface: colors.surface,
+  elevated: colors.surfaceElevated,
+  border: colors.border,
+  text: colors.text,
+  muted: colors.textSecondary,
+  primary: colors.primary,
+  primaryDeep: colors.primaryPressed,
+  gold: colors.gold,
+  online: colors.success,
 } as const;
 
 function formatRelativeTime(iso: string | null): string {
   if (!iso) return '';
   const date = new Date(iso);
   const diffMinutes = Math.floor((Date.now() - date.getTime()) / 60000);
-  if (diffMinutes < 1) return 'الآن';
-  if (diffMinutes < 60) return `قبل ${diffMinutes} د`;
+  if (diffMinutes < 1) return 'ط§ظ„ط¢ظ†';
+  if (diffMinutes < 60) return `ظ‚ط¨ظ„ ${diffMinutes} ط¯`;
   const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `قبل ${diffHours} س`;
+  if (diffHours < 24) return `ظ‚ط¨ظ„ ${diffHours} ط³`;
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `قبل ${diffDays} ي`;
+  if (diffDays < 7) return `ظ‚ط¨ظ„ ${diffDays} ظٹ`;
   return date.toLocaleDateString('ar', { day: 'numeric', month: 'short' });
 }
 
@@ -148,8 +148,8 @@ export default function FriendsScreen() {
       setFollowing((followingResult.data ?? []) as PublicUser[]);
     } catch (error: unknown) {
       Alert.alert(
-        'تعذر تحميل المجتمع',
-        error instanceof Error ? error.message : 'تحقق من اتصال الإنترنت وحاول مجددًا.',
+        'طھط¹ط°ط± طھط­ظ…ظٹظ„ ط§ظ„ظ…ط¬طھظ…ط¹',
+        error instanceof Error ? error.message : 'طھط­ظ‚ظ‚ ظ…ظ† ط§طھطµط§ظ„ ط§ظ„ط¥ظ†طھط±ظ†طھ ظˆط­ط§ظˆظ„ ظ…ط¬ط¯ط¯ظ‹ط§.',
       );
     } finally {
       setLoading(false);
@@ -203,8 +203,8 @@ export default function FriendsScreen() {
       setHasSearched(true);
     } catch (error: unknown) {
       Alert.alert(
-        'تعذر البحث',
-        error instanceof Error ? error.message : 'حاول مرة أخرى بعد قليل.',
+        'طھط¹ط°ط± ط§ظ„ط¨ط­ط«',
+        error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰ ط¨ط¹ط¯ ظ‚ظ„ظٹظ„.',
       );
     } finally {
       setSearching(false);
@@ -218,12 +218,12 @@ export default function FriendsScreen() {
         p_recipient_id: target.user_id,
       });
       if (error) throw error;
-      if (typeof data !== 'string') throw new Error('لم يتم إنشاء طلب الصداقة');
-      Alert.alert('تم إرسال الطلب', `أرسلنا طلب صداقة إلى ${target.display_name || target.username}.`);
+      if (typeof data !== 'string') throw new Error('ظ„ظ… ظٹطھظ… ط¥ظ†ط´ط§ط، ط·ظ„ط¨ ط§ظ„طµط¯ط§ظ‚ط©');
+      Alert.alert('طھظ… ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨', `ط£ط±ط³ظ„ظ†ط§ ط·ظ„ط¨ طµط¯ط§ظ‚ط© ط¥ظ„ظ‰ ${target.display_name || target.username}.`);
       setSearchResults((items) => items.filter((item) => item.user_id !== target.user_id));
       await loadSocialData();
     } catch (error: unknown) {
-      Alert.alert('تعذر إرسال الطلب', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+      Alert.alert('طھط¹ط°ط± ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
     } finally {
       setBusyId(null);
     }
@@ -239,7 +239,7 @@ export default function FriendsScreen() {
       if (error) throw error;
       await loadSocialData();
     } catch (error: unknown) {
-      Alert.alert('تعذر تحديث الطلب', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+      Alert.alert('طھط¹ط°ط± طھط­ط¯ظٹط« ط§ظ„ط·ظ„ط¨', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
     } finally {
       setBusyId(null);
     }
@@ -252,10 +252,10 @@ export default function FriendsScreen() {
         p_other_user_id: friend.user_id,
       });
       if (error) throw error;
-      if (!data) throw new Error('لم يتم إنشاء المحادثة');
+      if (!data) throw new Error('ظ„ظ… ظٹطھظ… ط¥ظ†ط´ط§ط، ط§ظ„ظ…ط­ط§ط¯ط«ط©');
       router.push(`/messages/${data}`);
     } catch (error: unknown) {
-      Alert.alert('تعذر فتح المحادثة', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+      Alert.alert('طھط¹ط°ط± ظپطھط­ ط§ظ„ظ…ط­ط§ط¯ط«ط©', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
     } finally {
       setBusyId(null);
     }
@@ -275,8 +275,8 @@ export default function FriendsScreen() {
         : [person, ...current]);
     } catch (error: unknown) {
       Alert.alert(
-        isFollowing ? 'تعذر إلغاء المتابعة' : 'تعذرت المتابعة',
-        error instanceof Error ? error.message : 'حاول مرة أخرى.',
+        isFollowing ? 'طھط¹ط°ط± ط¥ظ„ط؛ط§ط، ط§ظ„ظ…طھط§ط¨ط¹ط©' : 'طھط¹ط°ط±طھ ط§ظ„ظ…طھط§ط¨ط¹ط©',
+        error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.',
       );
     } finally {
       setBusyId(null);
@@ -294,7 +294,7 @@ export default function FriendsScreen() {
       await loadSocialData();
       if (accept && data) router.push(`/room/${data}`);
     } catch (error: unknown) {
-      Alert.alert('تعذر معالجة الدعوة', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+      Alert.alert('طھط¹ط°ط± ظ…ط¹ط§ظ„ط¬ط© ط§ظ„ط¯ط¹ظˆط©', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
     } finally {
       setBusyId(null);
     }
@@ -308,9 +308,9 @@ export default function FriendsScreen() {
 
   const createChallenge = async () => {
     if (selectedOpponents.length !== challengePlayers - 1) {
-      Alert.alert('اختر اللاعبين', challengePlayers === 2
-        ? 'اختر صديقًا واحدًا للتحدي الثنائي.'
-        : 'اختر ثلاثة أصدقاء للتحدي الرباعي.');
+      Alert.alert('ط§ط®طھط± ط§ظ„ظ„ط§ط¹ط¨ظٹظ†', challengePlayers === 2
+        ? 'ط§ط®طھط± طµط¯ظٹظ‚ظ‹ط§ ظˆط§ط­ط¯ظ‹ط§ ظ„ظ„طھط­ط¯ظٹ ط§ظ„ط«ظ†ط§ط¦ظٹ.'
+        : 'ط§ط®طھط± ط«ظ„ط§ط«ط© ط£طµط¯ظ‚ط§ط، ظ„ظ„طھط­ط¯ظٹ ط§ظ„ط±ط¨ط§ط¹ظٹ.');
       return;
     }
     setLoading(true);
@@ -320,12 +320,12 @@ export default function FriendsScreen() {
         p_max_players: challengePlayers,
       });
       if (error) throw error;
-      if (typeof data !== 'string') throw new Error('لم يتم إنشاء التحدي');
+      if (typeof data !== 'string') throw new Error('ظ„ظ… ظٹطھظ… ط¥ظ†ط´ط§ط، ط§ظ„طھط­ط¯ظٹ');
       setSelectedOpponents([]);
-      Alert.alert('تم إرسال التحدي', 'التحدي مجاني ولا يستخدم رصيد الذهب.');
+      Alert.alert('طھظ… ط¥ط±ط³ط§ظ„ ط§ظ„طھط­ط¯ظٹ', 'ط§ظ„طھط­ط¯ظٹ ظ…ط¬ط§ظ†ظٹ ظˆظ„ط§ ظٹط³طھط®ط¯ظ… ط±طµظٹط¯ ط§ظ„ط°ظ‡ط¨.');
       await loadSocialData();
     } catch (error: unknown) {
-      Alert.alert('تعذر إنشاء التحدي', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+      Alert.alert('طھط¹ط°ط± ط¥ظ†ط´ط§ط، ط§ظ„طھط­ط¯ظٹ', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
     } finally {
       setLoading(false);
     }
@@ -341,7 +341,7 @@ export default function FriendsScreen() {
       if (error) throw error;
       await loadSocialData();
     } catch (error: unknown) {
-      Alert.alert('تعذر تحديث التحدي', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+      Alert.alert('طھط¹ط°ط± طھط­ط¯ظٹط« ط§ظ„طھط­ط¯ظٹ', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
     } finally {
       setBusyId(null);
     }
@@ -356,72 +356,72 @@ export default function FriendsScreen() {
       if (error) throw error;
       await loadSocialData();
     } catch (error: unknown) {
-      Alert.alert('تعذر رمي النرد', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+      Alert.alert('طھط¹ط°ط± ط±ظ…ظٹ ط§ظ„ظ†ط±ط¯', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
     } finally {
       setBusyId(null);
     }
   };
 
   const moderateUser = (person: PublicUser) => {
-    Alert.alert(person.display_name || person.username, 'إدارة تفاعلك مع هذا المستخدم', [
+    Alert.alert(person.display_name || person.username, 'ط¥ط¯ط§ط±ط© طھظپط§ط¹ظ„ظƒ ظ…ط¹ ظ‡ط°ط§ ط§ظ„ظ…ط³طھط®ط¯ظ…', [
       {
-        text: 'إبلاغ',
+        text: 'ط¥ط¨ظ„ط§ط؛',
         onPress: () => {
-          Alert.alert('إرسال بلاغ', 'هل تريد الإبلاغ عن هذا الحساب بسبب سلوك غير مناسب؟', [
-            { text: 'إلغاء', style: 'cancel' },
+          Alert.alert('ط¥ط±ط³ط§ظ„ ط¨ظ„ط§ط؛', 'ظ‡ظ„ طھط±ظٹط¯ ط§ظ„ط¥ط¨ظ„ط§ط؛ ط¹ظ† ظ‡ط°ط§ ط§ظ„ط­ط³ط§ط¨ ط¨ط³ط¨ط¨ ط³ظ„ظˆظƒ ط؛ظٹط± ظ…ظ†ط§ط³ط¨طں', [
+            { text: 'ط¥ظ„ط؛ط§ط،', style: 'cancel' },
             {
-              text: 'إرسال البلاغ',
+              text: 'ط¥ط±ط³ط§ظ„ ط§ظ„ط¨ظ„ط§ط؛',
               onPress: async () => {
                 const { error } = await supabase.rpc('report_wattar_user', {
                   p_user_id: person.user_id,
-                  p_reason: 'سلوك غير مناسب',
+                  p_reason: 'ط³ظ„ظˆظƒ ط؛ظٹط± ظ…ظ†ط§ط³ط¨',
                 });
-                if (error) Alert.alert('تعذر إرسال البلاغ', error.message);
-                else Alert.alert('تم استلام البلاغ', 'سيراجعه فريق Wattar.');
+                if (error) Alert.alert('طھط¹ط°ط± ط¥ط±ط³ط§ظ„ ط§ظ„ط¨ظ„ط§ط؛', error.message);
+                else Alert.alert('طھظ… ط§ط³طھظ„ط§ظ… ط§ظ„ط¨ظ„ط§ط؛', 'ط³ظٹط±ط§ط¬ط¹ظ‡ ظپط±ظٹظ‚ Wattar.');
               },
             },
           ]);
         },
       },
       {
-        text: 'حظر',
+        text: 'ط­ط¸ط±',
         style: 'destructive',
-        onPress: () => Alert.alert('حظر المستخدم؟', 'لن تتمكنوا من مراسلة أو دعوة بعضكما.', [
-          { text: 'إلغاء', style: 'cancel' },
+        onPress: () => Alert.alert('ط­ط¸ط± ط§ظ„ظ…ط³طھط®ط¯ظ…طں', 'ظ„ظ† طھطھظ…ظƒظ†ظˆط§ ظ…ظ† ظ…ط±ط§ط³ظ„ط© ط£ظˆ ط¯ط¹ظˆط© ط¨ط¹ط¶ظƒظ…ط§.', [
+          { text: 'ط¥ظ„ط؛ط§ط،', style: 'cancel' },
           {
-            text: 'حظر',
+            text: 'ط­ط¸ط±',
             style: 'destructive',
             onPress: async () => {
               const { error } = await supabase.rpc('block_wattar_user', { p_user_id: person.user_id });
-              if (error) Alert.alert('تعذر حظر المستخدم', error.message);
+              if (error) Alert.alert('طھط¹ط°ط± ط­ط¸ط± ط§ظ„ظ…ط³طھط®ط¯ظ…', error.message);
               else await loadSocialData();
             },
           },
         ]),
       },
-      { text: 'إلغاء', style: 'cancel' },
+      { text: 'ط¥ظ„ط؛ط§ط،', style: 'cancel' },
     ]);
   };
 
   const incomingRequestCount = requests.filter((request) => request.direction === 'incoming').length;
   const unreadMessageCount = conversations.reduce((total, conversation) => total + conversation.unread_count, 0);
   const sectionTabs: { key: SocialSection; label: string; count?: number }[] = [
-    { key: 'network', label: 'شبكتي', count: friends.length },
-    { key: 'inbox', label: 'الوارد', count: incomingRequestCount + invitations.length + unreadMessageCount },
-    { key: 'play', label: 'التحديات' },
+    { key: 'network', label: 'ط´ط¨ظƒطھظٹ', count: friends.length },
+    { key: 'inbox', label: 'ط§ظ„ظˆط§ط±ط¯', count: incomingRequestCount + invitations.length + unreadMessageCount },
+    { key: 'play', label: 'ط§ظ„طھط­ط¯ظٹط§طھ' },
   ];
   const tabs: { key: SocialTab; label: string; count?: number }[] = activeSection === 'network'
     ? [
-      { key: 'friends', label: 'أصدقائي', count: friends.length },
-      { key: 'following', label: 'أتابع', count: following.length },
+      { key: 'friends', label: 'ط£طµط¯ظ‚ط§ط¦ظٹ', count: friends.length },
+      { key: 'following', label: 'ط£طھط§ط¨ط¹', count: following.length },
     ]
     : activeSection === 'inbox'
       ? [
-        { key: 'messages', label: 'الرسائل', count: unreadMessageCount },
-        { key: 'requests', label: 'طلبات الصداقة', count: incomingRequestCount },
-        { key: 'invites', label: 'دعوات الغرف', count: invitations.length },
+        { key: 'messages', label: 'ط§ظ„ط±ط³ط§ط¦ظ„', count: unreadMessageCount },
+        { key: 'requests', label: 'ط·ظ„ط¨ط§طھ ط§ظ„طµط¯ط§ظ‚ط©', count: incomingRequestCount },
+        { key: 'invites', label: 'ط¯ط¹ظˆط§طھ ط§ظ„ط؛ط±ظپ', count: invitations.length },
       ]
-      : [{ key: 'challenges', label: 'تحديات النرد' }];
+      : [{ key: 'challenges', label: 'طھط­ط¯ظٹط§طھ ط§ظ„ظ†ط±ط¯' }];
 
   const selectSection = (section: SocialSection) => {
     setActiveSection(section);
@@ -434,10 +434,10 @@ export default function FriendsScreen() {
 
   const activeTabLabel = tabs.find((tab) => tab.key === activeTab)?.label ?? '';
   const sectionDescription = activeSection === 'network'
-    ? 'اكتشف أصدقاءك وتابع الحسابات التي تهمك.'
+    ? 'ط§ظƒطھط´ظپ ط£طµط¯ظ‚ط§ط،ظƒ ظˆطھط§ط¨ط¹ ط§ظ„ط­ط³ط§ط¨ط§طھ ط§ظ„طھظٹ طھظ‡ظ…ظƒ.'
     : activeSection === 'inbox'
-      ? 'رسائلك وطلبات التواصل ودعوات الغرف في مكان واحد.'
-      : 'تحديات مجانية مع أصدقائك، بعيدًا عن أرصدة المحفظة.';
+      ? 'ط±ط³ط§ط¦ظ„ظƒ ظˆط·ظ„ط¨ط§طھ ط§ظ„طھظˆط§طµظ„ ظˆط¯ط¹ظˆط§طھ ط§ظ„ط؛ط±ظپ ظپظٹ ظ…ظƒط§ظ† ظˆط§ط­ط¯.'
+      : 'طھط­ط¯ظٹط§طھ ظ…ط¬ط§ظ†ظٹط© ظ…ط¹ ط£طµط¯ظ‚ط§ط¦ظƒطŒ ط¨ط¹ظٹط¯ظ‹ط§ ط¹ظ† ط£ط±طµط¯ط© ط§ظ„ظ…ط­ظپط¸ط©.';
 
   const renderUser = (person: PublicUser, action: 'add' | 'message' | 'follow') => {
     const isFollowing = following.some((item) => item.user_id === person.user_id);
@@ -452,11 +452,11 @@ export default function FriendsScreen() {
         <TouchableOpacity
           onPress={() => router.push(`/user/${person.user_id}`)}
           accessibilityRole="button"
-          accessibilityLabel={`عرض ملف ${person.display_name || person.username}`}
+          accessibilityLabel={`ط¹ط±ط¶ ظ…ظ„ظپ ${person.display_name || person.username}`}
         >
           <Text style={styles.personName}>{person.display_name || person.username}</Text>
           <Text style={styles.personMeta}>
-            @{person.username} · {person.is_online ? 'متصل الآن' : 'غير متصل'}
+            @{person.username} آ· {person.is_online ? 'ظ…طھطµظ„ ط§ظ„ط¢ظ†' : 'ط؛ظٹط± ظ…طھطµظ„'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -469,7 +469,7 @@ export default function FriendsScreen() {
             : toggleFollow(person)}
         disabled={busyId === person.user_id}
         accessibilityRole="button"
-        accessibilityLabel={action === 'add' ? 'إضافة صديق' : 'إرسال رسالة'}
+        accessibilityLabel={action === 'add' ? 'ط¥ط¶ط§ظپط© طµط¯ظٹظ‚' : 'ط¥ط±ط³ط§ظ„ ط±ط³ط§ظ„ط©'}
       >
         {busyId === person.user_id
           ? <ActivityIndicator size="small" color={socialPalette.primary} />
@@ -479,7 +479,7 @@ export default function FriendsScreen() {
               ? <MessageCircle size={16} color={socialPalette.primary} />
               : <UserCheck size={16} color={isFollowing ? socialPalette.gold : socialPalette.primary} />}
         <Text style={styles.actionLabel}>
-          {action === 'add' ? 'إضافة' : action === 'message' ? 'مراسلة' : isFollowing ? 'متابَع' : 'متابعة'}
+          {action === 'add' ? 'ط¥ط¶ط§ظپط©' : action === 'message' ? 'ظ…ط±ط§ط³ظ„ط©' : isFollowing ? 'ظ…طھط§ط¨ظژط¹' : 'ظ…طھط§ط¨ط¹ط©'}
         </Text>
       </TouchableOpacity>
       {action === 'add' ? (
@@ -488,7 +488,7 @@ export default function FriendsScreen() {
           onPress={() => toggleFollow(person)}
           disabled={busyId === person.user_id}
           accessibilityRole="button"
-          accessibilityLabel={isFollowing ? 'إلغاء المتابعة' : 'متابعة المستخدم'}
+          accessibilityLabel={isFollowing ? 'ط¥ظ„ط؛ط§ط، ط§ظ„ظ…طھط§ط¨ط¹ط©' : 'ظ…طھط§ط¨ط¹ط© ط§ظ„ظ…ط³طھط®ط¯ظ…'}
         >
           {isFollowing
             ? <UserCheck size={16} color={socialPalette.gold} />
@@ -499,7 +499,7 @@ export default function FriendsScreen() {
         style={styles.moreButton}
         onPress={() => moderateUser(person)}
         accessibilityRole="button"
-        accessibilityLabel="خيارات الحظر والإبلاغ"
+        accessibilityLabel="ط®ظٹط§ط±ط§طھ ط§ظ„ط­ط¸ط± ظˆط§ظ„ط¥ط¨ظ„ط§ط؛"
       >
         <MoreHorizontal size={19} color={socialPalette.muted} />
       </TouchableOpacity>
@@ -514,9 +514,9 @@ export default function FriendsScreen() {
             <View style={styles.challengeCreateCard}>
               <View style={styles.challengeHeading}>
                 <Dices size={19} color={socialPalette.gold} />
-                <Text style={styles.challengeTitle}>تحدٍ اجتماعي مجاني</Text>
+                <Text style={styles.challengeTitle}>طھط­ط¯ظچ ط§ط¬طھظ…ط§ط¹ظٹ ظ…ط¬ط§ظ†ظٹ</Text>
               </View>
-              <Text style={styles.challengeDescription}>النرد يدار على الخادم؛ لا يستخدم الذهب أو أي رصيد مالي.</Text>
+              <Text style={styles.challengeDescription}>ط§ظ„ظ†ط±ط¯ ظٹط¯ط§ط± ط¹ظ„ظ‰ ط§ظ„ط®ط§ط¯ظ…ط› ظ„ط§ ظٹط³طھط®ط¯ظ… ط§ظ„ط°ظ‡ط¨ ط£ظˆ ط£ظٹ ط±طµظٹط¯ ظ…ط§ظ„ظٹ.</Text>
               <View style={styles.playerCountRow}>
                 {([2, 4] as const).map((count) => (
                   <TouchableOpacity
@@ -525,7 +525,7 @@ export default function FriendsScreen() {
                     onPress={() => { setChallengePlayers(count); setSelectedOpponents([]); }}
                   >
                     <Text style={[styles.playerCountText, challengePlayers === count && styles.playerCountTextActive]}>
-                      {count} لاعبين
+                      {count} ظ„ط§ط¹ط¨ظٹظ†
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -541,7 +541,7 @@ export default function FriendsScreen() {
                   >
                     <Text style={styles.personName}>{friend.display_name || friend.username}</Text>
                     <View style={[styles.checkbox, selected && styles.checkboxActive]}>
-                      {selected && <Text style={styles.checkboxCheck}>✓</Text>}
+                      {selected && <Text style={styles.checkboxCheck}>âœ“</Text>}
                     </View>
                   </TouchableOpacity>
                 );
@@ -551,55 +551,55 @@ export default function FriendsScreen() {
                 onPress={createChallenge}
                 disabled={loading || !friends.length}
               >
-                <Text style={styles.createChallengeText}>إرسال التحدي</Text>
+                <Text style={styles.createChallengeText}>ط¥ط±ط³ط§ظ„ ط§ظ„طھط­ط¯ظٹ</Text>
               </TouchableOpacity>
             </View>
             {challenges.filter((challenge) => challenge.challenge_status !== 'cancelled').map((challenge) => (
               <View key={challenge.challenge_id} style={styles.challengeCard}>
                 <View style={styles.challengeHeading}>
                   <Dices size={18} color={socialPalette.gold} />
-                  <Text style={styles.challengeTitle}>{challenge.max_players} لاعبين · نرد</Text>
+                  <Text style={styles.challengeTitle}>{challenge.max_players} ظ„ط§ط¹ط¨ظٹظ† آ· ظ†ط±ط¯</Text>
                 </View>
                 {challenge.participants.map((participant) => (
                   <View key={participant.user_id} style={styles.challengeParticipant}>
                     <Text style={styles.personMeta}>
-                      {participant.display_name}{participant.user_id === challenge.winner_id ? ' · الفائز' : ''}
+                      {participant.display_name}{participant.user_id === challenge.winner_id ? ' آ· ط§ظ„ظپط§ط¦ط²' : ''}
                     </Text>
                     <Text style={styles.challengeScore}>
                       {challenge.challenge_status === 'completed'
-                        ? participant.dice_roll ?? 'تعادل'
+                        ? participant.dice_roll ?? 'طھط¹ط§ط¯ظ„'
                         : participant.status === 'accepted' && participant.user_id === currentUserId
-                          ? challenge.my_roll ? `رميت ${challenge.my_roll}` : 'دورك'
-                          : participant.status === 'pending' ? 'بانتظار القبول' : 'مستعد'}
+                          ? challenge.my_roll ? `ط±ظ…ظٹطھ ${challenge.my_roll}` : 'ط¯ظˆط±ظƒ'
+                          : participant.status === 'pending' ? 'ط¨ط§ظ†طھط¸ط§ط± ط§ظ„ظ‚ط¨ظˆظ„' : 'ظ…ط³طھط¹ط¯'}
                     </Text>
                   </View>
                 ))}
                 {challenge.my_status === 'pending' && challenge.challenge_status === 'pending' ? (
                   <View style={styles.inviteActions}>
                     <TouchableOpacity style={styles.acceptInviteButton} onPress={() => respondToChallenge(challenge, true)} disabled={busyId === challenge.challenge_id}>
-                      <Text style={styles.acceptInviteText}>قبول</Text>
+                      <Text style={styles.acceptInviteText}>ظ‚ط¨ظˆظ„</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.declineInviteButton} onPress={() => respondToChallenge(challenge, false)} disabled={busyId === challenge.challenge_id}>
-                      <Text style={styles.declineText}>رفض</Text>
+                      <Text style={styles.declineText}>ط±ظپط¶</Text>
                     </TouchableOpacity>
                   </View>
                 ) : null}
                 {['ready', 'playing'].includes(challenge.challenge_status) && challenge.my_status === 'accepted' && challenge.my_roll === null ? (
                   <TouchableOpacity style={styles.rollButton} onPress={() => rollChallenge(challenge)} disabled={busyId === challenge.challenge_id}>
-                    {busyId === challenge.challenge_id ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.acceptInviteText}>ارمِ النرد</Text>}
+                    {busyId === challenge.challenge_id ? <ActivityIndicator color={colors.text} /> : <Text style={styles.acceptInviteText}>ط§ط±ظ…ظگ ط§ظ„ظ†ط±ط¯</Text>}
                   </TouchableOpacity>
                 ) : null}
                 {challenge.my_roll !== null && challenge.challenge_status !== 'completed' ? (
-                  <Text style={styles.challengeDescription}>ظهرت لك {challenge.my_roll} · بانتظار بقية اللاعبين</Text>
+                  <Text style={styles.challengeDescription}>ط¸ظ‡ط±طھ ظ„ظƒ {challenge.my_roll} آ· ط¨ط§ظ†طھط¸ط§ط± ط¨ظ‚ظٹط© ط§ظ„ظ„ط§ط¹ط¨ظٹظ†</Text>
                 ) : null}
                 {challenge.challenge_status === 'completed' ? (
                   <Text style={styles.challengeResult}>
-                    {challenge.winner_id ? 'انتهى التحدي! الفائز صاحب أعلى نتيجة.' : 'انتهى التحدي بالتعادل.'}
+                    {challenge.winner_id ? 'ط§ظ†طھظ‡ظ‰ ط§ظ„طھط­ط¯ظٹ! ط§ظ„ظپط§ط¦ط² طµط§ط­ط¨ ط£ط¹ظ„ظ‰ ظ†طھظٹط¬ط©.' : 'ط§ظ†طھظ‡ظ‰ ط§ظ„طھط­ط¯ظٹ ط¨ط§ظ„طھط¹ط§ط¯ظ„.'}
                   </Text>
                 ) : null}
               </View>
             ))}
-            {!challenges.length && <EmptyState text="أرسل تحديًا مجانيًا للأصدقاء. التحديات لا تستخدم الذهب." />}
+            {!challenges.length && <EmptyState text="ط£ط±ط³ظ„ طھط­ط¯ظٹظ‹ط§ ظ…ط¬ط§ظ†ظٹظ‹ط§ ظ„ظ„ط£طµط¯ظ‚ط§ط،. ط§ظ„طھط­ط¯ظٹط§طھ ظ„ط§ طھط³طھط®ط¯ظ… ط§ظ„ط°ظ‡ط¨." />}
           </View>
       );
     }
@@ -612,7 +612,7 @@ export default function FriendsScreen() {
               style={styles.searchInput}
               value={query}
               onChangeText={setQuery}
-              placeholder="ابحث بالاسم أو اسم المستخدم"
+              placeholder="ط§ط¨ط­ط« ط¨ط§ظ„ط§ط³ظ… ط£ظˆ ط§ط³ظ… ط§ظ„ظ…ط³طھط®ط¯ظ…"
               placeholderTextColor={socialPalette.muted}
               autoCapitalize="none"
               returnKeyType="search"
@@ -627,27 +627,27 @@ export default function FriendsScreen() {
                   Keyboard.dismiss();
                 }}
                 accessibilityRole="button"
-                accessibilityLabel="مسح البحث"
+                accessibilityLabel="ظ…ط³ط­ ط§ظ„ط¨ط­ط«"
               >
-                <Text style={styles.clearSearchText}>مسح</Text>
+                <Text style={styles.clearSearchText}>ظ…ط³ط­</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={searchUsers} disabled={searching} style={styles.searchButton}>
-              {searching ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.searchButtonText}>بحث</Text>}
+              {searching ? <ActivityIndicator size="small" color={colors.text} /> : <Text style={styles.searchButtonText}>ط¨ط­ط«</Text>}
             </TouchableOpacity>
           </View>
           {query.trim().length < 2 && (
-            <Text style={styles.searchHint}>اكتب اسمًا أو اسم مستخدم من حرفين على الأقل، ثم اضغط بحث.</Text>
+            <Text style={styles.searchHint}>ط§ظƒطھط¨ ط§ط³ظ…ظ‹ط§ ط£ظˆ ط§ط³ظ… ظ…ط³طھط®ط¯ظ… ظ…ظ† ط­ط±ظپظٹظ† ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„طŒ ط«ظ… ط§ط¶ط؛ط· ط¨ط­ط«.</Text>
           )}
           {searchResults.map((person) => renderUser(person, 'add'))}
           {hasSearched && !searching && searchResults.length === 0 && (
-            <EmptyState text="ما لقينا حسابًا مطابقًا. تأكد من الاسم وجرب مرة ثانية." />
+            <EmptyState text="ظ…ط§ ظ„ظ‚ظٹظ†ط§ ط­ط³ط§ط¨ظ‹ط§ ظ…ط·ط§ط¨ظ‚ظ‹ط§. طھط£ظƒط¯ ظ…ظ† ط§ظ„ط§ط³ظ… ظˆط¬ط±ط¨ ظ…ط±ط© ط«ط§ظ†ظٹط©." />
           )}
           {searchResults.length > 0 && <View style={styles.divider} />}
-          <SectionHeading text="أصدقائي" count={friends.length} />
+          <SectionHeading text="ط£طµط¯ظ‚ط§ط¦ظٹ" count={friends.length} />
           {friends.length
             ? friends.map((person) => renderUser(person, 'message'))
-            : <EmptyState text="أضف أصدقاء لتبدأ المحادثة وتدعوهم إلى الغرف." />}
+            : <EmptyState text="ط£ط¶ظپ ط£طµط¯ظ‚ط§ط، ظ„طھط¨ط¯ط£ ط§ظ„ظ…ط­ط§ط¯ط«ط© ظˆطھط¯ط¹ظˆظ‡ظ… ط¥ظ„ظ‰ ط§ظ„ط؛ط±ظپ." />}
         </View>
       );
     }
@@ -665,7 +665,7 @@ export default function FriendsScreen() {
               style={[styles.personRow, conversation.unread_count > 0 && styles.unreadRow]}
               onPress={() => router.push(`/messages/${conversation.conversation_id}`)}
               accessibilityRole="button"
-              accessibilityLabel={`فتح محادثة ${conversation.display_name || conversation.username}`}
+              accessibilityLabel={`ظپطھط­ ظ…ط­ط§ط¯ط«ط© ${conversation.display_name || conversation.username}`}
             >
               <View style={styles.avatar}>
                 {conversation.avatar_url
@@ -682,7 +682,7 @@ export default function FriendsScreen() {
                   style={[styles.personMeta, conversation.unread_count > 0 && styles.unreadPreview]}
                   numberOfLines={1}
                 >
-                  {conversation.last_message || 'ابدأ المحادثة'}
+                  {conversation.last_message || 'ط§ط¨ط¯ط£ ط§ظ„ظ…ط­ط§ط¯ط«ط©'}
                 </Text>
               </View>
               {conversation.unread_count > 0 && (
@@ -691,7 +691,7 @@ export default function FriendsScreen() {
                 </View>
               )}
             </TouchableOpacity>
-          )) : <EmptyState text="لا توجد محادثات بعد. ابدأ محادثة من قائمة الأصدقاء." />}
+          )) : <EmptyState text="ظ„ط§ طھظˆط¬ط¯ ظ…ط­ط§ط¯ط«ط§طھ ط¨ط¹ط¯. ط§ط¨ط¯ط£ ظ…ط­ط§ط¯ط«ط© ظ…ظ† ظ‚ط§ط¦ظ…ط© ط§ظ„ط£طµط¯ظ‚ط§ط،." />}
         </View>
       );
     }
@@ -700,7 +700,7 @@ export default function FriendsScreen() {
         <View>
           {following.length
             ? following.map((person) => renderUser(person, 'follow'))
-            : <EmptyState text="لا تتابع أحدًا بعد. ابحث عن حساب في تبويب الأصدقاء واضغط متابعة." />}
+            : <EmptyState text="ظ„ط§ طھطھط§ط¨ط¹ ط£ط­ط¯ظ‹ط§ ط¨ط¹ط¯. ط§ط¨ط­ط« ط¹ظ† ط­ط³ط§ط¨ ظپظٹ طھط¨ظˆظٹط¨ ط§ظ„ط£طµط¯ظ‚ط§ط، ظˆط§ط¶ط؛ط· ظ…طھط§ط¨ط¹ط©." />}
         </View>
       );
     }
@@ -711,7 +711,7 @@ export default function FriendsScreen() {
         <View>
           {incoming.length ? (
             <View>
-              <SectionHeading text="طلبات واردة" count={incoming.length} />
+              <SectionHeading text="ط·ظ„ط¨ط§طھ ظˆط§ط±ط¯ط©" count={incoming.length} />
               {incoming.map((request) => (
                 <View key={request.request_id} style={styles.personRow}>
                   <View style={styles.avatar}>
@@ -723,19 +723,19 @@ export default function FriendsScreen() {
                     <TouchableOpacity
                       onPress={() => router.push(`/user/${request.user_id}`)}
                       accessibilityRole="button"
-                      accessibilityLabel={`عرض ملف ${request.display_name || request.username}`}
+                      accessibilityLabel={`ط¹ط±ط¶ ظ…ظ„ظپ ${request.display_name || request.username}`}
                     >
                       <Text style={styles.personName}>{request.display_name || request.username}</Text>
-                      <Text style={styles.personMeta}>@{request.username} أرسل طلب صداقة</Text>
+                      <Text style={styles.personMeta}>@{request.username} ط£ط±ط³ظ„ ط·ظ„ط¨ طµط¯ط§ظ‚ط©</Text>
                     </TouchableOpacity>
                   </View>
-                  <TouchableOpacity style={styles.acceptButton} onPress={() => respondToRequest(request, true)} disabled={busyId === request.request_id} accessibilityLabel="قبول طلب الصداقة">
+                  <TouchableOpacity style={styles.acceptButton} onPress={() => respondToRequest(request, true)} disabled={busyId === request.request_id} accessibilityLabel="ظ‚ط¨ظˆظ„ ط·ظ„ط¨ ط§ظ„طµط¯ط§ظ‚ط©">
                     {busyId === request.request_id
-                      ? <ActivityIndicator size="small" color="#FFFFFF" />
-                      : <UserCheck size={17} color="#FFFFFF" />}
+                      ? <ActivityIndicator size="small" color={colors.text} />
+                      : <UserCheck size={17} color={colors.text} />}
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.declineButton} onPress={() => respondToRequest(request, false)} disabled={busyId === request.request_id} accessibilityLabel="رفض طلب الصداقة">
-                    <Text style={styles.declineText}>رفض</Text>
+                  <TouchableOpacity style={styles.declineButton} onPress={() => respondToRequest(request, false)} disabled={busyId === request.request_id} accessibilityLabel="ط±ظپط¶ ط·ظ„ط¨ ط§ظ„طµط¯ط§ظ‚ط©">
+                    <Text style={styles.declineText}>ط±ظپط¶</Text>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -743,7 +743,7 @@ export default function FriendsScreen() {
           ) : null}
           {outgoing.length ? (
             <View>
-              <SectionHeading text="طلبات مرسلة" count={outgoing.length} />
+              <SectionHeading text="ط·ظ„ط¨ط§طھ ظ…ط±ط³ظ„ط©" count={outgoing.length} />
               {outgoing.map((request) => (
                 <View key={request.request_id} style={styles.personRow}>
                   <View style={styles.avatar}>
@@ -753,17 +753,17 @@ export default function FriendsScreen() {
                   </View>
                   <View style={styles.personDetails}>
                     <Text style={styles.personName}>{request.display_name || request.username}</Text>
-                    <Text style={styles.personMeta}>@{request.username} · بانتظار الرد</Text>
+                    <Text style={styles.personMeta}>@{request.username} آ· ط¨ط§ظ†طھط¸ط§ط± ط§ظ„ط±ط¯</Text>
                   </View>
                   <View style={styles.pendingChip}>
-                    <Text style={styles.pendingChipText}>قيد الانتظار</Text>
+                    <Text style={styles.pendingChipText}>ظ‚ظٹط¯ ط§ظ„ط§ظ†طھط¸ط§ط±</Text>
                   </View>
                 </View>
               ))}
             </View>
           ) : null}
           {incoming.length === 0 && outgoing.length === 0
-            ? <EmptyState text="ما عندك طلبات صداقة جديدة." />
+            ? <EmptyState text="ظ…ط§ ط¹ظ†ط¯ظƒ ط·ظ„ط¨ط§طھ طµط¯ط§ظ‚ط© ط¬ط¯ظٹط¯ط©." />
             : null}
         </View>
       );
@@ -772,18 +772,18 @@ export default function FriendsScreen() {
       <View>
         {invitations.length ? invitations.map((invitation) => (
           <View key={invitation.invitation_id} style={styles.invitationCard}>
-            <Text style={styles.personName}>{invitation.sender_name} دعاك إلى غرفة</Text>
+            <Text style={styles.personName}>{invitation.sender_name} ط¯ط¹ط§ظƒ ط¥ظ„ظ‰ ط؛ط±ظپط©</Text>
             <Text style={styles.personMeta}>{invitation.room_name}</Text>
             <View style={styles.inviteActions}>
               <TouchableOpacity style={styles.acceptInviteButton} onPress={() => respondToInvitation(invitation, true)} disabled={busyId === invitation.invitation_id}>
-                <Text style={styles.acceptInviteText}>انضمام</Text>
+                <Text style={styles.acceptInviteText}>ط§ظ†ط¶ظ…ط§ظ…</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.declineInviteButton} onPress={() => respondToInvitation(invitation, false)} disabled={busyId === invitation.invitation_id}>
-                <Text style={styles.declineText}>تجاهل</Text>
+                <Text style={styles.declineText}>طھط¬ط§ظ‡ظ„</Text>
               </TouchableOpacity>
             </View>
           </View>
-        )) : <EmptyState text="ما عندك دعوات غرف حاليًا." />}
+        )) : <EmptyState text="ظ…ط§ ط¹ظ†ط¯ظƒ ط¯ط¹ظˆط§طھ ط؛ط±ظپ ط­ط§ظ„ظٹظ‹ط§." />}
       </View>
     );
   };
@@ -794,8 +794,8 @@ export default function FriendsScreen() {
         <View style={styles.titleRow}>
           <View style={styles.titleIcon}><Users size={20} color={socialPalette.gold} /></View>
           <View>
-            <Text style={styles.title}>المجتمع</Text>
-            <Text style={styles.subtitle}>أصدقاؤك ومتابعاتك ومحادثاتك</Text>
+            <Text style={styles.title}>ط§ظ„ظ…ط¬طھظ…ط¹</Text>
+            <Text style={styles.subtitle}>ط£طµط¯ظ‚ط§ط¤ظƒ ظˆظ…طھط§ط¨ط¹ط§طھظƒ ظˆظ…ط­ط§ط¯ط«ط§طھظƒ</Text>
           </View>
         </View>
         <TouchableOpacity
@@ -804,7 +804,7 @@ export default function FriendsScreen() {
           accessibilityRole="button"
         >
           <Users size={16} color={socialPalette.gold} />
-          <Text style={styles.agentGroupButtonText}>مجموعة الوكيل</Text>
+          <Text style={styles.agentGroupButtonText}>ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظˆظƒظٹظ„</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.sectionTabs}>
@@ -861,12 +861,12 @@ export default function FriendsScreen() {
               <View style={styles.networkStats}>
                 <View style={styles.networkStat}>
                   <Text style={styles.networkStatValue}>{friends.length}</Text>
-                  <Text style={styles.networkStatLabel}>أصدقاء</Text>
+                  <Text style={styles.networkStatLabel}>ط£طµط¯ظ‚ط§ط،</Text>
                 </View>
                 <View style={styles.networkStatDivider} />
                 <View style={styles.networkStat}>
                   <Text style={styles.networkStatValue}>{following.length}</Text>
-                  <Text style={styles.networkStatLabel}>متابعة</Text>
+                  <Text style={styles.networkStatLabel}>ظ…طھط§ط¨ط¹ط©</Text>
                 </View>
               </View>
             ) : null}
@@ -893,32 +893,32 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: socialPalette.background },
   header: { paddingHorizontal: 18, paddingTop: 54, paddingBottom: 18 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  titleIcon: { width: 46, height: 46, borderRadius: 16, backgroundColor: '#28153D', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#56306D' },
-  title: { color: socialPalette.text, fontSize: 24, fontWeight: '800' },
+  titleIcon: { width: 46, height: 46, borderRadius: radius.md, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.borderStrong },
+  title: { color: socialPalette.text, fontSize: 24, fontFamily: fonts.bold },
   subtitle: { color: socialPalette.muted, fontSize: 13, marginTop: 4 },
-  agentGroupButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14, minHeight: 42, borderRadius: 14, backgroundColor: '#28153D', borderWidth: 1, borderColor: '#56306D' },
-  agentGroupButtonText: { color: socialPalette.gold, fontSize: 12, fontWeight: '700' },
+  agentGroupButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14, minHeight: 42, borderRadius: 14, backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.borderStrong },
+  agentGroupButtonText: { color: socialPalette.gold, fontSize: 12, fontFamily: fonts.semibold },
   sectionTabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 14, paddingBottom: 9 },
   sectionTab: { flex: 1, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 14, backgroundColor: socialPalette.surface, borderWidth: 1, borderColor: socialPalette.border },
-  activeSectionTab: { backgroundColor: '#29183E', borderColor: '#8E42C1' },
-  sectionTabText: { color: socialPalette.muted, fontSize: 12, fontWeight: '700' },
+  activeSectionTab: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
+  sectionTabText: { color: socialPalette.muted, fontSize: 12, fontFamily: fonts.semibold },
   activeSectionTabText: { color: socialPalette.text },
   sectionCount: { minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, backgroundColor: socialPalette.elevated, alignItems: 'center', justifyContent: 'center' },
   activeSectionCount: { backgroundColor: socialPalette.primaryDeep },
-  sectionCountText: { color: socialPalette.text, fontSize: 10, fontWeight: '800' },
+  sectionCountText: { color: socialPalette.text, fontSize: 10, fontFamily: fonts.bold },
   subTabs: { flexDirection: 'row', gap: 7, paddingHorizontal: 14, paddingBottom: 12 },
   subTab: { minHeight: 36, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 12, backgroundColor: 'transparent', borderWidth: 1, borderColor: socialPalette.border },
   activeSubTab: { backgroundColor: socialPalette.primaryDeep, borderColor: socialPalette.primaryDeep },
-  subTabText: { color: socialPalette.muted, fontSize: 11, fontWeight: '700' },
-  activeSubTabText: { color: '#FFFFFF' },
-  subTabCount: { color: socialPalette.gold, fontSize: 10, fontWeight: '800' },
+  subTabText: { color: socialPalette.muted, fontSize: 11, fontFamily: fonts.semibold },
+  activeSubTabText: { color: colors.text },
+  subTabCount: { color: socialPalette.gold, fontSize: 10, fontFamily: fonts.bold },
   listIntro: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 14, marginBottom: 12, borderRadius: 18, borderWidth: 1, borderColor: socialPalette.border, backgroundColor: socialPalette.surface },
   listIntroCopy: { flex: 1 },
-  listIntroTitle: { color: socialPalette.text, fontSize: 15, fontWeight: '800', textAlign: 'right' },
+  listIntroTitle: { color: socialPalette.text, fontSize: 15, fontFamily: fonts.bold, textAlign: 'right' },
   listIntroText: { color: socialPalette.muted, fontSize: 11, lineHeight: 17, textAlign: 'right', marginTop: 4 },
   networkStats: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 13, backgroundColor: socialPalette.elevated },
   networkStat: { alignItems: 'center', minWidth: 38 },
-  networkStatValue: { color: socialPalette.gold, fontSize: 14, fontWeight: '800' },
+  networkStatValue: { color: socialPalette.gold, fontSize: 14, fontFamily: fonts.bold },
   networkStatLabel: { color: socialPalette.muted, fontSize: 9, marginTop: 2 },
   networkStatDivider: { width: 1, height: 26, backgroundColor: socialPalette.border },
   list: { paddingHorizontal: 14, paddingBottom: 104 },
@@ -927,60 +927,60 @@ const styles = StyleSheet.create({
   searchHint: { color: socialPalette.muted, fontSize: 12, lineHeight: 19, marginHorizontal: 4, marginBottom: 12, textAlign: 'right' },
   clearSearchText: { color: socialPalette.muted, fontSize: 12, paddingHorizontal: 4 },
   searchButton: { minWidth: 58, alignItems: 'center', backgroundColor: socialPalette.primaryDeep, paddingHorizontal: 13, paddingVertical: 10, borderRadius: 12 },
-  searchButtonText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  searchButtonText: { color: colors.text, fontSize: 12, fontFamily: fonts.semibold },
   personRow: { minHeight: 74, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 11, marginBottom: 9, borderWidth: 1, borderColor: socialPalette.border, borderRadius: 17, backgroundColor: socialPalette.surface },
-  unreadRow: { borderColor: '#6B3A8F', backgroundColor: '#1D1330' },
-  avatar: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A1940', borderWidth: 1, borderColor: '#56306D', overflow: 'hidden' },
+  unreadRow: { borderColor: colors.borderStrong, backgroundColor: colors.surfaceMuted },
+  avatar: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.borderStrong, overflow: 'hidden' },
   onlineDot: { position: 'absolute', bottom: 0, right: 0, width: 11, height: 11, borderRadius: 6, backgroundColor: socialPalette.online, borderWidth: 2, borderColor: socialPalette.background },
   avatarImage: { width: '100%', height: '100%' },
-  avatarText: { color: socialPalette.gold, fontSize: 16, fontWeight: '800' },
+  avatarText: { color: socialPalette.gold, fontSize: 16, fontFamily: fonts.bold },
   personDetails: { flex: 1 },
-  personName: { color: socialPalette.text, fontSize: 14, fontWeight: '700', textAlign: 'right' },
+  personName: { color: socialPalette.text, fontSize: 14, fontFamily: fonts.semibold, textAlign: 'right' },
   personMeta: { color: socialPalette.muted, fontSize: 11, marginTop: 4, textAlign: 'right' },
-  actionButton: { minWidth: 68, height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 8, borderRadius: 13, backgroundColor: '#2A1940', borderWidth: 1, borderColor: '#52306C' },
-  followButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A1940', borderRadius: 12 },
-  actionLabel: { color: socialPalette.text, fontSize: 11, fontWeight: '700' },
+  actionButton: { minWidth: 68, height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 8, borderRadius: 13, backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.borderStrong },
+  followButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft, borderRadius: 12 },
+  actionLabel: { color: socialPalette.text, fontSize: 11, fontFamily: fonts.semibold },
   moreButton: { width: 30, height: 38, alignItems: 'center', justifyContent: 'center' },
-  acceptButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 13, backgroundColor: '#168A67' },
-  declineButton: { paddingHorizontal: 11, paddingVertical: 9, borderRadius: 11, backgroundColor: '#3B1A2A' },
-  declineText: { color: '#FF9AAE', fontSize: 11, fontWeight: '700' },
+  acceptButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 13, backgroundColor: colors.successSoft },
+  declineButton: { paddingHorizontal: 11, paddingVertical: 9, borderRadius: 11, backgroundColor: colors.dangerSoft },
+  declineText: { color: colors.danger, fontSize: 11, fontFamily: fonts.semibold },
   divider: { height: 1, backgroundColor: socialPalette.border, marginVertical: 12 },
   unreadBadge: { minWidth: 24, height: 24, borderRadius: 12, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: socialPalette.primaryDeep },
-  unreadText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+  unreadText: { color: colors.text, fontSize: 11, fontFamily: fonts.bold },
   conversationTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   conversationTime: { color: socialPalette.muted, fontSize: 10 },
-  unreadPreview: { color: socialPalette.text, fontWeight: '600' },
+  unreadPreview: { color: socialPalette.text, fontFamily: fonts.semibold },
   sectionHeading: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, marginBottom: 10, paddingHorizontal: 2 },
-  sectionHeadingText: { color: socialPalette.text, fontSize: 13, fontWeight: '800' },
-  sectionHeadingCount: { color: socialPalette.gold, fontSize: 11, fontWeight: '800', minWidth: 20, textAlign: 'center' },
-  pendingChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 11, backgroundColor: '#2A1940', borderWidth: 1, borderColor: '#52306C' },
-  pendingChipText: { color: socialPalette.muted, fontSize: 10, fontWeight: '700' },
+  sectionHeadingText: { color: socialPalette.text, fontSize: 13, fontFamily: fonts.bold },
+  sectionHeadingCount: { color: socialPalette.gold, fontSize: 11, fontFamily: fonts.bold, minWidth: 20, textAlign: 'center' },
+  pendingChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 11, backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.borderStrong },
+  pendingChipText: { color: socialPalette.muted, fontSize: 10, fontFamily: fonts.semibold },
   invitationCard: { padding: 15, marginBottom: 10, borderWidth: 1, borderColor: socialPalette.border, borderRadius: 17, backgroundColor: socialPalette.surface },
   inviteActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
   acceptInviteButton: { flex: 1, alignItems: 'center', paddingVertical: 11, borderRadius: 12, backgroundColor: socialPalette.primaryDeep },
-  acceptInviteText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
-  declineInviteButton: { flex: 1, alignItems: 'center', paddingVertical: 11, borderRadius: 12, backgroundColor: '#3B1A2A' },
+  acceptInviteText: { color: colors.text, fontSize: 12, fontFamily: fonts.semibold },
+  declineInviteButton: { flex: 1, alignItems: 'center', paddingVertical: 11, borderRadius: 12, backgroundColor: colors.dangerSoft },
   emptyState: { alignItems: 'center', gap: 11, paddingHorizontal: 28, paddingVertical: 46, borderWidth: 1, borderColor: socialPalette.border, borderRadius: 18, backgroundColor: socialPalette.surface },
   emptyText: { color: socialPalette.muted, fontSize: 13, lineHeight: 21, textAlign: 'center' },
   challengeCreateCard: { padding: 15, marginBottom: 12, borderWidth: 1, borderColor: socialPalette.border, borderRadius: 18, backgroundColor: socialPalette.surface },
   challengeCard: { padding: 15, marginBottom: 10, borderWidth: 1, borderColor: socialPalette.border, borderRadius: 17, backgroundColor: socialPalette.surface },
   challengeHeading: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 7 },
-  challengeTitle: { color: socialPalette.text, fontSize: 14, fontWeight: '700' },
+  challengeTitle: { color: socialPalette.text, fontSize: 14, fontFamily: fonts.semibold },
   challengeDescription: { color: socialPalette.muted, fontSize: 11, lineHeight: 17, marginBottom: 10 },
   playerCountRow: { flexDirection: 'row', gap: 8, marginVertical: 7 },
   playerCountButton: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 10, backgroundColor: socialPalette.elevated },
   playerCountButtonActive: { backgroundColor: socialPalette.primaryDeep },
-  playerCountText: { color: socialPalette.muted, fontSize: 12, fontWeight: '600' },
-  playerCountTextActive: { color: '#FFFFFF' },
+  playerCountText: { color: socialPalette.muted, fontSize: 12, fontFamily: fonts.medium },
+  playerCountTextActive: { color: colors.text },
   opponentRow: { minHeight: 43, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: socialPalette.border },
   checkbox: { width: 21, height: 21, borderRadius: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: socialPalette.muted },
   checkboxActive: { backgroundColor: socialPalette.primaryDeep, borderColor: socialPalette.primaryDeep },
-  checkboxCheck: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  checkboxCheck: { color: colors.text, fontSize: 13, fontFamily: fonts.bold },
   createChallengeButton: { alignItems: 'center', paddingVertical: 11, marginTop: 12, borderRadius: 11, backgroundColor: socialPalette.primaryDeep },
-  createChallengeText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  createChallengeText: { color: colors.text, fontSize: 13, fontFamily: fonts.semibold },
   disabledAction: { opacity: 0.55 },
   challengeParticipant: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 7, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: socialPalette.border },
-  challengeScore: { color: socialPalette.gold, fontSize: 11, fontWeight: '600' },
+  challengeScore: { color: socialPalette.gold, fontSize: 11, fontFamily: fonts.medium },
   rollButton: { alignItems: 'center', justifyContent: 'center', minHeight: 42, marginTop: 12, borderRadius: 11, backgroundColor: socialPalette.primaryDeep },
-  challengeResult: { color: socialPalette.online, fontSize: 12, fontWeight: '700', marginTop: 10 },
+  challengeResult: { color: socialPalette.online, fontSize: 12, fontFamily: fonts.semibold, marginTop: 10 },
 });
