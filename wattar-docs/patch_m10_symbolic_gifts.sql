@@ -46,6 +46,9 @@ DECLARE
   v_gift public.gifts%rowtype;
   v_from_qty integer;
   v_transfer_id uuid := gen_random_uuid();
+  v_sender_name text;
+  v_receiver_name text;
+  v_gift_name text;
 BEGIN
   IF auth.role() <> 'service_role' THEN
     RAISE EXCEPTION 'Not authorized';
@@ -88,11 +91,16 @@ BEGIN
 
   -- سجل حدث اختياري في شات الغرفة (نفس نمط رسالة الهدية النظامية)
   IF p_room_id IS NOT NULL THEN
+    SELECT coalesce(nullif(display_name,''), username, 'عضو') INTO v_sender_name
+    FROM public.users WHERE id = p_from_user_id;
+    SELECT coalesce(nullif(display_name,''), username, 'عضو') INTO v_receiver_name
+    FROM public.users WHERE id = p_to_user_id;
+    v_gift_name := coalesce(nullif(v_gift.name_ar,''), nullif(v_gift.name,''), 'هدية رمزية');
     INSERT INTO public.room_messages (room_id, user_id, message, is_system, gift_id)
     VALUES (
       p_room_id,
       p_from_user_id,
-      '🎁 أهدية رمزية',
+      '🎁 ' || v_sender_name || ' أهدى ' || CASE WHEN p_quantity > 1 THEN p_quantity::text || 'x ' ELSE '' END || v_gift_name || ' إلى ' || v_receiver_name || ' (رمزية)',
       true,
       p_gift_id
     );
