@@ -3,6 +3,7 @@ import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
+import { colors } from '@/lib/theme';
 
 const TOKEN_STORAGE_KEY = 'wattar-expo-push-token';
 const PROMPT_ASKED_KEY = 'wattar-notification-permission-asked';
@@ -25,7 +26,7 @@ async function ensureAndroidNotificationChannel(): Promise<void> {
     name: 'التواصل والإشعارات',
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
-    lightColor: '#C064FF',
+    lightColor: colors.roomPrimary,
   });
 }
 

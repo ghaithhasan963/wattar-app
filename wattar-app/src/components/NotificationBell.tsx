@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Bell } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
-import { colors } from '@/lib/theme';
+import { colors, fonts } from '@/lib/theme';
 
 export function NotificationBell() {
   const router = useRouter();
@@ -54,7 +54,7 @@ export function NotificationBell() {
       style={styles.button}
       onPress={() => router.push('/(tabs)/notifications')}
       accessibilityRole="button"
-      accessibilityLabel={unreadCount > 0 ? `الإشعارات، ${unreadCount} غير مقروءة` : 'الإشعارات'}
+      accessibilityLabel={unreadCount > 0 ? `ط§ظ„ط¥ط´ط¹ط§ط±ط§طھطŒ ${unreadCount} ط؛ظٹط± ظ…ظ‚ط±ظˆط،ط©` : 'ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ'}
     >
       <Bell size={19} color={colors.text} />
       {unreadCount > 0 && (
@@ -91,5 +91,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.background,
   },
-  badgeText: { color: colors.text, fontSize: 9, fontWeight: '900' },
+  badgeText: { color: colors.text, fontSize: 9, fontFamily: fonts.black },
 });

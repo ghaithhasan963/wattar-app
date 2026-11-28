@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronRight, UserRoundX } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
-import { colors } from '@/lib/theme';
+import { colors, fonts } from '@/lib/theme';
 
 interface BlockedUser {
   user_id: string;
@@ -24,7 +24,7 @@ export default function BlockedUsersScreen() {
       if (error) throw error;
       setUsers((data ?? []) as BlockedUser[]);
     } catch (error: unknown) {
-      Alert.alert('تعذر تحميل القائمة', error instanceof Error ? error.message : 'حاول مرة أخرى.');
+      Alert.alert('طھط¹ط°ط± طھط­ظ…ظٹظ„ ط§ظ„ظ‚ط§ط¦ظ…ط©', error instanceof Error ? error.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
     } finally {
       setLoading(false);
     }
@@ -35,14 +35,14 @@ export default function BlockedUsersScreen() {
   }, [loadBlockedUsers]);
 
   const unblock = (user: BlockedUser) => {
-    Alert.alert('إلغاء الحظر', `هل تريد إلغاء حظر ${user.display_name || user.username}؟`, [
-      { text: 'إلغاء', style: 'cancel' },
+    Alert.alert('ط¥ظ„ط؛ط§ط، ط§ظ„ط­ط¸ط±', `ظ‡ظ„ طھط±ظٹط¯ ط¥ظ„ط؛ط§ط، ط­ط¸ط± ${user.display_name || user.username}طں`, [
+      { text: 'ط¥ظ„ط؛ط§ط،', style: 'cancel' },
       {
-        text: 'إلغاء الحظر',
+        text: 'ط¥ظ„ط؛ط§ط، ط§ظ„ط­ط¸ط±',
         onPress: async () => {
           const { error } = await supabase.rpc('unblock_wattar_user', { p_user_id: user.user_id });
           if (error) {
-            Alert.alert('تعذر إلغاء الحظر', error.message);
+            Alert.alert('طھط¹ط°ط± ط¥ظ„ط؛ط§ط، ط§ظ„ط­ط¸ط±', error.message);
             return;
           }
           setUsers((current) => current.filter((item) => item.user_id !== user.user_id));
@@ -54,12 +54,12 @@ export default function BlockedUsersScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="رجوع">
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityLabel="ط±ط¬ظˆط¹">
           <ChevronRight size={22} color={colors.textSecondary} />
         </TouchableOpacity>
         <View>
-          <Text style={styles.title}>المستخدمون المحظورون</Text>
-          <Text style={styles.subtitle}>يمكنك إلغاء الحظر في أي وقت</Text>
+          <Text style={styles.title}>ط§ظ„ظ…ط³طھط®ط¯ظ…ظˆظ† ط§ظ„ظ…ط­ط¸ظˆط±ظˆظ†</Text>
+          <Text style={styles.subtitle}>ظٹظ…ظƒظ†ظƒ ط¥ظ„ط؛ط§ط، ط§ظ„ط­ط¸ط± ظپظٹ ط£ظٹ ظˆظ‚طھ</Text>
         </View>
       </View>
       <ScrollView
@@ -78,12 +78,12 @@ export default function BlockedUsersScreen() {
               <Text style={styles.username}>@{user.username}</Text>
             </View>
             <TouchableOpacity style={styles.unblockButton} onPress={() => unblock(user)}>
-              <Text style={styles.unblockText}>إلغاء الحظر</Text>
+              <Text style={styles.unblockText}>ط¥ظ„ط؛ط§ط، ط§ظ„ط­ط¸ط±</Text>
             </TouchableOpacity>
           </View>
         ))}
         {!loading && users.length === 0 && (
-          <Text style={styles.empty}>لا يوجد مستخدمون محظورون.</Text>
+          <Text style={styles.empty}>ظ„ط§ ظٹظˆط¬ط¯ ظ…ط³طھط®ط¯ظ…ظˆظ† ظ…ط­ط¸ظˆط±ظˆظ†.</Text>
         )}
       </ScrollView>
     </View>
@@ -94,16 +94,16 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 54, paddingBottom: 18 },
   backButton: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
-  title: { color: colors.text, fontSize: 18, fontWeight: '700' },
+  title: { color: colors.text, fontSize: 18, fontFamily: fonts.semibold },
   subtitle: { color: colors.textSecondary, fontSize: 11, marginTop: 3 },
   list: { paddingHorizontal: 16, paddingBottom: 24 },
   row: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.border, borderRadius: 15, backgroundColor: colors.surface },
   avatar: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft, overflow: 'hidden' },
   avatarImage: { width: '100%', height: '100%' },
   userDetails: { flex: 1 },
-  name: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  name: { color: colors.text, fontSize: 14, fontFamily: fonts.semibold },
   username: { color: colors.textSecondary, fontSize: 11, marginTop: 4 },
   unblockButton: { paddingHorizontal: 11, paddingVertical: 8, borderRadius: 10, backgroundColor: colors.primarySoft },
-  unblockText: { color: colors.primary, fontSize: 11, fontWeight: '700' },
+  unblockText: { color: colors.primary, fontSize: 11, fontFamily: fonts.semibold },
   empty: { color: colors.textSecondary, textAlign: 'center', marginTop: 42, fontSize: 13 },
 });

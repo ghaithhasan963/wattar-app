@@ -167,7 +167,7 @@ export default function WheelGame() {
                     y={labelY}
                     fill={colors.text}
                     fontSize={segments.length > 6 ? 11 : 14}
-                    fontWeight="bold"
+                    fontFamily={fonts.bold}
                     textAnchor="middle"
                     alignmentBaseline="middle"
                   >
@@ -177,7 +177,7 @@ export default function WheelGame() {
               );
             })}
             <Circle cx={WHEEL_CENTER} cy={WHEEL_CENTER} r={32} fill={colors.backgroundDeep} stroke={colors.gold} strokeWidth={4} />
-            <SvgText x={WHEEL_CENTER} y={WHEEL_CENTER + 8} fill={colors.gold} fontSize={22} fontWeight="bold" textAnchor="middle">
+            <SvgText x={WHEEL_CENTER} y={WHEEL_CENTER + 8} fill={colors.gold} fontSize={22} fontFamily={fonts.bold} textAnchor="middle">
               W
             </SvgText>
           </Svg>

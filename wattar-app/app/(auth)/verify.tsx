@@ -1,5 +1,5 @@
-/**
- * Wattar App — صفحة التحقق OTP
+﻿/**
+ * Wattar App â€” طµظپط­ط© ط§ظ„طھط­ظ‚ظ‚ OTP
  */
 import React, { useState, useRef, useEffect } from 'react';
 import {
@@ -14,7 +14,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/auth';
 import { getPendingPhone, clearPendingPhone } from '@/lib/pending';
-import { colors } from '@/lib/theme';
+import { colors, fonts } from '@/lib/theme';
 
 export default function VerifyScreen() {
   const router = useRouter();
@@ -37,7 +37,7 @@ export default function VerifyScreen() {
       inputs.current[index + 1]?.focus();
     }
 
-    // تحقق تلقائي عند اكتمال الكود
+    // طھط­ظ‚ظ‚ طھظ„ظ‚ط§ط¦ظٹ ط¹ظ†ط¯ ط§ظƒطھظ…ط§ظ„ ط§ظ„ظƒظˆط¯
     if (index === 5 && value) {
       handleVerify(newCode.join(''));
     }
@@ -46,7 +46,7 @@ export default function VerifyScreen() {
   const handleVerify = async (fullCode?: string) => {
     const codeStr = fullCode ?? code.join('');
     if (codeStr.length !== 6 || !phone) {
-      if (!phone) Alert.alert('خطأ', 'لم يتم العثور على رقم الهاتف، حاول مرة أخرى');
+      if (!phone) Alert.alert('ط®ط·ط£', 'ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپطŒ ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰');
       return;
     }
 
@@ -55,7 +55,7 @@ export default function VerifyScreen() {
       await clearPendingPhone();
       router.replace('/(tabs)');
     } catch {
-      // الخطأ موجود في store
+      // ط§ظ„ط®ط·ط£ ظ…ظˆط¬ظˆط¯ ظپظٹ store
     }
   };
 
@@ -64,16 +64,16 @@ export default function VerifyScreen() {
     const { signInWithPhone } = useAuthStore.getState();
     try {
       await signInWithPhone(phone);
-      Alert.alert('تم', 'تم إعادة إرسال الرمز');
+      Alert.alert('طھظ…', 'طھظ… ط¥ط¹ط§ط¯ط© ط¥ط±ط³ط§ظ„ ط§ظ„ط±ظ…ط²');
     } catch (err: any) {
-      Alert.alert('خطأ', err.message);
+      Alert.alert('ط®ط·ط£', err.message);
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>رمز التحقق</Text>
-      <Text style={styles.subtitle}>أرسلنا رمزًا إلى رقمك{phone ? ` (${phone})` : ''}</Text>
+      <Text style={styles.title}>ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚</Text>
+      <Text style={styles.subtitle}>ط£ط±ط³ظ„ظ†ط§ ط±ظ…ط²ظ‹ط§ ط¥ظ„ظ‰ ط±ظ‚ظ…ظƒ{phone ? ` (${phone})` : ''}</Text>
 
       <View style={styles.codeContainer}>
         {code.map((digit, index) => (
@@ -98,14 +98,14 @@ export default function VerifyScreen() {
         disabled={loading || code.some(c => !c)}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.text} />
         ) : (
-          <Text style={styles.buttonText}>تأكيد</Text>
+          <Text style={styles.buttonText}>طھط£ظƒظٹط¯</Text>
         )}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={handleResend}>
-        <Text style={styles.resendText}>إعادة إرسال الرمز</Text>
+        <Text style={styles.resendText}>ط¥ط¹ط§ط¯ط© ط¥ط±ط³ط§ظ„ ط§ظ„ط±ظ…ط²</Text>
       </TouchableOpacity>
     </View>
   );
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     color: colors.text,
     textAlign: 'center',
     marginBottom: 8,
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     color: colors.text,
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     textAlign: 'center',
   },
   button: {
@@ -157,9 +157,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   buttonText: {
-    color: '#fff',
+    color: colors.text,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
   errorText: {
     color: colors.danger,

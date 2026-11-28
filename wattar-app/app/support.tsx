@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+﻿import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -13,7 +13,7 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router';
 import { ChevronLeft, CircleHelp, Plus, Send, TicketCheck } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
-import { colors } from '@/lib/theme';
+import { colors, fonts } from '@/lib/theme';
 
 interface SupportTicket {
   ticket_id: string;
@@ -27,19 +27,19 @@ interface SupportTicket {
 }
 
 const categories = [
-  { id: 'account', label: 'الحساب' },
-  { id: 'deposit', label: 'الشحن' },
-  { id: 'withdrawal', label: 'السحب' },
-  { id: 'technical', label: 'مشكلة تقنية' },
-  { id: 'report', label: 'بلاغ' },
-  { id: 'other', label: 'أخرى' },
+  { id: 'account', label: 'ط§ظ„ط­ط³ط§ط¨' },
+  { id: 'deposit', label: 'ط§ظ„ط´ط­ظ†' },
+  { id: 'withdrawal', label: 'ط§ظ„ط³ط­ط¨' },
+  { id: 'technical', label: 'ظ…ط´ظƒظ„ط© طھظ‚ظ†ظٹط©' },
+  { id: 'report', label: 'ط¨ظ„ط§ط؛' },
+  { id: 'other', label: 'ط£ط®ط±ظ‰' },
 ] as const;
 
 const ticketStatus = (status: string) => {
-  if (status === 'in_progress') return 'قيد المتابعة';
-  if (status === 'resolved') return 'تم الحل';
-  if (status === 'closed') return 'مغلق';
-  return 'مفتوح';
+  if (status === 'in_progress') return 'ظ‚ظٹط¯ ط§ظ„ظ…طھط§ط¨ط¹ط©';
+  if (status === 'resolved') return 'طھظ… ط§ظ„ط­ظ„';
+  if (status === 'closed') return 'ظ…ط؛ظ„ظ‚';
+  return 'ظ…ظپطھظˆط­';
 };
 
 export default function SupportScreen() {
@@ -65,7 +65,7 @@ export default function SupportScreen() {
       if (queryError) throw queryError;
       setTickets((data ?? []) as SupportTicket[]);
     } catch (loadError: unknown) {
-      const message = loadError instanceof Error ? loadError.message : 'تعذر تحميل طلبات الدعم.';
+      const message = loadError instanceof Error ? loadError.message : 'طھط¹ط°ط± طھط­ظ…ظٹظ„ ط·ظ„ط¨ط§طھ ط§ظ„ط¯ط¹ظ….';
       setError(message);
     } finally {
       setLoading(false);
@@ -88,13 +88,13 @@ export default function SupportScreen() {
       });
       if (createError) throw createError;
       const result = data as { ticket_id?: string } | null;
-      if (!result?.ticket_id) throw new Error('لم يصل رقم طلب الدعم.');
+      if (!result?.ticket_id) throw new Error('ظ„ظ… ظٹطµظ„ ط±ظ‚ظ… ط·ظ„ط¨ ط§ظ„ط¯ط¹ظ….');
       setCreateVisible(false);
       setSubject('');
       setBody('');
       router.push(`/support/${result.ticket_id}`);
     } catch (createError: unknown) {
-      setError(createError instanceof Error ? createError.message : 'تعذر إرسال طلب الدعم.');
+      setError(createError instanceof Error ? createError.message : 'طھط¹ط°ط± ط¥ط±ط³ط§ظ„ ط·ظ„ط¨ ط§ظ„ط¯ط¹ظ….');
     } finally {
       setSubmitting(false);
     }
@@ -103,12 +103,12 @@ export default function SupportScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="رجوع">
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="ط±ط¬ظˆط¹">
           <ChevronLeft size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerCopy}>
-          <Text style={styles.eyebrow}>WATTAR · مساعدة مباشرة</Text>
-          <Text style={styles.title}>مركز الدعم</Text>
+          <Text style={styles.eyebrow}>WATTAR آ· ظ…ط³ط§ط¹ط¯ط© ظ…ط¨ط§ط´ط±ط©</Text>
+          <Text style={styles.title}>ظ…ط±ظƒط² ط§ظ„ط¯ط¹ظ…</Text>
         </View>
         <View style={styles.headerIcon}><CircleHelp size={22} color={colors.teal} /></View>
       </View>
@@ -116,19 +116,19 @@ export default function SupportScreen() {
       <View style={styles.introCard}>
         <View style={styles.introIcon}><TicketCheck size={20} color={colors.primary} /></View>
         <View style={styles.introCopy}>
-          <Text style={styles.introTitle}>نحن هنا لمساعدتك</Text>
-          <Text style={styles.introText}>أنشئ طلبًا مع وصف واضح، وتابع الردود وحالة المعالجة من هنا.</Text>
+          <Text style={styles.introTitle}>ظ†ط­ظ† ظ‡ظ†ط§ ظ„ظ…ط³ط§ط¹ط¯طھظƒ</Text>
+          <Text style={styles.introText}>ط£ظ†ط´ط¦ ط·ظ„ط¨ظ‹ط§ ظ…ط¹ ظˆطµظپ ظˆط§ط¶ط­طŒ ظˆطھط§ط¨ط¹ ط§ظ„ط±ط¯ظˆط¯ ظˆط­ط§ظ„ط© ط§ظ„ظ…ط¹ط§ظ„ط¬ط© ظ…ظ† ظ‡ظ†ط§.</Text>
         </View>
       </View>
 
       <View style={styles.sectionHeading}>
         <View>
-          <Text style={styles.sectionTitle}>طلباتي</Text>
-          <Text style={styles.sectionHint}>متابعة خاصة بينك وبين فريق الدعم</Text>
+          <Text style={styles.sectionTitle}>ط·ظ„ط¨ط§طھظٹ</Text>
+          <Text style={styles.sectionHint}>ظ…طھط§ط¨ط¹ط© ط®ط§طµط© ط¨ظٹظ†ظƒ ظˆط¨ظٹظ† ظپط±ظٹظ‚ ط§ظ„ط¯ط¹ظ…</Text>
         </View>
         <TouchableOpacity style={styles.newButton} onPress={() => setCreateVisible(true)} accessibilityRole="button">
-          <Plus size={17} color="#fff" />
-          <Text style={styles.newButtonText}>طلب جديد</Text>
+          <Plus size={17} color={colors.text} />
+          <Text style={styles.newButtonText}>ط·ظ„ط¨ ط¬ط¯ظٹط¯</Text>
         </TouchableOpacity>
       </View>
 
@@ -149,7 +149,7 @@ export default function SupportScreen() {
               style={styles.ticketCard}
               onPress={() => router.push(`/support/${ticket.ticket_id}`)}
               accessibilityRole="button"
-              accessibilityLabel={`طلب ${ticket.subject}، الحالة ${ticketStatus(ticket.status)}`}
+              accessibilityLabel={`ط·ظ„ط¨ ${ticket.subject}طŒ ط§ظ„ط­ط§ظ„ط© ${ticketStatus(ticket.status)}`}
             >
               <View style={styles.ticketTop}>
                 <View style={[styles.statusPill, ticket.status === 'resolved' && styles.statusResolved]}>
@@ -162,15 +162,15 @@ export default function SupportScreen() {
               <Text style={styles.ticketSubject}>{ticket.subject}</Text>
               <Text style={styles.ticketPreview} numberOfLines={2}>{ticket.last_message}</Text>
               <Text style={styles.ticketCategory}>
-                {categories.find((item) => item.id === ticket.category)?.label ?? 'أخرى'}
+                {categories.find((item) => item.id === ticket.category)?.label ?? 'ط£ط®ط±ظ‰'}
               </Text>
             </TouchableOpacity>
           ))}
           {tickets.length === 0 && (
             <View style={styles.empty}>
               <TicketCheck size={28} color={colors.textSecondary} />
-              <Text style={styles.emptyTitle}>لا توجد طلبات بعد</Text>
-              <Text style={styles.emptyText}>سيظهر طلبك هنا بمجرد إرساله.</Text>
+              <Text style={styles.emptyTitle}>ظ„ط§ طھظˆط¬ط¯ ط·ظ„ط¨ط§طھ ط¨ط¹ط¯</Text>
+              <Text style={styles.emptyText}>ط³ظٹط¸ظ‡ط± ط·ظ„ط¨ظƒ ظ‡ظ†ط§ ط¨ظ…ط¬ط±ط¯ ط¥ط±ط³ط§ظ„ظ‡.</Text>
             </View>
           )}
         </ScrollView>
@@ -180,12 +180,12 @@ export default function SupportScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>فتح طلب دعم</Text>
-              <TouchableOpacity onPress={() => setCreateVisible(false)} accessibilityLabel="إغلاق">
-                <Text style={styles.cancelText}>إلغاء</Text>
+              <Text style={styles.modalTitle}>ظپطھط­ ط·ظ„ط¨ ط¯ط¹ظ…</Text>
+              <TouchableOpacity onPress={() => setCreateVisible(false)} accessibilityLabel="ط¥ط؛ظ„ط§ظ‚">
+                <Text style={styles.cancelText}>ط¥ظ„ط؛ط§ط،</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.fieldLabel}>التصنيف</Text>
+            <Text style={styles.fieldLabel}>ط§ظ„طھطµظ†ظٹظپ</Text>
             <View style={styles.categoryGrid}>
               {categories.map((item) => (
                 <TouchableOpacity
@@ -199,35 +199,35 @@ export default function SupportScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={styles.fieldLabel}>عنوان الطلب</Text>
+            <Text style={styles.fieldLabel}>ط¹ظ†ظˆط§ظ† ط§ظ„ط·ظ„ط¨</Text>
             <TextInput
               style={styles.modalInput}
               value={subject}
               onChangeText={setSubject}
-              placeholder="مثال: مشكلة في طلب الشحن"
+              placeholder="ظ…ط«ط§ظ„: ظ…ط´ظƒظ„ط© ظپظٹ ط·ظ„ط¨ ط§ظ„ط´ط­ظ†"
               placeholderTextColor={colors.textSecondary}
               maxLength={120}
             />
-            <Text style={styles.fieldLabel}>اشرح المشكلة</Text>
+            <Text style={styles.fieldLabel}>ط§ط´ط±ط­ ط§ظ„ظ…ط´ظƒظ„ط©</Text>
             <TextInput
               style={[styles.modalInput, styles.bodyInput]}
               value={body}
               onChangeText={setBody}
-              placeholder="اكتب التفاصيل التي تساعدنا على فهم المشكلة..."
+              placeholder="ط§ظƒطھط¨ ط§ظ„طھظپط§طµظٹظ„ ط§ظ„طھظٹ طھط³ط§ط¹ط¯ظ†ط§ ط¹ظ„ظ‰ ظپظ‡ظ… ط§ظ„ظ…ط´ظƒظ„ط©..."
               placeholderTextColor={colors.textSecondary}
               multiline
               textAlignVertical="top"
               maxLength={3000}
             />
-            <Text style={styles.privacyNote}>لا تكتب كلمة المرور أو رمز التحقق أو بيانات بطاقتك.</Text>
+            <Text style={styles.privacyNote}>ظ„ط§ طھظƒطھط¨ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط£ظˆ ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ط£ظˆ ط¨ظٹط§ظ†ط§طھ ط¨ط·ط§ظ‚طھظƒ.</Text>
             <TouchableOpacity
               style={[styles.submitButton, submitting && styles.disabled]}
               onPress={() => void submitTicket()}
               disabled={submitting || subject.trim().length < 5 || body.trim().length < 10}
               accessibilityRole="button"
             >
-              {submitting ? <ActivityIndicator color="#fff" /> : <Send size={17} color="#fff" />}
-              <Text style={styles.submitText}>{submitting ? 'جارٍ الإرسال...' : 'إرسال الطلب'}</Text>
+              {submitting ? <ActivityIndicator color={colors.text} /> : <Send size={17} color={colors.text} />}
+              <Text style={styles.submitText}>{submitting ? 'ط¬ط§ط±ظچ ط§ظ„ط¥ط±ط³ط§ظ„...' : 'ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -241,49 +241,49 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 58, paddingBottom: 16 },
   backButton: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
   headerCopy: { flex: 1 },
-  eyebrow: { color: colors.teal, fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
-  title: { color: colors.text, fontSize: 23, fontWeight: '900', marginTop: 3 },
+  eyebrow: { color: colors.teal, fontSize: 9, fontFamily: fonts.black, letterSpacing: 0.8 },
+  title: { color: colors.text, fontSize: 23, fontFamily: fonts.black, marginTop: 3 },
   headerIcon: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.tealSoft },
   introCard: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 16, padding: 14, borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   introIcon: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: colors.primarySoft },
   introCopy: { flex: 1, gap: 4 },
-  introTitle: { color: colors.text, fontSize: 13, fontWeight: '900', textAlign: 'right' },
+  introTitle: { color: colors.text, fontSize: 13, fontFamily: fonts.black, textAlign: 'right' },
   introText: { color: colors.textSecondary, fontSize: 10, lineHeight: 16, textAlign: 'right' },
   sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 18, marginTop: 24, marginBottom: 12 },
-  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '900', textAlign: 'right' },
+  sectionTitle: { color: colors.text, fontSize: 17, fontFamily: fonts.black, textAlign: 'right' },
   sectionHint: { color: colors.textSecondary, fontSize: 10, marginTop: 4, textAlign: 'right' },
   newButton: { minHeight: 40, paddingHorizontal: 12, borderRadius: 13, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.primary },
-  newButtonText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  newButtonText: { color: colors.text, fontSize: 11, fontFamily: fonts.bold },
   list: { paddingHorizontal: 16, paddingBottom: 28, gap: 10 },
   ticketCard: { padding: 14, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   ticketTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   statusPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: colors.primarySoft },
   statusResolved: { backgroundColor: colors.successSoft },
-  statusText: { color: colors.teal, fontSize: 9, fontWeight: '800' },
+  statusText: { color: colors.teal, fontSize: 9, fontFamily: fonts.bold },
   ticketDate: { color: colors.textSecondary, fontSize: 10 },
-  ticketSubject: { color: colors.text, fontSize: 14, fontWeight: '800', textAlign: 'right', marginTop: 10 },
+  ticketSubject: { color: colors.text, fontSize: 14, fontFamily: fonts.bold, textAlign: 'right', marginTop: 10 },
   ticketPreview: { color: colors.textSecondary, fontSize: 11, lineHeight: 17, textAlign: 'right', marginTop: 5 },
-  ticketCategory: { color: colors.gold, fontSize: 10, fontWeight: '700', textAlign: 'right', marginTop: 9 },
+  ticketCategory: { color: colors.gold, fontSize: 10, fontFamily: fonts.semibold, textAlign: 'right', marginTop: 9 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   error: { marginHorizontal: 18, marginBottom: 8, color: colors.danger, fontSize: 11, textAlign: 'right' },
   empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48, gap: 8 },
-  emptyTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
+  emptyTitle: { color: colors.text, fontSize: 14, fontFamily: fonts.bold },
   emptyText: { color: colors.textSecondary, fontSize: 11 },
-  modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: '#0009' },
+  modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.overlay },
   modal: { padding: 18, paddingBottom: 28, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 15 },
-  modalTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
-  cancelText: { color: colors.textSecondary, fontSize: 12, fontWeight: '700' },
-  fieldLabel: { color: colors.text, fontSize: 11, fontWeight: '800', textAlign: 'right', marginTop: 11, marginBottom: 7 },
+  modalTitle: { color: colors.text, fontSize: 17, fontFamily: fonts.black },
+  cancelText: { color: colors.textSecondary, fontSize: 12, fontFamily: fonts.semibold },
+  fieldLabel: { color: colors.text, fontSize: 11, fontFamily: fonts.bold, textAlign: 'right', marginTop: 11, marginBottom: 7 },
   categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   categoryChip: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
   categoryChipActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
-  categoryText: { color: colors.textSecondary, fontSize: 10, fontWeight: '700' },
+  categoryText: { color: colors.textSecondary, fontSize: 10, fontFamily: fonts.semibold },
   categoryTextActive: { color: colors.text },
   modalInput: { minHeight: 46, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, color: colors.text, textAlign: 'right', fontSize: 12 },
   bodyInput: { minHeight: 96, paddingTop: 12 },
   privacyNote: { color: colors.gold, fontSize: 10, lineHeight: 15, textAlign: 'right', marginTop: 8 },
   submitButton: { minHeight: 48, borderRadius: 14, marginTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.primary },
-  submitText: { color: '#fff', fontSize: 13, fontWeight: '900' },
+  submitText: { color: colors.text, fontSize: 13, fontFamily: fonts.black },
   disabled: { opacity: 0.5 },
 });

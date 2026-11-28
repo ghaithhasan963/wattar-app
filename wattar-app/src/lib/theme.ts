@@ -147,6 +147,7 @@ export const gradients = {
   scrim: ['rgba(6, 4, 10, 0.72)', 'rgba(6, 4, 10, 0.28)', 'rgba(6, 4, 10, 0.55)', 'rgba(6, 4, 10, 0.92)'] as const,
   stageGlow: ['rgba(169, 71, 245, 0.20)', 'rgba(169, 71, 245, 0.04)', 'rgba(10, 7, 18, 0)'] as const,
   spotlight: ['rgba(244, 189, 85, 0.26)', 'rgba(169, 71, 245, 0.10)', 'rgba(0, 0, 0, 0)'] as const,
+  ticker: ['rgba(244, 189, 85, 0.20)', 'rgba(169, 71, 245, 0.10)'] as const,
 } as const;
 
 export const radius = {

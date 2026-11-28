@@ -51,7 +51,7 @@ function TickerRow({ entry, index }: { entry: GiftFeedEntry; index: number }) {
   return (
     <Animated.View style={[styles.row, animatedStyle, index > 0 && styles.rowStacked]}>
       <LinearGradient
-        colors={['rgba(244,189,85,0.20)', 'rgba(169,71,245,0.10)']}
+        colors={gradients.ticker}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={StyleSheet.absoluteFill}

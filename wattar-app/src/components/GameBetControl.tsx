@@ -1,5 +1,5 @@
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { colors } from '@/lib/theme';
+﻿import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { colors, fonts } from '@/lib/theme';
 
 const QUICK_BETS = [25, 50, 100, 250];
 
@@ -25,8 +25,8 @@ export function GameBetControl({ value, balance, disabled = false, onChange }: G
   return (
     <View style={styles.container}>
       <View style={styles.heading}>
-        <Text style={styles.label}>مبلغ الجولة</Text>
-        <Text style={styles.balance}>المتاح {available.toLocaleString('ar')} Coin</Text>
+        <Text style={styles.label}>ظ…ط¨ظ„ط؛ ط§ظ„ط¬ظˆظ„ط©</Text>
+        <Text style={styles.balance}>ط§ظ„ظ…طھط§ط­ {available.toLocaleString('ar')} Coin</Text>
       </View>
       <View style={styles.inputRow}>
         <TextInput
@@ -34,11 +34,11 @@ export function GameBetControl({ value, balance, disabled = false, onChange }: G
           value={value}
           onChangeText={(nextValue) => onChange(nextValue.replace(/[^\d]/g, ''))}
           keyboardType="number-pad"
-          placeholder="اكتب المبلغ"
+          placeholder="ط§ظƒطھط¨ ط§ظ„ظ…ط¨ظ„ط؛"
           placeholderTextColor={colors.textSecondary}
           editable={!disabled}
-          accessibilityLabel="عدد عملات اللعب للجولة"
-          accessibilityHint="أدخل مبلغًا صحيحًا لا يتجاوز رصيدك المتاح"
+          accessibilityLabel="ط¹ط¯ط¯ ط¹ظ…ظ„ط§طھ ط§ظ„ظ„ط¹ط¨ ظ„ظ„ط¬ظˆظ„ط©"
+          accessibilityHint="ط£ط¯ط®ظ„ ظ…ط¨ظ„ط؛ظ‹ط§ طµط­ظٹط­ظ‹ط§ ظ„ط§ ظٹطھط¬ط§ظˆط² ط±طµظٹط¯ظƒ ط§ظ„ظ…طھط§ط­"
         />
         <View style={styles.unit}>
           <Text style={styles.unitText}>COIN</Text>
@@ -67,9 +67,9 @@ export function GameBetControl({ value, balance, disabled = false, onChange }: G
       <Text style={[styles.hint, invalid && styles.hintInvalid]}>
         {invalid
           ? Number.isSafeInteger(amount) && amount > available
-            ? 'المبلغ أكبر من رصيد Coin المتاح.'
-            : 'أدخل عددًا صحيحًا من Coin يبدأ من 1.'
-          : 'الرهان يُخصم من Coin ويُعاد احتساب الرصيد بعد الجولة.'}
+            ? 'ط§ظ„ظ…ط¨ظ„ط؛ ط£ظƒط¨ط± ظ…ظ† ط±طµظٹط¯ Coin ط§ظ„ظ…طھط§ط­.'
+            : 'ط£ط¯ط®ظ„ ط¹ط¯ط¯ظ‹ط§ طµط­ظٹط­ظ‹ط§ ظ…ظ† Coin ظٹط¨ط¯ط£ ظ…ظ† 1.'
+          : 'ط§ظ„ط±ظ‡ط§ظ† ظٹظڈط®طµظ… ظ…ظ† Coin ظˆظٹظڈط¹ط§ط¯ ط§ط­طھط³ط§ط¨ ط§ظ„ط±طµظٹط¯ ط¨ط¹ط¯ ط§ظ„ط¬ظˆظ„ط©.'}
       </Text>
     </View>
   );
@@ -78,8 +78,8 @@ export function GameBetControl({ value, balance, disabled = false, onChange }: G
 const styles = StyleSheet.create({
   container: { marginTop: 12 },
   heading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  label: { color: colors.text, fontSize: 13, fontWeight: '800' },
-  balance: { color: colors.textSecondary, fontSize: 10, fontWeight: '700' },
+  label: { color: colors.text, fontSize: 13, fontFamily: fonts.bold },
+  balance: { color: colors.textSecondary, fontSize: 10, fontFamily: fonts.semibold },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -90,10 +90,10 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     overflow: 'hidden',
   },
-  input: { flex: 1, minWidth: 0, height: 50, paddingHorizontal: 14, color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center' },
+  input: { flex: 1, minWidth: 0, height: 50, paddingHorizontal: 14, color: colors.text, fontSize: 17, fontFamily: fonts.bold, textAlign: 'center' },
   inputInvalid: { color: colors.danger },
   unit: { alignSelf: 'stretch', justifyContent: 'center', paddingHorizontal: 12, borderLeftWidth: 1, borderLeftColor: colors.border },
-  unitText: { color: colors.teal, fontSize: 9, fontWeight: '900', letterSpacing: 0.6 },
+  unitText: { color: colors.teal, fontSize: 9, fontFamily: fonts.black, letterSpacing: 0.6 },
   quickBets: { flexDirection: 'row', gap: 7, marginTop: 9 },
   quickBet: {
     flex: 1,
@@ -105,9 +105,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  quickBetSelected: { backgroundColor: '#30204A', borderColor: colors.primary },
+  quickBetSelected: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
   quickBetDisabled: { opacity: 0.35 },
-  quickBetText: { color: colors.textSecondary, fontSize: 11, fontWeight: '800' },
+  quickBetText: { color: colors.textSecondary, fontSize: 11, fontFamily: fonts.bold },
   quickBetTextSelected: { color: colors.text },
   hint: { color: colors.textSecondary, fontSize: 10, lineHeight: 15, marginTop: 8, textAlign: 'right' },
   hintInvalid: { color: colors.danger },

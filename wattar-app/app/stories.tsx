@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,7 +15,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { ArrowLeft, CirclePlay, ImagePlus, Plus, Trash2, Video } from 'lucide-react-native';
-import { colors } from '@/lib/theme';
+import { colors, fonts } from '@/lib/theme';
 import { supabase, uploadPrivateMedia } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 
@@ -66,7 +66,7 @@ export default function StoriesScreen() {
       }));
       setStories(signedStories.filter((story): story is Story => story !== null));
     } catch (caught: unknown) {
-      setError(caught instanceof Error ? caught.message : 'تعذر تحميل القصص.');
+      setError(caught instanceof Error ? caught.message : 'طھط¹ط°ط± طھط­ظ…ظٹظ„ ط§ظ„ظ‚طµطµ.');
     } finally {
       setLoading(false);
     }
@@ -84,7 +84,7 @@ export default function StoriesScreen() {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('إذن الصور مطلوب', 'اسمح بالوصول إلى الصور والفيديوهات لاختيار قصة.');
+        Alert.alert('ط¥ط°ظ† ط§ظ„طµظˆط± ظ…ط·ظ„ظˆط¨', 'ط§ط³ظ…ط­ ط¨ط§ظ„ظˆطµظˆظ„ ط¥ظ„ظ‰ ط§ظ„طµظˆط± ظˆط§ظ„ظپظٹط¯ظٹظˆظ‡ط§طھ ظ„ط§ط®طھظٹط§ط± ظ‚طµط©.');
         return;
       }
 
@@ -108,11 +108,11 @@ export default function StoriesScreen() {
       };
       const extension = extensions[contentType];
       if (!extension) {
-        Alert.alert('صيغة غير مدعومة', 'اختر صورة JPG أو PNG أو WebP، أو فيديو MP4 أو MOV.');
+        Alert.alert('طµظٹط؛ط© ط؛ظٹط± ظ…ط¯ط¹ظˆظ…ط©', 'ط§ط®طھط± طµظˆط±ط© JPG ط£ظˆ PNG ط£ظˆ WebPطŒ ط£ظˆ ظپظٹط¯ظٹظˆ MP4 ط£ظˆ MOV.');
         return;
       }
       if (asset.fileSize && asset.fileSize > (isVideo ? VIDEO_LIMIT : IMAGE_LIMIT)) {
-        Alert.alert('حجم الملف كبير', isVideo ? 'الحد الأقصى للفيديو 20 ميغابايت.' : 'الحد الأقصى للصورة 10 ميغابايت.');
+        Alert.alert('ط­ط¬ظ… ط§ظ„ظ…ظ„ظپ ظƒط¨ظٹط±', isVideo ? 'ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰ ظ„ظ„ظپظٹط¯ظٹظˆ 20 ظ…ظٹط؛ط§ط¨ط§ظٹطھ.' : 'ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰ ظ„ظ„طµظˆط±ط© 10 ظ…ظٹط؛ط§ط¨ط§ظٹطھ.');
         return;
       }
 
@@ -136,13 +136,13 @@ export default function StoriesScreen() {
       uploadedPath = null;
       setCaption('');
       await loadStories();
-      Alert.alert('تم نشر القصة', 'ستبقى قصتك متاحة لمدة 24 ساعة.');
+      Alert.alert('طھظ… ظ†ط´ط± ط§ظ„ظ‚طµط©', 'ط³طھط¨ظ‚ظ‰ ظ‚طµطھظƒ ظ…طھط§ط­ط© ظ„ظ…ط¯ط© 24 ط³ط§ط¹ط©.');
     } catch (caught: unknown) {
       if (uploadedPath && !storyCreated) {
         const { error: cleanupError } = await supabase.storage.from(STORY_BUCKET).remove([uploadedPath]);
         if (cleanupError) console.warn('[Wattar] Story upload cleanup failed:', cleanupError.message);
       }
-      Alert.alert('تعذر نشر القصة', caught instanceof Error ? caught.message : 'حاول مرة أخرى.');
+      Alert.alert('طھط¹ط°ط± ظ†ط´ط± ط§ظ„ظ‚طµط©', caught instanceof Error ? caught.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
     } finally {
       setUploading(false);
     }
@@ -154,58 +154,58 @@ export default function StoriesScreen() {
         p_story_id: story.story_id,
       });
       if (deleteError) throw deleteError;
-      if (typeof mediaPath !== 'string') throw new Error('لم يتم إرجاع مسار ملف القصة');
+      if (typeof mediaPath !== 'string') throw new Error('ظ„ظ… ظٹطھظ… ط¥ط±ط¬ط§ط¹ ظ…ط³ط§ط± ظ…ظ„ظپ ط§ظ„ظ‚طµط©');
       const { error: storageError } = await supabase.storage.from(STORY_BUCKET).remove([mediaPath]);
       if (storageError) throw storageError;
       setSelectedStory(null);
       await loadStories();
     } catch (caught: unknown) {
-      Alert.alert('تعذر حذف القصة', caught instanceof Error ? caught.message : 'حاول مرة أخرى.');
+      Alert.alert('طھط¹ط°ط± ط­ط°ظپ ط§ظ„ظ‚طµط©', caught instanceof Error ? caught.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
     }
   };
 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerButton} accessibilityLabel="رجوع">
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerButton} accessibilityLabel="ط±ط¬ظˆط¹">
           <ArrowLeft size={20} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>قصص المجتمع</Text>
+        <Text style={styles.title}>ظ‚طµطµ ط§ظ„ظ…ط¬طھظ…ط¹</Text>
       </View>
 
       <View style={styles.createCard}>
         <View style={styles.createCopy}>
-          <Text style={styles.createTitle}>شارك لحظتك</Text>
-          <Text style={styles.createDescription}>صورة أو فيديو حتى 30 ثانية. تختفي القصة بعد 24 ساعة.</Text>
+          <Text style={styles.createTitle}>ط´ط§ط±ظƒ ظ„ط­ط¸طھظƒ</Text>
+          <Text style={styles.createDescription}>طµظˆط±ط© ط£ظˆ ظپظٹط¯ظٹظˆ ط­طھظ‰ 30 ط«ط§ظ†ظٹط©. طھط®طھظپظٹ ط§ظ„ظ‚طµط© ط¨ط¹ط¯ 24 ط³ط§ط¹ط©.</Text>
         </View>
         <TextInput
           style={styles.captionInput}
           value={caption}
           onChangeText={setCaption}
-          placeholder="أضف تعليقًا (اختياري)"
+          placeholder="ط£ط¶ظپ طھط¹ظ„ظٹظ‚ظ‹ط§ (ط§ط®طھظٹط§ط±ظٹ)"
           placeholderTextColor={colors.textSecondary}
           maxLength={160}
           textAlign="right"
         />
         <TouchableOpacity style={styles.createButton} onPress={createStory} disabled={uploading}>
           {uploading ? <ActivityIndicator color={colors.background} /> : <Plus size={19} color={colors.background} />}
-          <Text style={styles.createButtonText}>{uploading ? 'جاري النشر...' : 'اختيار صورة أو فيديو'}</Text>
+          <Text style={styles.createButtonText}>{uploading ? 'ط¬ط§ط±ظٹ ط§ظ„ظ†ط´ط±...' : 'ط§ط®طھظٹط§ط± طµظˆط±ط© ط£ظˆ ظپظٹط¯ظٹظˆ'}</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionTitle}>القصص النشطة</Text>
+      <Text style={styles.sectionTitle}>ط§ظ„ظ‚طµطµ ط§ظ„ظ†ط´ط·ط©</Text>
       {loading ? (
         <View style={styles.state}><ActivityIndicator color={colors.primary} /></View>
       ) : error ? (
         <View style={styles.state}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={() => void loadStories()}><Text style={styles.retryText}>إعادة المحاولة</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => void loadStories()}><Text style={styles.retryText}>ط¥ط¹ط§ط¯ط© ط§ظ„ظ…ط­ط§ظˆظ„ط©</Text></TouchableOpacity>
         </View>
       ) : stories.length === 0 ? (
         <View style={styles.empty}>
           <CirclePlay size={30} color={colors.primary} />
-          <Text style={styles.emptyTitle}>لا توجد قصص نشطة بعد</Text>
-          <Text style={styles.emptyDescription}>انشر أول قصة لتبدأ المشاركة مع المجتمع.</Text>
+          <Text style={styles.emptyTitle}>ظ„ط§ طھظˆط¬ط¯ ظ‚طµطµ ظ†ط´ط·ط© ط¨ط¹ط¯</Text>
+          <Text style={styles.emptyDescription}>ط§ظ†ط´ط± ط£ظˆظ„ ظ‚طµط© ظ„طھط¨ط¯ط£ ط§ظ„ظ…ط´ط§ط±ظƒط© ظ…ط¹ ط§ظ„ظ…ط¬طھظ…ط¹.</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.storyList}>
@@ -218,8 +218,8 @@ export default function StoriesScreen() {
               </View>
               <View style={styles.storyCopy}>
                 <Text style={styles.storyName} numberOfLines={1}>{story.display_name || story.username}</Text>
-                <Text style={styles.storyCaption} numberOfLines={2}>{story.caption || 'شارك قصة جديدة'}</Text>
-                <Text style={styles.storyExpiry}>تنتهي {new Date(story.expires_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}</Text>
+                <Text style={styles.storyCaption} numberOfLines={2}>{story.caption || 'ط´ط§ط±ظƒ ظ‚طµط© ط¬ط¯ظٹط¯ط©'}</Text>
+                <Text style={styles.storyExpiry}>طھظ†طھظ‡ظٹ {new Date(story.expires_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}</Text>
               </View>
               {story.media_type === 'video'
                 ? <Video size={18} color={colors.primary} />
@@ -235,15 +235,15 @@ export default function StoriesScreen() {
             <View style={styles.viewerHeader}>
               <View style={styles.viewerUser}>
                 <Text style={styles.viewerName}>{selectedStory.display_name || selectedStory.username}</Text>
-                <Text style={styles.viewerExpiry}>تنتهي {new Date(selectedStory.expires_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}</Text>
+                <Text style={styles.viewerExpiry}>طھظ†طھظ‡ظٹ {new Date(selectedStory.expires_at).toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}</Text>
               </View>
               {selectedStory.user_id === user?.id && (
-                <TouchableOpacity onPress={() => void deleteStory(selectedStory)} style={styles.viewerAction} accessibilityLabel="حذف القصة">
-                  <Trash2 size={19} color="#FFFFFF" />
+                <TouchableOpacity onPress={() => void deleteStory(selectedStory)} style={styles.viewerAction} accessibilityLabel="ط­ط°ظپ ط§ظ„ظ‚طµط©">
+                  <Trash2 size={19} color={colors.text} />
                 </TouchableOpacity>
               )}
-              <TouchableOpacity onPress={() => setSelectedStory(null)} style={styles.viewerAction} accessibilityLabel="إغلاق القصة">
-                <ArrowLeft size={19} color="#FFFFFF" />
+              <TouchableOpacity onPress={() => setSelectedStory(null)} style={styles.viewerAction} accessibilityLabel="ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظ‚طµط©">
+                <ArrowLeft size={19} color={colors.text} />
               </TouchableOpacity>
             </View>
             <View style={styles.mediaFrame}>
@@ -276,38 +276,38 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background, paddingTop: 54 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, marginBottom: 18 },
   headerButton: { position: 'absolute', left: 16, padding: 8 },
-  title: { color: colors.text, fontSize: 20, fontWeight: '800' },
+  title: { color: colors.text, fontSize: 20, fontFamily: fonts.bold },
   createCard: { marginHorizontal: 18, padding: 16, borderRadius: 22, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   createCopy: { gap: 5, marginBottom: 13 },
-  createTitle: { color: colors.text, fontSize: 16, fontWeight: '800', textAlign: 'right' },
+  createTitle: { color: colors.text, fontSize: 16, fontFamily: fonts.bold, textAlign: 'right' },
   createDescription: { color: colors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'right' },
   captionInput: { minHeight: 46, paddingHorizontal: 13, borderRadius: 13, color: colors.text, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
   createButton: { minHeight: 48, borderRadius: 14, marginTop: 12, backgroundColor: colors.gold, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  createButtonText: { color: colors.background, fontSize: 13, fontWeight: '800' },
-  sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '800', textAlign: 'right', marginHorizontal: 20, marginTop: 24, marginBottom: 12 },
+  createButtonText: { color: colors.background, fontSize: 13, fontFamily: fonts.bold },
+  sectionTitle: { color: colors.text, fontSize: 16, fontFamily: fonts.bold, textAlign: 'right', marginHorizontal: 20, marginTop: 24, marginBottom: 12 },
   storyList: { paddingHorizontal: 16, paddingBottom: 24, gap: 10 },
   storyCard: { minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   avatarRing: { width: 48, height: 48, borderRadius: 24, padding: 2, borderWidth: 2, borderColor: colors.primary },
   avatar: { width: '100%', height: '100%', borderRadius: 24 },
   avatarPlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft },
-  avatarInitial: { color: colors.text, fontSize: 18, fontWeight: '800' },
+  avatarInitial: { color: colors.text, fontSize: 18, fontFamily: fonts.bold },
   storyCopy: { flex: 1, gap: 3 },
-  storyName: { color: colors.text, fontSize: 13, fontWeight: '800', textAlign: 'right' },
+  storyName: { color: colors.text, fontSize: 13, fontFamily: fonts.bold, textAlign: 'right' },
   storyCaption: { color: colors.textSecondary, fontSize: 12, textAlign: 'right' },
   storyExpiry: { color: colors.gold, fontSize: 10, textAlign: 'right' },
   state: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
   errorText: { color: colors.danger, textAlign: 'center', fontSize: 13 },
-  retryText: { color: colors.primary, fontWeight: '700' },
+  retryText: { color: colors.primary, fontFamily: fonts.semibold },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 },
-  emptyTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
+  emptyTitle: { color: colors.text, fontSize: 15, fontFamily: fonts.bold },
   emptyDescription: { color: colors.textSecondary, fontSize: 12, textAlign: 'center', lineHeight: 19 },
-  viewer: { flex: 1, backgroundColor: '#05030A', paddingTop: 54, paddingHorizontal: 12, paddingBottom: 24 },
+  viewer: { flex: 1, backgroundColor: colors.backgroundDeep, paddingTop: 54, paddingHorizontal: 12, paddingBottom: 24 },
   viewerHeader: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 10 },
   viewerUser: { flex: 1, gap: 3 },
-  viewerName: { color: '#FFFFFF', fontSize: 14, fontWeight: '800', textAlign: 'right' },
-  viewerExpiry: { color: '#C4B8D2', fontSize: 11, textAlign: 'right' },
+  viewerName: { color: colors.text, fontSize: 14, fontFamily: fonts.bold, textAlign: 'right' },
+  viewerExpiry: { color: colors.textSecondary, fontSize: 11, textAlign: 'right' },
   viewerAction: { padding: 10 },
   mediaFrame: { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   media: { width: '100%', height: '100%' },
-  viewerCaption: { color: '#FFFFFF', fontSize: 14, textAlign: 'center', paddingVertical: 16 },
+  viewerCaption: { color: colors.text, fontSize: 14, textAlign: 'center', paddingVertical: 16 },
 });
