@@ -30,7 +30,9 @@ import { CurrencyIcon } from '@/components/CurrencyIcon';
 import { Avatar, LevelBadge } from '@/components/ui';
 import { GiftCelebration, type GiftCelebrationData } from '@/components/room/GiftCelebration';
 import { GiftCard, RecipientChip, type GiftRecord } from '@/components/room/GiftPicker';
+import { GiftTicker, type GiftFeedEntry } from '@/components/room/GiftTicker';
 import { LiveEqualizer } from '@/components/room/LiveEqualizer';
+import { MessageEntrance } from '@/components/room/MessageEntrance';
 import { RoomAmbience } from '@/components/room/RoomAmbience';
 import { colors, fonts, gradients, radius, shadow } from '@/lib/theme';
 import { StatusBar } from 'expo-status-bar';
@@ -124,6 +126,7 @@ export default function RoomScreen() {
   // إصلاحات الأداء والاتصال الفوري
   const myRoleRef = useRef<string | null>(null);
   const realtimeOkRef = useRef(false);
+  const mainChannelRef = useRef<RealtimeChannel | null>(null);
   const lastMessageAtRef = useRef<string | null>(null);
   const resubscribeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const channelsRef = useRef<RealtimeChannel[]>([]);
@@ -135,6 +138,7 @@ export default function RoomScreen() {
   const [attendanceVisible, setAttendanceVisible] = useState(false);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [giftCombo, setGiftCombo] = useState(1);
+  const [giftFeed, setGiftFeed] = useState<GiftFeedEntry[]>([]);
   const lastGiftAtRef = useRef(0);
   useEffect(() => {
     myRoleRef.current = myRole;
@@ -158,6 +162,15 @@ export default function RoomScreen() {
     ], { cancelable: false });
   }, [room?.status, router]);
 
+  /** إضافة هدية إلى الشريط الحيّ وإزالتها تلقائيًا بعد ٨ ثوانٍ. */
+  const pushGiftFeed = (entry: Omit<GiftFeedEntry, 'id'>) => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setGiftFeed((previous) => [{ ...entry, id }, ...previous].slice(0, 3));
+    setTimeout(() => {
+      setGiftFeed((previous) => previous.filter((item) => item.id !== id));
+    }, 8000);
+  };
+
   /** إرسال هدية: نُظهر الاحتفال ونحسب الكومبو إذا تكرر الإهداء خلال ٥ ثوانٍ. */
   const handleGiftSent = (gift: GiftCelebrationData) => {
     const now = Date.now();
@@ -165,6 +178,28 @@ export default function RoomScreen() {
     lastGiftAtRef.current = now;
     setGiftCombo((previous) => (withinCombo ? Math.min(previous + 1, 99) : 1));
     setGiftCelebration(gift);
+    const sender = profile?.display_name ?? profile?.username ?? null;
+    pushGiftFeed({
+      emoji: gift.emoji,
+      name: gift.name,
+      sender,
+      recipient: gift.recipient,
+    });
+    // بث الهدية لكل من في الغرفة كي يرى الجميع لحظة الإهداء
+    void mainChannelRef.current
+      ?.send({
+        type: 'broadcast',
+        event: 'gift',
+        payload: {
+          emoji: gift.emoji,
+          name: gift.name,
+          recipient: gift.recipient,
+          sender,
+        },
+      })
+      .catch(() => {
+        // البث تحسين اختياري؛ فشله لا يمنع إتمام الهدية.
+      });
   };
 
   useEffect(() => {
@@ -571,7 +606,32 @@ export default function RoomScreen() {
       };
 
       const mainChannel = supabase
-        .channel(`room:${id}`)
+        .channel(`room:${id}`, { config: { broadcast: { self: false } } })
+        .on('broadcast',
+          { event: 'gift' },
+          ({ payload }) => {
+            const incoming = payload as Partial<GiftCelebrationData> | null;
+            if (!incoming || typeof incoming.emoji !== 'string') return;
+            setGiftCelebration({
+              emoji: incoming.emoji,
+              name: typeof incoming.name === 'string' ? incoming.name : 'هدية',
+              recipient: typeof incoming.recipient === 'string' ? incoming.recipient : '',
+              sender: typeof incoming.sender === 'string' ? incoming.sender : null,
+            });
+            const feedId = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+            const feedEntry: GiftFeedEntry = {
+              id: feedId,
+              emoji: incoming.emoji,
+              name: typeof incoming.name === 'string' ? incoming.name : 'هدية',
+              recipient: typeof incoming.recipient === 'string' ? incoming.recipient : '',
+              sender: typeof incoming.sender === 'string' ? incoming.sender : null,
+            };
+            setGiftFeed((previous) => [feedEntry, ...previous].slice(0, 3));
+            setTimeout(() => {
+              setGiftFeed((previous) => previous.filter((item) => item.id !== feedId));
+            }, 8000);
+          }
+        )
         .on('postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'room_messages', filter: `room_id=eq.${id}` },
           (payload) => {
@@ -610,6 +670,7 @@ export default function RoomScreen() {
         .subscribe();
 
       channelsRef.current = [mainChannel, requestsChannel];
+      mainChannelRef.current = mainChannel;
     };
 
     buildChannels();
@@ -1261,7 +1322,7 @@ export default function RoomScreen() {
 
   return (
     <View style={styles.container}>
-      <RoomAmbience />
+      <RoomAmbience coverUrl={room.cover_url} />
       <StatusBar style="light" />
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
@@ -1371,6 +1432,8 @@ export default function RoomScreen() {
         ) : null}
       </View>
 
+      <GiftTicker entries={giftFeed} />
+
       {/* Seats Grid */}
       <View style={styles.seatsContainer}>
         <LinearGradient
@@ -1423,15 +1486,18 @@ export default function RoomScreen() {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             item.is_system ? (
-              <View style={styles.systemMessage} accessibilityRole="text">
-                <View style={styles.systemMessageRule} />
-                <Text style={styles.systemMessageText}>{item.message}</Text>
-                <View style={styles.systemMessageRule} />
-              </View>
+              <MessageEntrance>
+                <View style={styles.systemMessage} accessibilityRole="text">
+                  <View style={styles.systemMessageRule} />
+                  <Text style={styles.systemMessageText}>{item.message}</Text>
+                  <View style={styles.systemMessageRule} />
+                </View>
+              </MessageEntrance>
             ) : (() => {
               const isMine = item.user_id === profile?.id;
               return (
-                <View style={[styles.messageItem, isMine ? styles.ownMessageItem : styles.otherMessageItem]}>
+                <MessageEntrance>
+                  <View style={[styles.messageItem, isMine ? styles.ownMessageItem : styles.otherMessageItem]}>
                   <View style={[styles.messageAvatar, isMine && styles.ownMessageAvatar]}>
                     <Text style={styles.messageAvatarText}>
                       {(item.user?.display_name ?? item.user?.username ?? 'م')[0]?.toUpperCase()}
@@ -1456,6 +1522,7 @@ export default function RoomScreen() {
                     {item.pending && <Text style={styles.pendingLabel}>يُرسل...</Text>}
                   </View>
                 </View>
+                </MessageEntrance>
               );
             })()
           )}
@@ -2092,13 +2159,11 @@ function GiftsModal({
         console.warn('[Wattar] Gift sent but wallet refresh failed:', profileError);
         profileRefreshFailed = true;
       }
-      Alert.alert(
-        profileRefreshFailed ? 'تم إرسال الهدية' : 'شكراً لك',
-        profileRefreshFailed
-          ? 'نجح الإرسال، لكن تعذر تحديث الرصيد المعروض. اسحب الشاشة للتحديث.'
-          : `تم إرسال الهدية إلى ${receiver.name} 🎁`,
-      );
       onClose();
+      // لا نُظهر تنبيهًا عند النجاح: احتفال الهدية هو التأكيد البصري.
+      if (profileRefreshFailed) {
+        Alert.alert('تم إرسال الهدية', 'نجح الإرسال، لكن تعذر تحديث الرصيد المعروض. اسحب الشاشة للتحديث.');
+      }
     } catch (e: unknown) {
       Alert.alert('خطأ', e instanceof Error ? e.message : 'فشل إرسال الهدية');
     } finally {

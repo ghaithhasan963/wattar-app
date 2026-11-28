@@ -3,7 +3,7 @@
  * كل الحركة على السائق الأصلي وتُعطَّل تلقائيًا مع reduceMotion.
  */
 import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   Easing,
@@ -83,14 +83,27 @@ function Orb({
   );
 }
 
-export function RoomAmbience() {
+export function RoomAmbience({ coverUrl }: { coverUrl?: string | null }) {
   const reduceMotion = usePreferencesStore((state) => state.reduceMotion);
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      {/* غلاف الغرفة: يمنح كل غرفة هوية بصرية خاصة */}
+      {coverUrl ? (
+        <Image
+          source={{ uri: coverUrl }}
+          style={styles.cover}
+          blurRadius={18}
+          resizeMode="cover"
+        />
+      ) : null}
       <LinearGradient
         colors={gradients.screen}
         locations={[0, 0.38, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <LinearGradient
+        colors={['rgba(10,7,18,0.35)', 'rgba(10,7,18,0.72)', 'rgba(10,7,18,0.94)']}
         style={StyleSheet.absoluteFill}
       />
       {/* وهج المنصة */}
@@ -109,6 +122,14 @@ export function RoomAmbience() {
 }
 
 const styles = StyleSheet.create({
+  cover: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 420,
+    opacity: 0.5,
+  },
   stageGlow: {
     position: 'absolute',
     top: 0,

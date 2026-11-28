@@ -27,6 +27,7 @@ export interface GiftCelebrationData {
   name: string;
   recipient: string;
   recipientAvatar?: string | null;
+  sender?: string | null;
 }
 
 const PARTICLE_COUNT = 16;
@@ -205,7 +206,9 @@ export function GiftCelebration({
           />
           <View style={styles.cardTop}>
             <View style={styles.senderPill}>
-              <Text style={styles.senderPillText}>هدية جديدة</Text>
+              <Text style={styles.senderPillText} numberOfLines={1}>
+                {gift.sender ? `${gift.sender} أهدى` : 'هدية جديدة'}
+              </Text>
             </View>
             {combo > 1 && (
               <View style={styles.comboPill}>
@@ -305,6 +308,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.goldHaze,
     borderWidth: 1,
     borderColor: colors.goldLine,
+    maxWidth: 130,
   },
   senderPillText: { color: colors.gold, fontFamily: fonts.bold, fontSize: 9, lineHeight: 14 },
   comboPill: {
