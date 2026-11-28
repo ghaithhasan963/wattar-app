@@ -1233,7 +1233,8 @@ export default function RoomScreen() {
       });
       if (result.canceled || !result.assets?.[0]?.uri) return;
       setChangingCover(true);
-      const publicUrl = await uploadImage(result.assets[0].uri, 'room-covers', `room-${room.id}`);
+      const ownerId = profile?.id ?? room.owner_id ?? 'unknown';
+      const publicUrl = await uploadImage(result.assets[0].uri, 'room-covers', `${ownerId}/room-${room.id}`);
       const { error } = await supabase.from('rooms').update({ cover_url: publicUrl }).eq('id', room.id);
       if (error) throw error;
       setRoom((prev: any) => (prev ? { ...prev, cover_url: publicUrl } : prev));
