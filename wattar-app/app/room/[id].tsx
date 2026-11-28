@@ -2237,6 +2237,9 @@ function GiftsModal({
   const [sending, setSending] = useState(false);
   const [giftsLoading, setGiftsLoading] = useState(true);
   const [giftsError, setGiftsError] = useState<string | null>(null);
+  const [giftTab, setGiftTab] = useState<'store' | 'bag'>('store');
+  const [bagGifts, setBagGifts] = useState<Array<{ gift: any; quantity: number }>>([]);
+  const [bagLoading, setBagLoading] = useState(false);
   const [giftAttempt, setGiftAttempt] = useState<{ fingerprint: string; key: string } | null>(null);
 
   useEffect(() => {
@@ -2261,24 +2264,80 @@ function GiftsModal({
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    if (giftTab !== 'bag' || !profile?.id) return;
+    let active = true;
+    setBagLoading(true);
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('user_gift_bag')
+          .select('quantity, gift:gifts(*)')
+          .eq('user_id', profile.id)
+          .gt('quantity', 0);
+        if (error) throw error;
+        if (active) {
+          const rows = (data ?? [])
+            .map((row: any) => ({ gift: row.gift, quantity: Number(row.quantity ?? 0) }))
+            .filter((row: any) => row.gift && row.quantity > 0);
+          setBagGifts(rows);
+        }
+      } catch {
+        // الجدول قد لا يكون مُطبّقًا بعد؛ نعرض حقيبة فارغة بدون كسر الواجهة.
+        if (active) setBagGifts([]);
+      } finally {
+        if (active) setBagLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [giftTab, profile?.id]);
+
   // المستلمون الممكنون: جميع أصحاب المقاعد عدا أنا
   const recipients = seats
     .filter(s => s.status === 'occupied' && s.user_id && s.user_id !== profile?.id)
     .map(s => ({ id: s.user_id!, name: s.user?.display_name ?? s.user?.username ?? 'عضو' }));
-  const selectedGiftRecord = gifts.find(gift => gift.id === selectedGift);
-  const filteredGifts = gifts.filter((gift) => {
+  const bagGiftRecords = bagGifts.map((row) => ({ ...row.gift, _bagQuantity: row.quantity }));
+  const sourceGifts = giftTab === 'bag' ? bagGiftRecords : gifts;
+  const selectedGiftRecord =
+    gifts.find((gift) => gift.id === selectedGift) ??
+    bagGiftRecords.find((gift) => gift.id === selectedGift);
+  const filteredGifts = sourceGifts.filter((gift) => {
     const query = giftSearch.trim().toLocaleLowerCase();
     return !query || `${gift.name_ar ?? ''} ${gift.name ?? ''}`.toLocaleLowerCase().includes(query);
   });
   const availableBalance = profile?.balance_gold ?? 0;
   const giftPrice = Number(selectedGiftRecord?.price_gold ?? 0);
-  const isSymbolicGift = Boolean(selectedGiftRecord?.is_symbolic);
+  const isSymbolicGift = Boolean(selectedGiftRecord?.is_symbolic) || giftTab === 'bag';
   const canAffordGift = isSymbolicGift ? true : giftPrice <= availableBalance;
 
   const sendGift = async () => {
     if (!selectedGift || !receiver || sending) return;
     if (isSymbolicGift) {
-      Alert.alert('هدية رمزية', 'الهدايا الرمزية من الحقيبة قيد التفعيل — ستنتقل للمستلم بدون تحويل لعملات.');
+      setSending(true);
+      try {
+        await callFunction('gift-send-symbolic', {
+          to_user_id: receiver.id,
+          gift_id: selectedGift,
+          room_id: roomId,
+          quantity: 1,
+        });
+        onGiftSent({
+          emoji: selectedGiftRecord?.icon_emoji ?? '🎁',
+          name: selectedGiftRecord?.name_ar ?? selectedGiftRecord?.name ?? 'هدية رمزية',
+          recipient: receiver.name,
+          recipientId: receiver.id,
+          premium: Boolean(selectedGiftRecord?.is_premium),
+          animationUrl: selectedGiftRecord?.animation_url ?? null,
+          priceGold: Number(selectedGiftRecord?.price_gold ?? 0),
+        });
+        // حدّث الحقيبة محليًا
+        setBagGifts((prev) => prev.map((row) => row.gift?.id === selectedGift ? { ...row, quantity: Math.max(0, row.quantity - 1) } : row).filter((row) => row.quantity > 0));
+        onClose();
+      } catch (e: unknown) {
+        Alert.alert('تعذر إرسال الهدية الرمزية', e instanceof Error ? e.message : 'تأكد من تطبيق migration الهدايا الرمزية ونشر الدالة.');
+      } finally {
+        setSending(false);
+      }
       return;
     }
     if (!canAffordGift) {
@@ -2360,12 +2419,31 @@ function GiftsModal({
               </View>
             </View>
 
-            <Text style={styles.stepHint}>اختر هدية</Text>
-            {giftsLoading ? (
+            <View style={styles.giftTabs}>
+              <TouchableOpacity
+                style={[styles.giftTab, giftTab === 'store' && styles.giftTabActive]}
+                onPress={() => setGiftTab('store')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.giftTabText, giftTab === 'store' && styles.giftTabTextActive]}>المتجر</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.giftTab, giftTab === 'bag' && styles.giftTabActive]}
+                onPress={() => setGiftTab('bag')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.giftTabText, giftTab === 'bag' && styles.giftTabTextActive]}>الحقيبة</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.stepHint}>{giftTab === 'bag' ? 'اختر هدية رمزية من حقيبتك' : 'اختر هدية'}</Text>
+            {(giftTab === 'store' ? giftsLoading : bagLoading) ? (
               <ActivityIndicator color={colors.gold} style={styles.giftLoading} />
-            ) : giftsError ? (
+            ) : giftTab === 'store' && giftsError ? (
               <Text style={styles.giftError}>تعذر تحميل الهدايا: {giftsError}</Text>
-            ) : gifts.length === 0 ? (
+            ) : giftTab === 'bag' && bagGifts.length === 0 ? (
+              <Text style={styles.noRecipients}>حقيبتك فارغة حاليًا. الهدايا الرمزية تُكتسب من الفعاليات والمهام.</Text>
+            ) : giftTab === 'store' && gifts.length === 0 ? (
               <Text style={styles.noRecipients}>لا توجد هدايا متاحة حاليًا.</Text>
             ) : (
               <>
@@ -2381,13 +2459,19 @@ function GiftsModal({
                   />
                 </View>
                 <ScrollView style={styles.giftList} contentContainerStyle={styles.giftsGrid} nestedScrollEnabled>
-                  {filteredGifts.map(gift => (
-                    <GiftCard
-                      key={gift.id}
-                      gift={gift as GiftRecord}
-                      selected={selectedGift === gift.id}
-                      onPress={() => setSelectedGift(gift.id)}
-                    />
+                  {filteredGifts.map((gift) => (
+                    <View key={gift.id} style={styles.giftCardWrap}>
+                      <GiftCard
+                        gift={gift as GiftRecord}
+                        selected={selectedGift === gift.id}
+                        onPress={() => setSelectedGift(gift.id)}
+                      />
+                      {giftTab === 'bag' && Number(gift._bagQuantity ?? 0) > 0 && (
+                        <View style={styles.bagQtyBadge}>
+                          <Text style={styles.bagQtyText}>x{Number(gift._bagQuantity)}</Text>
+                        </View>
+                      )}
+                    </View>
                   ))}
                   {filteredGifts.length === 0 && (
                     <Text style={styles.noRecipients}>ما لقينا هدية بهذا الاسم.</Text>
@@ -2943,6 +3027,14 @@ const styles = StyleSheet.create({
   },
   stepHint: { color: colors.textSecondary, fontFamily: fonts.semibold, fontSize: 11, marginTop: 12, marginBottom: 7, textAlign: 'right' },
   noRecipients: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 11, lineHeight: 18, textAlign: 'center', paddingVertical: 8 },
+  giftTabs: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  giftTab: { flex: 1, paddingVertical: 8, borderRadius: radius.sm, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.borderSoft, alignItems: 'center' },
+  giftTabActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
+  giftTabText: { color: colors.textMuted, fontFamily: fonts.semibold, fontSize: 12 },
+  giftTabTextActive: { color: colors.primaryLight },
+  giftCardWrap: { position: 'relative' },
+  bagQtyBadge: { position: 'absolute', top: -4, right: -4, backgroundColor: colors.gold, borderRadius: radius.pill, paddingHorizontal: 5, paddingVertical: 1, borderWidth: 1, borderColor: colors.sheet },
+  bagQtyText: { color: colors.inkGold, fontFamily: fonts.black, fontSize: 9, lineHeight: 12 },
   giftSearchWrap: {
     minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 11, marginBottom: 8, borderRadius: radius.sm,
