@@ -156,13 +156,9 @@ export default function HomeScreen() {
             icon={<ChevronLeft size={16} color={colors.inkGold} />}
             onPress={openPrimaryRoom}
           />
-          <Button
-            label="غرفة جديدة"
-            variant="ghost"
-            size="md"
-            icon={<Plus size={15} color={colors.text} />}
-            onPress={() => router.push('/room/create')}
-          />
+          <IconButton size={46} accessibilityLabel="إنشاء غرفة" onPress={() => router.push('/room/create')}>
+            <Plus size={18} color={colors.text} />
+          </IconButton>
         </View>
       </View>
 

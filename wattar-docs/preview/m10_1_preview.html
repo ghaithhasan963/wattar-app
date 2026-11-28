@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>Wattar M10.1 — Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --background:#0A0712; --surface:#171124; --surfaceMuted:#211832; --text:#F8F4FF;
+    --textSecondary:#B3A9C3; --textMuted:#7D6E93; --border:#34264A;
+    --primary:#A947F5; --primarySoft:#2B1740; --teal:#58D6C1; --tealSoft:#153832;
+    --success:#46D49A; --successSoft:#15372C; --danger:#FF718E; --gold:#F4BD55; --goldSoft:#3B2A13;
+    --roomBackground:#090611; --roomSurface:#171124; --roomElevated:#241935;
+    --roomText:#FBF7FF; --roomMuted:#B5A9C5; --roomPrimary:#C064FF; --roomTeal:#58D6C1;
+    --screenTop:#150C24; --surfaceElevated:#1F1731; --borderSoft:#261C38; --borderStrong:#3E2C58;
+    --primaryGlow:rgba(169,71,245,.38); --goldGlow:rgba(244,189,85,.34);
+    --glassFaint:rgba(255,255,255,.03); --glass:rgba(255,255,255,.05);
+    --glassStrong:rgba(255,255,255,.10); --glassLine:rgba(255,255,255,.06);
+    --borderLight:rgba(255,255,255,.22); --backgroundDeep:#07050C; --heroSurface:#170E27;
+    --bar:rgba(18,12,29,.88); --sheet:#150E24;
+    --goldHaze:rgba(244,189,85,.12); --goldLine:rgba(244,189,85,.26); --goldEdge:rgba(244,189,85,.55);
+    --tealHaze:rgba(88,214,193,.12); --tealEdge:rgba(88,214,193,.55);
+    --primaryHaze:rgba(169,71,245,.20); --primaryLight:#DDB6FF;
+    --inkGold:#25140A; --inkDark:#0B0714; --inkTeal:#062A24; --inkDanger:#2A0E18;
+  }
+  *{box-sizing:border-box; -webkit-font-smoothing:antialiased;}
+  body{
+    margin:0; background:#05040A; font-family:'Cairo',sans-serif; color:var(--text);
+    display:flex; flex-wrap:wrap; gap:26px; padding:26px; justify-content:center; align-items:flex-start;
+  }
+  .phone{
+    width:390px; height:844px; border-radius:38px; overflow:hidden; position:relative; flex:none;
+    background:#07050C; border:1px solid #2A1F3D;
+    box-shadow:0 40px 90px rgba(0,0,0,.75), 0 0 0 8px #100C18;
+  }
+  .screen{position:absolute; inset:0; background:linear-gradient(180deg,#170D28 0%,#0B0714 45%,#07050C 100%);}
+  .scroll{position:absolute; inset:0; overflow:hidden;}
+  .phone.room .scroll{display:flex;flex-direction:column;}
+  .phone.room .chat{min-height:0;}
+  .pad{padding:0 16px;}
+
+  /* ---------- status bar ---------- */
+  .status{
+    height:44px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 22px; font-size:12px; font-weight:600; color:#EDE7F6; letter-spacing:.3px;
+  }
+  .status .dots{display:flex; gap:4px; align-items:center;}
+  .status .dots i{width:3px;height:3px;border-radius:50%;background:#EDE7F6;display:block}
+
+  /* ---------- typography ---------- */
+  .display{font-size:30px; line-height:44px; font-weight:900; letter-spacing:-.3px;}
+  .h1{font-size:23px; line-height:34px; font-weight:900;}
+  .h2{font-size:18px; line-height:28px; font-weight:700;}
+  .title{font-size:15px; line-height:24px; font-weight:600;}
+  .body{font-size:14px; line-height:23px; font-weight:400;}
+  .bodyStrong{font-size:14px; line-height:23px; font-weight:600;}
+  .label{font-size:12px; line-height:19px; font-weight:600; color:var(--textSecondary);}
+  .caption{font-size:11px; line-height:18px; font-weight:400; color:var(--textSecondary);}
+  .micro{font-size:10px; line-height:15px; font-weight:700; color:var(--textSecondary);}
+  .numeric{font-size:20px; line-height:26px; font-weight:900;}
+  .muted{color:var(--textMuted);} .gold{color:var(--gold);} .teal{color:var(--teal);}
+  .success{color:var(--success);} .primary{color:var(--primary);}
+
+  /* ---------- home top bar ---------- */
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:8px 16px 0; gap:8px;}
+  .brandline{display:flex; align-items:center; gap:10px; flex:1; min-width:0;}
+  .brandring{
+    width:46px;height:46px;border-radius:16px;padding:1.5px;flex:none;
+    background:linear-gradient(135deg,#C86BFF,#8B34E8);
+    box-shadow:0 10px 18px rgba(0,0,0,.32);
+  }
+  .brandring .inner{
+    width:100%;height:100%;border-radius:14px;background:linear-gradient(160deg,#2A1240,#140B22);
+    display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;color:#E9D6FF;
+  }
+  .brandcopy{min-width:0;}
+  .topactions{display:flex;align-items:center;gap:8px;}
+  .iconbtn{
+    width:42px;height:42px;border-radius:15px;display:flex;align-items:center;justify-content:center;
+    background:var(--glass); border:1px solid var(--borderSoft); position:relative; flex:none;
+  }
+  .iconbtn.active{background:var(--primarySoft); border-color:var(--borderStrong);}
+  .badge{
+    position:absolute; top:-5px; left:-5px; min-width:18px; height:18px; border-radius:9px;
+    background:var(--danger); border:1px solid var(--inkDanger);
+    font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; padding:0 4px; color:#fff;
+  }
+  .icon{width:18px;height:18px;stroke:#EDE7F6;stroke-width:1.9;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+
+  .balancerow{display:flex; align-items:center; justify-content:flex-end; gap:8px; padding:10px 16px 0;}
+  .balancepill{
+    display:flex; align-items:center; gap:6px; height:32px; padding:0 11px; border-radius:999px;
+    background:var(--goldSoft); border:1px solid var(--goldLine);
+  }
+  .balancepill .val{font-size:13px; line-height:18px; font-weight:900; color:var(--gold);}
+  .coin{
+    width:20px;height:20px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#FFE7A8,#E8A93F 60%,#B5761E);
+    border:1px solid rgba(255,255,255,.35); display:flex;align-items:center;justify-content:center;
+    font-size:9px;font-weight:900;color:#4A2E06;
+  }
+  .lvl{
+    height:20px;padding:0 7px;border-radius:7px;display:flex;align-items:center;
+    background:linear-gradient(135deg,#FFD98A,#E8A93F); color:#2A1704; font-size:10px; font-weight:900;
+  }
+
+  /* ---------- hero ---------- */
+  .hero{
+    margin:14px 16px 0; border-radius:26px; border:1px solid var(--borderStrong);
+    background:var(--heroSurface); padding:18px; position:relative; overflow:hidden;
+    box-shadow:0 16px 26px rgba(0,0,0,.42);
+  }
+  .hero .grad{position:absolute; inset:0; background:linear-gradient(135deg,rgba(169,71,245,.34),rgba(88,214,193,.08) 55%,rgba(10,7,18,0));}
+  .orb1{position:absolute;top:-90px;right:-60px;width:240px;height:240px;border-radius:50%;background:var(--primaryGlow);filter:blur(2px);}
+  .orb2{position:absolute;bottom:-70px;left:-40px;width:170px;height:170px;border-radius:50%;background:var(--tealHaze);}
+  .hero .herotop,.hero .herotitle,.hero .herocaption,.hero .heroactions{position:relative;}
+  .herotop{display:flex;align-items:center;justify-content:space-between;}
+  .livepill{
+    display:flex;align-items:center;gap:4px;padding:3px 8px 3px 8px;border-radius:999px;
+    background:var(--successSoft); border:1px solid rgba(70,212,154,.26);
+  }
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 0 3px rgba(70,212,154,.18);}
+  .herotop .micro{color:var(--textMuted);}
+  .herotop .livepill .micro{color:var(--success);}
+  .herotitle{margin-top:12px;max-width:270px;}
+  .herocaption{margin-top:4px;max-width:250px;color:var(--textSecondary);}
+  .heroactions{display:flex;gap:9px;margin-top:16px;}
+  .btn{
+    height:46px;padding:0 18px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;
+    font-size:14px;font-weight:700;border:1px solid var(--borderLight);position:relative;white-space:nowrap;
+  }
+  .btn.gold{background:linear-gradient(135deg,#FFD98A,#E8A93F);color:var(--inkGold);box-shadow:0 0 16px var(--goldGlow);}
+  .btn.primary{background:linear-gradient(135deg,#C86BFF,#8B34E8);color:#fff;box-shadow:0 0 16px var(--primaryGlow);}
+  .btn.ghost{background:var(--glass);color:var(--text);border-color:var(--borderStrong);}
+  .btn.sm{height:38px;padding:0 14px;font-size:12px;border-radius:12px;}
+  .chev{width:15px;height:15px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+
+  /* ---------- stats strip ---------- */
+  .stats{
+    display:flex;align-items:center;margin:12px 16px 0;padding:12px 0;border-radius:20px;
+    background:var(--glass); border:1px solid var(--borderSoft);
+  }
+  .stat{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;}
+  .stat .micro{color:var(--textMuted);}
+  .sdiv{width:1px;height:26px;background:var(--borderSoft);}
+
+  /* ---------- generic card ---------- */
+  .card{
+    background:linear-gradient(135deg,rgba(255,255,255,.065),rgba(255,255,255,.018));
+    border:1px solid var(--borderSoft); border-radius:20px; overflow:hidden;
+    box-shadow:0 8px 16px rgba(0,0,0,.28);
+  }
+  .stories{margin:12px 16px 0;}
+  .storiesrow{display:flex;align-items:center;gap:12px;padding:12px;}
+  .goldicon{
+    width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex:none;
+    background:linear-gradient(135deg,#FFD98A,#E8A93F);
+  }
+  .featrow{display:flex;gap:10px;margin:10px 16px 0;}
+  .feat{flex:1;}
+  .featinner{display:flex;align-items:center;gap:9px;padding:12px;}
+  .featicon{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none;}
+
+  /* ---------- section header ---------- */
+  .secthead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:22px 16px 10px;}
+  .secttitle{display:flex;align-items:center;gap:9px;}
+  .accent{width:3px;height:22px;border-radius:2px;background:var(--gold);}
+
+  /* ---------- chips ---------- */
+  .chips{display:flex;gap:8px;padding:0 16px 10px;overflow:hidden;}
+  .chip{
+    height:36px;padding:0 15px;border-radius:999px;display:flex;align-items:center;justify-content:center;
+    border:1px solid var(--borderSoft); background:var(--glass); font-size:12px;font-weight:600;color:var(--textSecondary);
+    flex:none;
+  }
+  .chip.on{background:linear-gradient(135deg,#C86BFF,#8B34E8);border-color:rgba(255,255,255,.24);color:#fff;}
+
+  /* ---------- room card ---------- */
+  .roomcard{margin:0 16px 10px;}
+  .roomrow{display:flex;align-items:center;padding:9px;gap:12px;}
+  .cover{
+    width:94px;height:94px;border-radius:16px;overflow:hidden;position:relative;flex:none;
+    background:linear-gradient(135deg,rgba(169,71,245,.55),rgba(88,214,193,.22));
+    display:flex;align-items:center;justify-content:center;
+  }
+  .cover .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,7,18,0),rgba(10,7,18,.55) 55%,rgba(8,5,14,.96));}
+  .cover .livedot{
+    position:absolute;top:6px;right:6px;display:flex;align-items:center;gap:4px;
+    padding:1px 6px 1px 6px;border-radius:999px;background:rgba(8,5,14,.72);
+    font-size:8px;font-weight:700;line-height:13px;color:#fff;
+  }
+  .cover .livedot i{width:5px;height:5px;border-radius:50%;background:#fff;display:block;}
+  .roombody{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0;}
+  .roomtitlerow{display:flex;align-items:center;gap:6px;}
+  .ownerrow{display:flex;align-items:center;gap:5px;}
+  .av{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#4B2A6B,#2A1840);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#E4D6F5;flex:none;}
+  .roomstats{display:flex;align-items:center;gap:6px;margin-top:3px;}
+  .statChip{display:flex;align-items:center;gap:3px;padding:2px 7px;border-radius:8px;background:var(--glass);}
+  .tag{max-width:96px;padding:2px 7px;border-radius:8px;border:1px solid var(--borderSoft);font-size:10px;line-height:15px;font-weight:700;color:var(--textMuted);}
+  .mini{width:11px;height:11px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+
+  /* ---------- tab bar ---------- */
+  .tabbar{
+    position:absolute;left:14px;right:14px;bottom:18px;height:68px;border-radius:26px;
+    background:rgba(20,14,32,.94); border:1px solid var(--borderStrong);
+    box-shadow:0 16px 26px rgba(0,0,0,.42);
+    display:flex;align-items:center;justify-content:space-around;padding:8px 6px 7px;
+  }
+  .tab{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:600;color:var(--textMuted);}
+  .tab .tico{width:38px;height:30px;border-radius:12px;display:flex;align-items:center;justify-content:center;}
+  .tab.on{color:var(--text);}
+  .tab.on .tico{background:linear-gradient(135deg,#C86BFF,#8B34E8);box-shadow:0 10px 18px rgba(0,0,0,.32);}
+  .tab.on .tico .icon{stroke:#fff;}
+
+  /* ================= ROOM ================= */
+  .rheader{
+    display:flex;align-items:center;gap:8px;padding:8px 14px 12px;
+    background:var(--bar); border-bottom:1px solid var(--glassLine);
+  }
+  .rheader .iconbtn{width:38px;height:38px;border-radius:12px;}
+  .rinfo{flex:1;margin:0 4px;min-width:0;}
+  .rname{font-size:17px;line-height:26px;font-weight:700;color:var(--roomText);}
+  .rmeta{display:flex;align-items:center;gap:5px;margin-top:2px;flex-wrap:wrap;}
+  .lchip{
+    display:flex;align-items:center;gap:4px;padding:3px 7px;border-radius:8px;
+    background:var(--glass); border:1px solid var(--borderSoft); font-size:10px;line-height:16px;color:var(--roomMuted);
+  }
+  .voicechip{display:flex;align-items:center;gap:3px;padding:2px 6px;border-radius:8px;background:var(--roomTeal);color:var(--inkDark);font-size:9px;font-weight:700;line-height:13px;}
+
+  .seats{padding:12px 14px 14px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.016);}
+  .seatshead{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
+  .sectitle2{display:flex;align-items:center;gap:7px;}
+  .accent2{width:3px;height:16px;border-radius:2px;background:var(--gold);}
+  .sectitle2 .t{font-size:13px;line-height:20px;font-weight:700;color:var(--roomText);}
+  .countpill{
+    font-size:10px;line-height:15px;font-weight:600;color:var(--roomMuted);
+    background:var(--glass);border:1px solid var(--borderSoft);border-radius:999px;padding:3px 9px;
+  }
+  .grid{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;}
+  .seat{
+    position:relative;width:74px;height:96px;border-radius:18px;
+    background:rgba(255,255,255,.032);border:1px solid var(--borderSoft);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px;gap:2px;
+  }
+  .seat.occ{background:rgba(255,255,255,.055);border-color:var(--border);}
+  .seat.owner{border-color:var(--goldEdge);background:rgba(244,189,85,.07);}
+  .seat.speaking{border-color:var(--tealEdge);}
+  .avatarwrap{width:54px;height:54px;display:flex;align-items:center;justify-content:center;position:relative;}
+  .halo{position:absolute;width:54px;height:54px;border-radius:50%;border:2px solid var(--roomTeal);opacity:.45;}
+  .aring{
+    width:50px;height:50px;border-radius:25px;border:1.5px solid var(--borderSoft);
+    background:var(--surfaceMuted);display:flex;align-items:center;justify-content:center;overflow:hidden;
+  }
+  .aring.live{border-color:var(--teal);background:var(--tealHaze);}
+  .aring.own{border-color:var(--gold);}
+  .aring .ph{width:44px;height:44px;border-radius:22px;background:linear-gradient(135deg,#5A3180,#2C1A45);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#F0E4FF;}
+  .crown{position:absolute;top:-3px;right:-3px;width:16px;height:16px;border-radius:8px;background:var(--gold);border:1px solid rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--inkGold);}
+  .seatlvl{position:absolute;top:-5px;left:-7px;height:16px;padding:0 5px;border-radius:6px;background:linear-gradient(135deg,#FFD98A,#E8A93F);color:#2A1704;font-size:8px;font-weight:900;line-height:16px;}
+  .seatname{font-size:10px;line-height:16px;font-weight:500;color:var(--roomText);max-width:66px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px;}
+  .micbadge{position:absolute;bottom:3px;right:3px;width:15px;height:15px;border-radius:8px;display:flex;align-items:center;justify-content:center;}
+  .micbadge.on{background:var(--roomTeal);}
+  .micbadge.off{background:var(--glassStrong);}
+  .micbadge svg{width:8px;height:8px;stroke:currentColor;stroke-width:2.4;fill:none;stroke-linecap:round;}
+  .micbadge.on svg{stroke:var(--inkTeal);} .micbadge.off svg{stroke:var(--roomMuted);}
+  .seatempty{display:flex;flex-direction:column;align-items:center;gap:5px;}
+  .addicon{width:34px;height:34px;border-radius:12px;background:var(--primarySoft);border:1px solid var(--borderSoft);display:flex;align-items:center;justify-content:center;}
+  .addicon.dim{background:var(--glass);}
+  .emptytxt{font-size:10px;line-height:15px;font-weight:600;color:var(--roomPrimary);}
+  .lockedtxt{font-size:10px;line-height:15px;font-weight:500;color:var(--roomMuted);}
+
+  .chat{padding:10px 14px 2px;flex:1;overflow:hidden;display:flex;flex-direction:column;position:relative;}
+  .chat::after{
+    content:'';position:absolute;left:0;right:0;bottom:0;height:26px;pointer-events:none;
+    background:linear-gradient(180deg,rgba(7,5,12,0),rgba(7,5,12,.92));
+  }
+  .chat .chathead{flex:none;}
+  .chat .sysmsg{flex:none;}
+  .chat .msglist{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;}
+  .chathead{display:flex;align-items:center;justify-content:space-between;padding:0 2px 8px;}
+  .chathead .hint{font-size:9px;line-height:14px;color:var(--roomMuted);}
+  .msg{display:flex;align-items:flex-end;gap:6px;max-width:90%;margin-bottom:6px;}
+  .msg.me{margin-inline-start:auto;flex-direction:row;}
+  .mavatar{width:28px;height:28px;border-radius:10px;background:var(--glass);border:1px solid var(--borderSoft);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--roomText);flex:none;}
+  .msg.me .mavatar{background:var(--primaryHaze);border-color:rgba(169,71,245,.38);}
+  .bubble{max-width:88%;min-width:90px;padding:7px 11px 8px;border-radius:15px;border:1px solid var(--glassLine);background:var(--glass);border-bottom-left-radius:5px;}
+  .msg.me .bubble{background:rgba(169,71,245,.18);border-color:rgba(169,71,245,.30);border-bottom-left-radius:15px;border-bottom-right-radius:5px;}
+  .mmeta{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .muser{font-size:10px;line-height:15px;font-weight:600;color:var(--roomTeal);}
+  .msg.me .muser{color:var(--primaryLight);}
+  .mtime{font-size:8px;line-height:13px;color:var(--textMuted);}
+  .mtext{font-size:13px;line-height:21px;color:var(--roomText);margin-top:3px;}
+  .sysmsg{display:flex;align-items:center;justify-content:center;gap:9px;margin:4px 0;}
+  .sysmsg .rule{flex:1;height:1px;background:rgba(255,255,255,.05);}
+  .sysmsg .txt{font-size:10px;line-height:16px;font-weight:500;color:var(--textSecondary);background:var(--glass);border:1px solid var(--borderSoft);border-radius:12px;padding:5px 10px;}
+
+  .inputbar{
+    display:flex;align-items:center;gap:7px;padding:8px 12px 22px;
+    background:var(--bar);border-top:1px solid var(--glassLine);
+  }
+  .giftbtn{width:38px;height:38px;border-radius:13px;background:var(--goldHaze);border:1px solid var(--goldLine);display:flex;align-items:center;justify-content:center;flex:none;}
+  .emojibtn{width:36px;height:38px;border-radius:12px;background:var(--glass);display:flex;align-items:center;justify-content:center;flex:none;}
+  .field{
+    flex:1;background:var(--glass);border:1px solid var(--borderSoft);border-radius:18px;
+    padding:9px 14px;font-size:13px;color:var(--roomMuted);font-family:'Cairo',sans-serif;
+  }
+  .sendbtn{width:38px;height:38px;border-radius:19px;background:var(--roomPrimary);display:flex;align-items:center;justify-content:center;flex:none;}
+  .micbar{display:flex;gap:8px;padding:8px 12px 22px;background:var(--bar);border-top:1px solid var(--glassLine);}
+  .micbtn{flex:1;height:46px;border-radius:12px;background:var(--roomTeal);display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:700;color:var(--inkDark);}
+  .leavebtn{height:46px;padding:0 16px;border-radius:12px;background:var(--glass);border:1px solid var(--borderSoft);display:flex;align-items:center;font-size:13px;font-weight:500;color:var(--roomMuted);}
+
+  .caption-note{
+    position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:11px;color:#4B3E60;
+  }
+  figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:12px;flex:none;}
+  figcaption{font-size:12px;font-weight:600;color:#6B5C82;letter-spacing:.4px;}
+</style>
+</head>
+<body>
+
+<!-- ============ HOME ============ -->
+<div class="phone">
+  <div class="screen"></div>
+  <div class="scroll">
+    <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+
+    <div class="topbar">
+      <div class="brandline">
+        <div class="brandring"><div class="inner">و</div></div>
+        <div class="brandcopy">
+          <div class="title">أهلًا <span class="gold">سارة</span></div>
+          <div class="caption">جاهز تسمع شي حلو اليوم؟</div>
+        </div>
+      </div>
+      <div class="topactions">
+        <div class="iconbtn">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          <div class="badge">3</div>
+        </div>
+        <div class="iconbtn active">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="balancerow">
+      <div class="balancepill">
+        <div class="coin">C</div>
+        <div class="val">12,450</div>
+        <div class="micro muted" style="color:var(--textMuted)">Coin</div>
+      </div>
+      <div class="lvl">LV 7</div>
+    </div>
+
+    <div class="hero">
+      <div class="grad"></div>
+      <div class="orb1"></div><div class="orb2"></div>
+      <div class="herotop">
+        <div class="livepill"><span class="dot"></span><span class="micro">مباشر الآن</span></div>
+        <span class="micro">6 غرفة · 214 مستمع</span>
+      </div>
+      <div class="display herotitle">صوتك يلاقي مجتمعه</div>
+      <div class="caption herocaption">انضم إلى جلسة حيّة، أو افتح غرفتك وخلي أصحابك يسمعوك.</div>
+      <div class="heroactions">
+        <div class="btn gold">استكشف الغرف <svg class="chev" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></div>
+        <div class="btn ghost" style="width:46px;padding:0"><svg class="chev" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="numeric success">6</div><div class="micro">غرف مباشرة</div></div>
+      <div class="sdiv"></div>
+      <div class="stat"><div class="numeric teal">18</div><div class="micro">على المنصة</div></div>
+      <div class="sdiv"></div>
+      <div class="stat"><div class="numeric primary">214</div><div class="micro">مستمع</div></div>
+    </div>
+
+    <div class="card stories">
+      <div class="storiesrow">
+        <div class="goldicon"><svg class="chev" style="width:20px;height:20px;stroke:#25140A" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 9l5 3-5 3V9z"/></svg></div>
+        <div style="flex:1">
+          <div class="bodyStrong">قصص المجتمع</div>
+          <div class="caption" style="margin-top:1px">صور تختفي بعد ٢٤ ساعة</div>
+        </div>
+        <svg class="chev" style="stroke:#7D6E93" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      </div>
+    </div>
+
+    <div class="featrow">
+      <div class="card feat"><div class="featinner">
+        <div class="featicon" style="background:var(--goldSoft)"><svg class="icon" style="stroke:var(--gold);width:16px;height:16px" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div>
+        <div style="flex:1;min-width:0"><div class="bodyStrong" style="font-size:13px">متجر الهدايا</div><div class="micro" style="color:var(--textMuted)">أرسل دعمك للمجتمع</div></div>
+      </div></div>
+      <div class="card feat"><div class="featinner">
+        <div class="featicon" style="background:var(--primarySoft)"><svg class="icon" style="stroke:var(--primary);width:16px;height:16px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></div>
+        <div style="flex:1;min-width:0"><div class="bodyStrong" style="font-size:13px">مهمات اليوم</div><div class="micro" style="color:var(--textMuted)">اجمع Coin وXP</div></div>
+      </div></div>
+    </div>
+
+    <div class="secthead">
+      <div class="secttitle"><div class="accent"></div><div>
+        <div class="h2">الغرف الآن</div>
+        <div class="caption">6 جلسة متاحة للانضمام</div>
+      </div></div>
+    </div>
+
+    <div class="chips">
+      <div class="chip on">الكل</div>
+      <div class="chip">موسيقى</div>
+      <div class="chip">دردشة</div>
+      <div class="chip">ألعاب</div>
+      <div class="chip">شعر</div>
+    </div>
+
+    <div class="card roomcard"><div class="roomrow">
+      <div class="cover">
+        <svg class="icon" style="width:26px;height:26px;stroke:#C88CFF;position:relative;z-index:1" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg>
+        <div class="shade"></div>
+        <div class="livedot"><i></i>مباشر</div>
+      </div>
+      <div class="roombody">
+        <div class="roomtitlerow"><div class="title" style="flex:1">جلسة هادئة مع وتر</div></div>
+        <div class="ownerrow"><div class="av">ن</div><div class="caption" style="font-size:11px">نور الدين</div><div class="lvl" style="height:16px;font-size:8px;padding:0 5px;border-radius:6px">LV 12</div></div>
+        <div class="roomstats">
+          <div class="statChip"><svg class="mini" style="stroke:var(--teal)" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg><span class="micro">5/8</span></div>
+          <div class="statChip"><svg class="mini" style="stroke:var(--primary)" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg><span class="micro">86</span></div>
+          <div class="tag">موسيقى</div>
+        </div>
+      </div>
+    </div></div>
+
+    <div class="card roomcard"><div class="roomrow">
+      <div class="cover" style="background:linear-gradient(135deg,rgba(88,214,193,.5),rgba(169,71,245,.24))">
+        <svg class="icon" style="width:26px;height:26px;stroke:#8CF0DC;position:relative;z-index:1" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg>
+        <div class="shade"></div>
+        <div class="livedot"><i></i>مباشر</div>
+      </div>
+      <div class="roombody">
+        <div class="roomtitlerow"><div class="title" style="flex:1">قهوة وسوالف</div>
+          <svg class="mini" style="stroke:var(--gold);width:13px;height:13px" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div class="ownerrow"><div class="av">ر</div><div class="caption" style="font-size:11px">ريم</div><div class="lvl" style="height:16px;font-size:8px;padding:0 5px;border-radius:6px">LV 4</div></div>
+        <div class="roomstats">
+          <div class="statChip"><svg class="mini" style="stroke:var(--teal)" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg><span class="micro">3/6</span></div>
+          <div class="statChip"><svg class="mini" style="stroke:var(--primary)" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="micro">42</span></div>
+          <div class="tag">دردشة</div>
+        </div>
+      </div>
+    </div></div>
+
+    <div class="card roomcard"><div class="roomrow">
+      <div class="cover" style="background:linear-gradient(135deg,rgba(244,189,85,.45),rgba(169,71,245,.26))">
+        <svg class="icon" style="width:26px;height:26px;stroke:#FFDFA0;position:relative;z-index:1" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+        <div class="shade"></div>
+      </div>
+      <div class="roombody">
+        <div class="roomtitlerow"><div class="title" style="flex:1">ليلة شعر ونبط</div></div>
+        <div class="ownerrow"><div class="av">خ</div><div class="caption" style="font-size:11px">خالد</div></div>
+        <div class="roomstats">
+          <div class="statChip"><svg class="mini" style="stroke:var(--teal)" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg><span class="micro">8/10</span></div>
+          <div class="statChip"><svg class="mini" style="stroke:var(--primary)" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="micro">31</span></div>
+          <div class="tag">شعر</div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tab on"><div class="tico"><svg class="icon" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/></svg></div>الرئيسية</div>
+    <div class="tab"><div class="tico"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="11" rx="4"/><path d="M7 11v3M5.5 12.5h3M16 11.5h.01M18.5 13.5h.01"/></svg></div>الألعاب</div>
+    <div class="tab"><div class="tico"><svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div>الأصدقاء</div>
+    <div class="tab"><div class="tico"><svg class="icon" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="3"/><path d="M2 11h20"/></svg></div>المحفظة</div>
+    <div class="tab"><div class="tico"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg></div>حسابي</div>
+  </div>
+  <div class="caption-note">M10.1 · الرئيسية</div>
+</div>
+
+<!-- ============ ROOM ============ -->
+<div class="phone room">
+  <div class="screen"></div>
+  <div class="scroll">
+    <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+
+    <div class="rheader">
+      <div class="iconbtn"><svg class="icon" style="width:18px;height:18px;stroke:var(--roomMuted)" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></div>
+      <div class="rinfo">
+        <div class="rname">جلسة هادئة مع وتر</div>
+        <div class="rmeta">
+          <div class="lchip"><svg class="mini" style="width:10px;height:10px;stroke:var(--roomMuted)" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>86 مستمع · 4 متحدث</div>
+          <div class="voicechip">صوت مباشر</div>
+        </div>
+      </div>
+      <div class="iconbtn"><svg class="icon" style="width:18px;height:18px;stroke:var(--roomPrimary)" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg></div>
+      <div class="iconbtn"><svg class="icon" style="width:18px;height:18px;stroke:var(--roomPrimary)" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <div class="badge" style="background:var(--danger)">2</div>
+      </div>
+    </div>
+
+    <div class="seats">
+      <div class="seatshead">
+        <div class="sectitle2"><div class="accent2"></div><div class="t">المنصة الصوتية</div></div>
+        <div class="countpill">4/8</div>
+      </div>
+      <div class="grid">
+        <div class="seat owner occ speaking">
+          <div class="avatarwrap">
+            <div class="halo"></div>
+            <div class="aring own"><div class="ph">ن</div></div>
+            <div class="crown">♛</div>
+            <div class="seatlvl">LV 12</div>
+          </div>
+          <div class="seatname">نور الدين</div>
+          <div class="micbadge on"><svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg></div>
+        </div>
+        <div class="seat occ speaking">
+          <div class="avatarwrap">
+            <div class="halo"></div>
+            <div class="aring live"><div class="ph">ر</div></div>
+            <div class="seatlvl">LV 4</div>
+          </div>
+          <div class="seatname">ريم</div>
+          <div class="micbadge on"><svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg></div>
+        </div>
+        <div class="seat occ">
+          <div class="avatarwrap">
+            <div class="aring"><div class="ph">خ</div></div>
+            <div class="seatlvl">LV 9</div>
+          </div>
+          <div class="seatname">خالد</div>
+          <div class="micbadge off"><svg viewBox="0 0 24 24"><path d="M2 2l20 20M9 9v3a3 3 0 0 0 6 0v-1M12 2a3 3 0 0 1 3 3v4"/><path d="M19 10v2a7 7 0 0 1-10.6 6"/></svg></div>
+        </div>
+        <div class="seat occ">
+          <div class="avatarwrap"><div class="aring"><div class="ph">ل</div></div></div>
+          <div class="seatname">لمى</div>
+          <div class="micbadge off"><svg viewBox="0 0 24 24"><path d="M2 2l20 20M9 9v3a3 3 0 0 0 6 0v-1M12 2a3 3 0 0 1 3 3v4"/><path d="M19 10v2a7 7 0 0 1-10.6 6"/></svg></div>
+        </div>
+        <div class="seat">
+          <div class="seatempty">
+            <div class="addicon dim"><svg class="mini" style="width:14px;height:14px;stroke:var(--textMuted)" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+            <div class="lockedtxt">مقفل</div>
+          </div>
+        </div>
+        <div class="seat">
+          <div class="seatempty">
+            <div class="addicon"><svg class="mini" style="width:14px;height:14px;stroke:var(--roomPrimary)" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg></div>
+            <div class="emptytxt">انضم</div>
+          </div>
+        </div>
+        <div class="seat">
+          <div class="seatempty">
+            <div class="addicon"><svg class="mini" style="width:14px;height:14px;stroke:var(--roomPrimary)" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg></div>
+            <div class="emptytxt">انضم</div>
+          </div>
+        </div>
+        <div class="seat">
+          <div class="seatempty">
+            <div class="addicon"><svg class="mini" style="width:14px;height:14px;stroke:var(--roomPrimary)" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg></div>
+            <div class="emptytxt">انضم</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat">
+      <div class="chathead">
+        <div class="sectitle2"><div class="accent2" style="background:var(--roomPrimary)"></div><div class="t">محادثة الغرفة</div></div>
+        <div class="hint">تواصل بأدب واحترام</div>
+      </div>
+
+      <div class="sysmsg"><div class="rule"></div><div class="txt">انضم ريم إلى المنصة</div><div class="rule"></div></div>
+
+      <div class="msglist">
+      <div class="msg me">
+        <div class="bubble">
+          <div class="mmeta"><div class="muser">أنت</div><div class="mtime">9:34</div></div>
+          <div class="mtext">أنا معكم، خلونا نبدأ بأغنية هادئة</div>
+        </div>
+        <div class="mavatar">س</div>
+      </div>
+
+      <div class="msg">
+        <div class="mavatar">خ</div>
+        <div class="bubble">
+          <div class="mmeta"><div class="muser">خالد</div><div class="mtime">9:35</div></div>
+          <div class="mtext">جاهزين 🙌</div>
+        </div>
+      </div>
+
+      <div class="msg">
+        <div class="mavatar">ل</div>
+        <div class="bubble">
+          <div class="mmeta"><div class="muser">لمى</div><div class="mtime">9:35</div></div>
+          <div class="mtext">يلا بينا 🎶</div>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <div class="inputbar">
+      <div class="giftbtn"><svg class="mini" style="width:18px;height:18px;stroke:var(--gold)" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M3 12h18M12 8v13"/><path d="M12 8S9 3 6.5 4.5 12 8 12 8zM12 8s3-5 5.5-3.5S12 8 12 8z"/></svg></div>
+      <div class="emojibtn"><svg class="mini" style="width:17px;height:17px;stroke:var(--roomMuted)" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg></div>
+      <div class="field">اكتب رسالة...</div>
+      <div class="sendbtn"><svg class="mini" style="width:16px;height:16px;stroke:#fff" viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></div>
+    </div>
+
+    <div class="micbar">
+      <div class="micbtn"><svg class="mini" style="width:18px;height:18px;stroke:var(--inkDark)" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg> تتحدث</div>
+      <div class="leavebtn">ترك المقعد</div>
+    </div>
+  </div>
+  <div class="caption-note">M10.1 · الغرفة</div>
+</div>
+
+</body>
+<script>
+  // لفّ كل هاتف داخل figure مع تسمية أسفله، وإضافة نسخة ثالثة للرئيسية بعد التمرير
+  const phones = [...document.querySelectorAll('.phone')];
+  const labels = ['M10.1 · الرئيسية', 'M10.1 · الغرفة'];
+  phones.forEach((p, i) => {
+    const note = p.querySelector('.caption-note');
+    const text = note ? note.textContent : labels[i];
+    note?.remove();
+    const fig = document.createElement('figure');
+    p.replaceWith(fig);
+    fig.appendChild(p);
+    const cap = document.createElement('figcaption');
+    cap.textContent = text;
+    fig.appendChild(cap);
+  });
+
+  const homeFig = document.querySelectorAll('figure')[0];
+  const clone = homeFig.cloneNode(true);
+  const scroll = clone.querySelector('.scroll');
+  scroll.querySelector('.topbar')?.remove();
+  scroll.querySelector('.balancerow')?.remove();
+  scroll.querySelector('.hero')?.remove();
+  clone.querySelector('figcaption').textContent = 'M10.1 · الرئيسية (قائمة الغرف)';
+  homeFig.after(clone);
+
+  // ?only=0|1|2 لعرض شاشة واحدة بملء الإطار (لأخذ لقطات نظيفة)
+  const only = new URLSearchParams(location.search).get('only');
+  if (only !== null) {
+    document.querySelectorAll('figure').forEach((f, i) => {
+      if (String(i) !== only) f.remove();
+    });
+    document.body.style.padding = '16px';
+  }
+</script>
+</html>

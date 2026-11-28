@@ -1365,7 +1365,7 @@ export default function RoomScreen() {
             <View style={styles.sectionAccent} />
             <Text style={styles.sectionTitle}>المنصة الصوتية</Text>
           </View>
-          <Text style={styles.sectionCount}>{seats.filter(seat => seat.status === 'occupied').length} / {room.seat_count}</Text>
+          <Text style={styles.sectionCount}>{seats.filter(seat => seat.status === 'occupied').length}/{room.seat_count}</Text>
         </View>
         <ScrollView contentContainerStyle={styles.seatsGrid}>
           {seats.map(seat => (
