@@ -28,7 +28,7 @@ import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
 import { CurrencyIcon } from '@/components/CurrencyIcon';
 import { Avatar, LevelBadge } from '@/components/ui';
-import { GiftCelebration, type GiftCelebrationData } from '@/components/room/GiftCelebration';
+import type { GiftCelebrationData } from '@/components/room/GiftCelebration';
 import { GiftScene } from '@/components/room/GiftScene';
 import { GiftCard, RecipientChip, type GiftRecord } from '@/components/room/GiftPicker';
 import { GiftTicker, type GiftFeedEntry } from '@/components/room/GiftTicker';
@@ -231,8 +231,11 @@ export default function RoomScreen() {
           emoji: gift.emoji,
           name: gift.name,
           recipient: gift.recipient,
+          recipientId: gift.recipientId ?? null,
           sender,
           premium: Boolean(gift.premium),
+          animationUrl: gift.animationUrl ?? null,
+          priceGold: Number(gift.priceGold ?? 0),
         },
       })
       .catch(() => {
@@ -659,6 +662,8 @@ export default function RoomScreen() {
               recipientId: incomingRecipientId,
               sender: typeof incoming.sender === 'string' ? incoming.sender : null,
               premium: Boolean(incoming.premium),
+              animationUrl: typeof incoming.animationUrl === 'string' ? incoming.animationUrl : null,
+              priceGold: typeof incoming.priceGold === 'number' ? incoming.priceGold : 0,
             });
             const feedId = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
             const feedEntry: GiftFeedEntry = {
@@ -1717,21 +1722,12 @@ export default function RoomScreen() {
         />
       )}
       {giftCelebration && (
-        giftCelebration.premium ? (
-          <GiftScene
-            gift={giftCelebration}
-            combo={giftCombo}
-            target={giftTarget}
-            onDone={() => setGiftCelebration(null)}
-          />
-        ) : (
-          <GiftCelebration
-            gift={giftCelebration}
-            combo={giftCombo}
-            target={giftTarget}
-            onDone={() => setGiftCelebration(null)}
-          />
-        )
+        <GiftScene
+          gift={giftCelebration}
+          combo={giftCombo}
+          target={giftTarget}
+          onDone={() => setGiftCelebration(null)}
+        />
       )}
       <Modal
         visible={showRoomInvites}
@@ -2210,10 +2206,15 @@ function GiftsModal({
   });
   const availableBalance = profile?.balance_gold ?? 0;
   const giftPrice = Number(selectedGiftRecord?.price_gold ?? 0);
-  const canAffordGift = giftPrice <= availableBalance;
+  const isSymbolicGift = Boolean(selectedGiftRecord?.is_symbolic);
+  const canAffordGift = isSymbolicGift ? true : giftPrice <= availableBalance;
 
   const sendGift = async () => {
     if (!selectedGift || !receiver || sending) return;
+    if (isSymbolicGift) {
+      Alert.alert('هدية رمزية', 'الهدايا الرمزية من الحقيبة قيد التفعيل — ستنتقل للمستلم بدون تحويل لعملات.');
+      return;
+    }
     if (!canAffordGift) {
       Alert.alert('رصيد Coin غير كافٍ', 'اشحن رصيد Coin أو اختر هدية أقل سعرًا.');
       return;
@@ -2238,7 +2239,9 @@ function GiftsModal({
         name: selectedGiftRecord?.name_ar ?? selectedGiftRecord?.name ?? 'هدية',
         recipient: receiver.name,
         recipientId: receiver.id,
-        premium: Boolean(selectedGiftRecord?.is_premium) || Number(selectedGiftRecord?.price_gold ?? 0) >= 5000,
+        premium: Boolean(selectedGiftRecord?.is_premium),
+        animationUrl: selectedGiftRecord?.animation_url ?? null,
+        priceGold: Number(selectedGiftRecord?.price_gold ?? 0),
       });
       let profileRefreshFailed = false;
       try {

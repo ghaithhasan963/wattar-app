@@ -13,7 +13,13 @@ export interface GiftRecord {
   name: string;
   name_ar?: string | null;
   icon_emoji?: string | null;
+  icon_url?: string | null;
+  animation_url?: string | null;
   price_gold: number;
+  is_premium?: boolean | null;
+  category?: string | null;
+  /** هدية رمزية من الحقيبة: لا تُشترى ولا تتحول لعملات، تنتقل بين الحقائب. */
+  is_symbolic?: boolean | null;
 }
 
 export function GiftCard({
@@ -57,9 +63,9 @@ export function GiftCard({
         )}
         <Text style={styles.emoji}>{gift.icon_emoji ?? '🎁'}</Text>
         <Text style={styles.name} numberOfLines={1}>{gift.name_ar ?? gift.name}</Text>
-        <View style={[styles.pricePill, selected && styles.pricePillActive]}>
-          <Text style={[styles.price, selected && styles.priceActive]}>
-            {Number(gift.price_gold).toLocaleString()}
+        <View style={[styles.pricePill, selected && styles.pricePillActive, gift.is_symbolic && styles.symbolicPill]}>
+          <Text style={[styles.price, selected && styles.priceActive, gift.is_symbolic && styles.symbolicPrice]}>
+            {gift.is_symbolic ? 'رمزية' : Number(gift.price_gold).toLocaleString()}
           </Text>
         </View>
       </Reanimated.View>
@@ -133,8 +139,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceGlass,
   },
   pricePillActive: { backgroundColor: colors.gold },
+  symbolicPill: { backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.borderSoft },
   price: { color: colors.gold, fontFamily: fonts.black, fontSize: 9, lineHeight: 14 },
   priceActive: { color: colors.inkGold },
+  symbolicPrice: { color: colors.primaryLight },
   recipient: {
     flexDirection: 'row',
     alignItems: 'center',

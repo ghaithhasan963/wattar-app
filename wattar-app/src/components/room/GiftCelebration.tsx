@@ -31,6 +31,10 @@ export interface GiftCelebrationData {
   sender?: string | null;
   /** هدية كبيرة: تُعرض بمشهد سينمائي كامل الشاشة بدل بطاقة الاحتفال. */
   premium?: boolean;
+  /** رابط أصل 3D مُصيّر مسبقًا (فيديو شفاف/MP4/WebM) — يُشغّل إن وُجد. */
+  animationUrl?: string | null;
+  /** سعر الهدية بالذهب لتحديد فئة المشهد. */
+  priceGold?: number;
 }
 
 const PARTICLE_COUNT = 16;
