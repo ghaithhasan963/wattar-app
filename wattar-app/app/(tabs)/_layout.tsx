@@ -5,12 +5,13 @@ import { Redirect, Tabs } from 'expo-router';
 import { Home, Gamepad2, Wallet, User, Users } from 'lucide-react-native';
 import { ActivityIndicator, Animated, Easing, StyleSheet, View } from 'react-native';
 import { useEffect, useRef } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth';
-import { colors } from '@/lib/theme';
+import { colors, fonts, gradients, shadow } from '@/lib/theme';
 
-const ACTIVE_TINT = colors.primary;
-const INACTIVE_TINT = colors.textSecondary;
+const ACTIVE_TINT = colors.text;
+const INACTIVE_TINT = colors.textMuted;
 
 export default function TabsLayout() {
   const { session, profile } = useAuthStore();
@@ -42,26 +43,22 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarStyle: {
           position: 'absolute',
-          left: 12,
-          right: 12,
+          left: 14,
+          right: 14,
           bottom: Math.max(insets.bottom, 8),
           height: 68,
           paddingTop: 8,
           paddingBottom: 7,
-          backgroundColor: colors.surface,
+          backgroundColor: colors.bar,
           borderTopWidth: 0,
-          borderRadius: 24,
-          elevation: 20,
-          shadowColor: '#000000',
-          shadowOpacity: 0.34,
-          shadowRadius: 20,
-          shadowOffset: { width: 0, height: 6 },
+          borderRadius: 26,
+          ...shadow.raised,
           borderWidth: 1,
-          borderColor: colors.border,
+          borderColor: colors.borderStrong,
         },
         tabBarActiveTintColor: ACTIVE_TINT,
         tabBarInactiveTintColor: INACTIVE_TINT,
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '700', marginTop: 2 },
+        tabBarLabelStyle: { fontFamily: fonts.semibold, fontSize: 10, marginTop: 1 },
       }}
     >
       <Tabs.Screen
@@ -127,7 +124,15 @@ function TabIcon({
 
   return (
     <Animated.View style={[styles.tabIcon, focused && styles.tabIconActive, { transform: [{ scale }] }]}>
-      <Icon size={20} color={color} />
+      {focused && (
+        <LinearGradient
+          colors={gradients.primary}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
+      <Icon size={19} color={focused ? colors.text : color} />
     </Animated.View>
   );
 }
@@ -139,6 +144,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabIcon: { width: 38, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 13 },
-  tabIconActive: { backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: '#623887' },
+  tabIcon: {
+    width: 38,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  tabIconActive: { ...shadow.card },
 });

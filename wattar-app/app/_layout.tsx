@@ -7,11 +7,24 @@ import { StatusBar } from 'expo-status-bar';
 import { Animated, AppState, Easing, PermissionsAndroid, Platform, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
+import * as SplashScreen from 'expo-splash-screen';
+import { useFonts } from 'expo-font';
+import {
+  Cairo_400Regular,
+  Cairo_500Medium,
+  Cairo_600SemiBold,
+  Cairo_700Bold,
+  Cairo_900Black,
+} from '@expo-google-fonts/cairo';
 import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
 import { syncSocialPushRegistration, watchPushTokenRotation } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/theme';
+
+void SplashScreen.preventAutoHideAsync().catch(() => {
+  // Splash already hidden or unavailable in this runtime.
+});
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -30,11 +43,27 @@ export default function RootLayout() {
   const { init, initialized, session } = useAuthStore();
   const { hydrate, hydrated, reduceMotion } = usePreferencesStore();
   const pulse = useRef(new Animated.Value(0)).current;
+  const [fontsLoaded, fontError] = useFonts({
+    Cairo_400Regular,
+    Cairo_500Medium,
+    Cairo_600SemiBold,
+    Cairo_700Bold,
+    Cairo_900Black,
+  });
+
+  const appReady = initialized && hydrated && (fontsLoaded || Boolean(fontError));
 
   useEffect(() => {
     init();
     hydrate();
   }, [init, hydrate]);
+
+  useEffect(() => {
+    if (!appReady) return;
+    void SplashScreen.hideAsync().catch(() => {
+      // Ignore: the splash may already be hidden by the native layer.
+    });
+  }, [appReady]);
 
   useEffect(() => {
     if (!initialized || !hydrated || !session || Platform.OS !== 'android') return;
@@ -162,7 +191,7 @@ export default function RootLayout() {
   }, [initialized, session?.user.id]);
 
   useEffect(() => {
-    if ((initialized && hydrated) || reduceMotion) return;
+    if (appReady || reduceMotion) return;
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, {
@@ -181,9 +210,9 @@ export default function RootLayout() {
     );
     animation.start();
     return () => animation.stop();
-  }, [hydrated, initialized, pulse, reduceMotion]);
+  }, [appReady, pulse, reduceMotion]);
 
-  if (!initialized || !hydrated) {
+  if (!appReady) {
     return (
       <View style={styles.loading}>
         <StatusBar style="light" />
@@ -241,7 +270,7 @@ const styles = StyleSheet.create({
   brandImage: { width: 260, height: 260, borderRadius: 28 },
   brandName: { color: colors.text, fontSize: 21, fontWeight: '900', marginTop: 5 },
   loadingText: { color: colors.gold, fontSize: 13, fontWeight: '700', marginTop: 7 },
-  loadingHint: { color: '#94A3B8', fontSize: 11, marginTop: 5 },
+  loadingHint: { color: colors.textMuted, fontSize: 11, marginTop: 5 },
   loadingTrack: { width: 92, height: 3, borderRadius: 2, overflow: 'hidden', backgroundColor: colors.roomElevated, marginTop: 24 },
   loadingBar: { width: 46, height: 3, borderRadius: 2, backgroundColor: colors.roomTeal },
 });

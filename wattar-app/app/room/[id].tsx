@@ -12,12 +12,15 @@ import {
   PermissionsAndroid, Platform, Modal, Animated, Easing, AppState,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase, callFunction } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useAuthStore } from '@/store/auth';
 import { usePreferencesStore } from '@/store/preferences';
 import { CurrencyIcon } from '@/components/CurrencyIcon';
-import { colors } from '@/lib/theme';
+import { Avatar, LevelBadge } from '@/components/ui';
+import { colors, fonts, gradients, radius, shadow } from '@/lib/theme';
 import { StatusBar } from 'expo-status-bar';
 import { joinVoice, leaveVoice, setMicEnabled } from '@/lib/livekit';
 import type { Room } from 'livekit-client';
@@ -39,7 +42,7 @@ interface Seat {
   status: string;
   is_mic_on: boolean;
   is_owner_seat: boolean;
-  user?: { username: string; display_name: string | null; avatar_url: string | null } | null;
+  user?: { username: string; display_name: string | null; avatar_url: string | null; level?: number | null } | null;
 }
 
 interface Message {
@@ -55,6 +58,7 @@ interface Message {
 export default function RoomScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { profile } = useAuthStore();
   const chatTextSize = usePreferencesStore(state => state.chatTextSize);
   const chatFontSize = chatTextSize === 'small' ? 12 : chatTextSize === 'large' ? 17 : 14;
@@ -355,7 +359,7 @@ export default function RoomScreen() {
       .from('room_seats')
       .select(`
         *,
-        user:users(username, display_name, avatar_url)
+        user:users(username, display_name, avatar_url, level)
       `)
       .eq('room_id', id)
       .order('seat_index', { ascending: true }),
@@ -383,7 +387,9 @@ export default function RoomScreen() {
     setRoom(roomResult.data);
     const loadedSeats = (seatsResult.data ?? []).map((seat) => ({
       ...(seat as Seat),
-      user: seat.user_id ? profiles[seat.user_id] ?? (seat as Seat).user : (seat as Seat).user,
+      user: seat.user_id
+        ? { ...(seat as Seat).user, ...(profiles[seat.user_id] ?? {}) }
+        : (seat as Seat).user,
     }));
     seatsRef.current = loadedSeats;
     setSeats(loadedSeats);
@@ -492,7 +498,7 @@ export default function RoomScreen() {
         .from('room_seats')
         .select(`
           *,
-          user:users(username, display_name, avatar_url)
+          user:users(username, display_name, avatar_url, level)
         `)
         .eq('room_id', id)
         .order('seat_index', { ascending: true }),
@@ -502,7 +508,9 @@ export default function RoomScreen() {
     if (seatsResponse.error) throw seatsResponse.error;
     const loadedSeats = (seatsResponse.data ?? []).map((seat) => ({
       ...(seat as Seat),
-      user: seat.user_id ? profiles[seat.user_id] ?? (seat as Seat).user : (seat as Seat).user,
+      user: seat.user_id
+        ? { ...(seat as Seat).user, ...(profiles[seat.user_id] ?? {}) }
+        : (seat as Seat).user,
     }));
     seatsRef.current = loadedSeats;
     setSeats(loadedSeats);
@@ -1206,8 +1214,9 @@ export default function RoomScreen() {
     return (
       <View style={styles.loading}>
         <StatusBar style="light" />
+        <LinearGradient colors={gradients.screen} style={StyleSheet.absoluteFill} pointerEvents="none" />
         <ActivityIndicator size="large" color={colors.roomTeal} />
-        <Text style={{ color: colors.roomMuted, marginTop: 14 }}>جاري تجهيز غرفتك...</Text>
+        <Text style={styles.loadingHint}>جاري تجهيز غرفتك...</Text>
       </View>
     );
   }
@@ -1215,6 +1224,7 @@ export default function RoomScreen() {
     return (
       <View style={styles.loading}>
         <StatusBar style="light" />
+        <LinearGradient colors={gradients.screen} style={StyleSheet.absoluteFill} pointerEvents="none" />
         <Text style={styles.loadErrorTitle}>ما قدرنا نفتح الغرفة</Text>
         <Text style={styles.loadErrorMessage}>{roomError ?? 'حدث خطأ غير متوقع.'}</Text>
         <TouchableOpacity
@@ -1235,6 +1245,7 @@ export default function RoomScreen() {
     return (
       <View style={styles.loading}>
         <StatusBar style="light" />
+        <LinearGradient colors={gradients.screen} style={StyleSheet.absoluteFill} pointerEvents="none" />
         <Text style={styles.loadErrorTitle}>الغرفة مغلقة</Text>
         <Text style={styles.loadErrorMessage}>انتهت الجلسة. الغرفة وسجلها محفوظان ولا يمكن إرسال رسائل أو الانضمام إلى المقاعد.</Text>
         {canManage && (
@@ -1251,9 +1262,15 @@ export default function RoomScreen() {
 
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={gradients.screen}
+        locations={[0, 0.38, 1]}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
       <StatusBar style="light" />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity
           onPress={leaveRoom}
           style={styles.iconBtn}
@@ -1277,7 +1294,7 @@ export default function RoomScreen() {
             {/* مؤشر حالة الصوت الحي */}
             {voiceState === VOICE_ON && (
               <View style={styles.voiceChipOn}>
-                <Volume2 size={10} color="#fff" />
+                <Volume2 size={10} color={colors.inkDark} />
                 <Text style={styles.voiceChipText}>صوت مباشر</Text>
               </View>
             )}
@@ -1460,7 +1477,7 @@ export default function RoomScreen() {
               accessibilityLabel="إرسال طلب صعود إلى المنصة"
             >
               {requestingSeat
-                ? <ActivityIndicator size="small" color="#25140A" />
+                ? <ActivityIndicator size="small" color={colors.inkGold} />
                 : <Text style={styles.seatRequestBtnText}>رفع اليد للصعود إلى المنصة</Text>}
             </TouchableOpacity>
           )}
@@ -1486,7 +1503,7 @@ export default function RoomScreen() {
           </View>
         </View>
       )}
-      <View style={styles.inputBar}>
+      <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
         <TouchableOpacity
           style={styles.giftBtn}
           onPress={() => setShowGifts(true)}
@@ -1527,7 +1544,7 @@ export default function RoomScreen() {
 
       {/* Mic Control */}
       {mySeat !== null && (
-        <View style={styles.micControls}>
+        <View style={[styles.micControls, { paddingBottom: Math.max(insets.bottom, 10) }]}>
           <TouchableOpacity
             style={[styles.micBtn, isMuted ? styles.micMuted : styles.micActive, micLoading && styles.controlDisabled]}
             onPress={toggleMic}
@@ -1593,7 +1610,7 @@ export default function RoomScreen() {
             <View style={styles.inviteModalHeader}>
               <Text style={styles.inviteModalTitle}>دعوة صديق إلى الغرفة</Text>
               <TouchableOpacity onPress={() => setShowRoomInvites(false)} accessibilityLabel="إغلاق">
-                <X size={21} color="#CBD5E1" />
+                <X size={21} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
             {invitesLoading ? (
@@ -1855,7 +1872,12 @@ function SeatView({
 
   return (
     <TouchableOpacity
-      style={[styles.seat, isOwner && seat.is_owner_seat && styles.seatOwner]}
+      style={[
+        styles.seat,
+        isOccupied && styles.seatOccupied,
+        isOwner && seat.is_owner_seat && styles.seatOwner,
+        isOccupied && seat.is_mic_on && styles.seatSpeaking,
+      ]}
       onPress={isOccupied ? onProfile : canTake ? onTake : undefined}
       disabled={!isOccupied && !canTake}
       accessibilityRole="button"
@@ -1877,26 +1899,35 @@ function SeatView({
                 ]}
               />
             )}
-            <View style={styles.seatAvatar}>
-              {seat.user?.avatar_url ? (
-                <Image source={{ uri: seat.user.avatar_url }} style={styles.seatAvatarImg} />
-              ) : (
-                <Text style={styles.seatAvatarText}>
-                  {(seat.user?.display_name ?? seat.user?.username ?? '?')[0]?.toUpperCase()}
-                </Text>
-              )}
-              {seat.is_owner_seat && (
-                <View style={styles.ownerCrown}>
-                  <Crown size={12} color={colors.gold} />
-                </View>
-              )}
+            <View style={[
+              styles.seatAvatarRing,
+              seat.is_mic_on && styles.seatAvatarRingLive,
+              seat.is_owner_seat && styles.seatAvatarRingOwner,
+            ]}>
+              <Avatar
+                size={44}
+                uri={seat.user?.avatar_url}
+                name={seat.user?.display_name ?? seat.user?.username}
+              />
             </View>
+            {seat.is_owner_seat && (
+              <View style={styles.ownerCrown}>
+                <Crown size={11} color={colors.inkGold} />
+              </View>
+            )}
+            {typeof seat.user?.level === 'number' && (
+              <View style={styles.seatLevel}>
+                <LevelBadge level={seat.user.level} />
+              </View>
+            )}
           </View>
           <Text style={styles.seatName} numberOfLines={1}>
             {seat.user?.display_name ?? seat.user?.username ?? ''}
           </Text>
           <View style={[styles.micIcon, seat.is_mic_on ? styles.micOn : styles.micOff]}>
-            {seat.is_mic_on ? <Mic size={10} color="#fff" /> : <MicOff size={10} color="#fff" />}
+            {seat.is_mic_on
+              ? <Mic size={10} color={colors.inkTeal} />
+              : <MicOff size={10} color={colors.roomMuted} />}
           </View>
           {canModerate && seat.user_id && (
             <TouchableOpacity
@@ -1914,12 +1945,16 @@ function SeatView({
         </>
       ) : isLocked ? (
         <View style={styles.seatEmpty}>
-          <Lock size={20} color="#6B7280" />
+          <View style={styles.seatEmptyIconDim}>
+            <Lock size={17} color={colors.textMuted} />
+          </View>
           <Text style={styles.seatLockedText}>مقفل</Text>
         </View>
       ) : (
         <View style={styles.seatEmpty}>
-          <Mic size={20} color={colors.roomPrimary} />
+          <View style={styles.seatAddIcon}>
+            <Mic size={16} color={colors.roomPrimary} />
+          </View>
           <Text style={styles.seatEmptyText}>انضم</Text>
         </View>
       )}
@@ -2046,7 +2081,7 @@ function GiftsModal({
               else onClose();
             }}
           >
-            <X size={20} color="#9CA3AF" />
+            <X size={20} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
 
@@ -2163,7 +2198,7 @@ function GiftsModal({
               onPress={sendGift}
             >
               {sending
-                ? <ActivityIndicator color="#25140A" />
+                ? <ActivityIndicator color={colors.inkGold} />
                 : <Text style={styles.sendGiftText}>إرسال الهدية الآن 🎁</Text>}
             </TouchableOpacity>
           </>
@@ -2175,254 +2210,267 @@ function GiftsModal({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.roomBackground },
-  loading: { flex: 1, backgroundColor: colors.roomBackground, alignItems: 'center', justifyContent: 'center' },
-  loadErrorTitle: { color: colors.roomText, fontSize: 20, fontWeight: '700', marginBottom: 8 },
-  loadErrorMessage: { color: colors.roomMuted, fontSize: 14, lineHeight: 21, textAlign: 'center', marginHorizontal: 28 },
-  retryButton: { backgroundColor: colors.roomPrimary, borderRadius: 12, paddingHorizontal: 22, paddingVertical: 12, marginTop: 22 },
-  retryButtonText: { color: colors.roomText, fontWeight: '700' },
-  backButton: { padding: 14, marginTop: 4 },
-  backButtonText: { color: colors.roomMuted },
+  loading: { flex: 1, backgroundColor: colors.roomBackground, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  loadingHint: { color: colors.roomMuted, fontFamily: fonts.medium, fontSize: 12, marginTop: 14 },
+  loadErrorTitle: { color: colors.roomText, fontFamily: fonts.bold, fontSize: 20, lineHeight: 30, marginBottom: 8, textAlign: 'center' },
+  loadErrorMessage: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 13, lineHeight: 21, textAlign: 'center', marginHorizontal: 18 },
+  retryButton: { backgroundColor: colors.roomPrimary, borderRadius: radius.sm, paddingHorizontal: 22, paddingVertical: 12, marginTop: 18 },
+  retryButtonText: { color: colors.text, fontFamily: fonts.bold, fontSize: 13 },
+  backButton: { padding: 14, marginTop: 2 },
+  backButtonText: { color: colors.roomMuted, fontFamily: fonts.medium, fontSize: 13 },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 14,
-    backgroundColor: colors.roomSurface,
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    gap: 8,
+    backgroundColor: colors.bar,
     borderBottomWidth: 1,
-    borderBottomColor: colors.roomElevated,
+    borderBottomColor: colors.glassLine,
   },
   iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.roomElevated,
+    backgroundColor: colors.surfaceGlass,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
   },
-  ownerCloseBtn: { marginLeft: 8 },
-  roomInfo: { flex: 1, marginHorizontal: 12 },
-  roomName: { color: colors.roomText, fontSize: 19, fontWeight: '800', textAlign: 'right' },
-  roomMeta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5, flexWrap: 'wrap' },
-  roomMetaText: { color: colors.roomMuted, fontSize: 12 },
+  ownerCloseBtn: { marginLeft: 0 },
+  roomInfo: { flex: 1, marginHorizontal: 4 },
+  roomName: { color: colors.roomText, fontFamily: fonts.bold, fontSize: 17, lineHeight: 26, textAlign: 'right' },
+  roomMeta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2, flexWrap: 'wrap' },
+  roomMetaText: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 10, lineHeight: 16 },
+  listenersChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.surfaceGlass,
+    borderRadius: radius.xs,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+  },
+
   seatsContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 15,
-    backgroundColor: '#100B1A',
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: colors.roomSurface,
+    borderBottomColor: colors.glass,
+    backgroundColor: colors.glassFaint,
   },
-  sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  sectionTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  sectionAccent: { width: 3, height: 17, borderRadius: 2, backgroundColor: colors.gold },
-  sectionTitle: { color: colors.roomText, fontSize: 14, fontWeight: '800', textAlign: 'right' },
+  sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 },
+  sectionTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  sectionAccent: { width: 3, height: 16, borderRadius: 2, backgroundColor: colors.gold },
+  sectionTitle: { color: colors.roomText, fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, textAlign: 'right' },
   sectionCount: {
     color: colors.roomMuted,
-    fontSize: 11,
-    fontWeight: '700',
-    backgroundColor: colors.roomElevated,
-    borderRadius: 10,
+    fontFamily: fonts.semibold,
+    fontSize: 10,
+    lineHeight: 15,
+    backgroundColor: colors.surfaceGlass,
+    borderRadius: radius.pill,
     paddingHorizontal: 9,
-    paddingVertical: 5,
+    paddingVertical: 3,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
   },
   seatsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 10,
+    gap: 8,
     paddingVertical: 2,
   },
+
   seat: {
     position: 'relative',
-    width: 80,
-    height: 100,
-    backgroundColor: '#1A1327',
+    width: 74,
+    height: 96,
+    backgroundColor: colors.glassFaint,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#38264C',
+    borderColor: colors.borderSoft,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 8,
-    elevation: 2,
+    padding: 6,
   },
-  seatOwner: { borderColor: colors.gold, backgroundColor: '#241B2D' },
-  seatEmpty: { alignItems: 'center', gap: 4 },
-  seatEmptyText: { color: colors.roomPrimary, fontSize: 11, marginTop: 4 },
-  seatLockedText: { color: colors.roomMuted, fontSize: 11, marginTop: 4 },
-  seatAvatarWrap: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
+  seatOccupied: { backgroundColor: colors.glass, borderColor: colors.border },
+  seatOwner: { borderColor: colors.goldEdge, backgroundColor: colors.goldHaze },
+  seatSpeaking: { borderColor: colors.tealEdge },
+  seatEmpty: { alignItems: 'center', gap: 5 },
+  seatAddIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  seatEmptyIconDim: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: colors.surfaceGlass,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  seatEmptyText: { color: colors.roomPrimary, fontFamily: fonts.semibold, fontSize: 10, lineHeight: 15 },
+  seatLockedText: { color: colors.roomMuted, fontFamily: fonts.medium, fontSize: 10, lineHeight: 15 },
+  seatAvatarWrap: { width: 54, height: 54, alignItems: 'center', justifyContent: 'center' },
   speakerHalo: {
     position: 'absolute',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     borderWidth: 2,
     borderColor: colors.roomTeal,
   },
-  seatAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.roomElevated,
+  seatAvatarRing: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.borderSoft,
+    backgroundColor: colors.surfaceMuted,
   },
+  seatAvatarRingLive: { borderColor: colors.teal, backgroundColor: colors.tealHaze },
+  seatAvatarRingOwner: { borderColor: colors.gold },
   seatAvatarImg: { width: '100%', height: '100%', borderRadius: 24 },
-  seatAvatarText: { color: colors.roomText, fontSize: 18, fontWeight: 'bold' },
+  seatLevel: { position: 'absolute', top: -5, left: -7 },
   ownerCrown: {
     position: 'absolute',
-    top: -6,
-    right: -6,
+    top: -3,
+    right: -3,
     backgroundColor: colors.gold,
     borderRadius: 8,
     width: 16,
     height: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.inkShadow,
   },
-  seatName: { color: colors.roomText, fontSize: 11, marginTop: 6, fontWeight: '500' },
+  seatName: {
+    color: colors.roomText,
+    fontFamily: fonts.medium,
+    fontSize: 10,
+    lineHeight: 16,
+    marginTop: 3,
+    maxWidth: 66,
+    textAlign: 'center',
+  },
   micIcon: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    bottom: 3,
+    right: 3,
+    width: 15,
+    height: 15,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   seatModerationButton: {
     position: 'absolute',
-    bottom: 3,
-    left: 3,
+    bottom: 2,
+    left: 2,
     width: 22,
     height: 22,
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#382B45',
+    backgroundColor: colors.goldHaze,
+    borderWidth: 1,
+    borderColor: colors.goldLine,
   },
   micOn: { backgroundColor: colors.roomTeal },
-  micOff: { backgroundColor: colors.roomElevated },
+  micOff: { backgroundColor: colors.glassStrong },
+
   voiceChipOn: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: colors.roomTeal, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, marginLeft: 6,
+    backgroundColor: colors.roomTeal, borderRadius: radius.xs, paddingHorizontal: 6, paddingVertical: 2,
   },
   voiceChipWait: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: colors.gold, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, marginLeft: 6,
+    backgroundColor: colors.gold, borderRadius: radius.xs, paddingHorizontal: 6, paddingVertical: 2,
   },
   voiceChipOff: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: colors.roomElevated, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, marginLeft: 6,
+    backgroundColor: colors.surfaceGlass, borderRadius: radius.xs, paddingHorizontal: 6, paddingVertical: 2,
+    borderWidth: 1, borderColor: colors.borderSoft,
   },
-  voiceChipText: { color: '#fff', fontSize: 9, fontWeight: '700' },
-  voiceChipTextDim: { color: colors.roomMuted, fontSize: 9, fontWeight: '700' },
-  stepHint: { color: colors.roomMuted, fontSize: 12, marginTop: 12, marginBottom: 8 },
-  noRecipients: { color: colors.roomMuted, fontSize: 12, textAlign: 'center', paddingVertical: 8 },
-  recipientsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  recipientChip: {
-    backgroundColor: colors.roomElevated, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 9,
-    borderWidth: 1, borderColor: '#49365C',
-  },
-  recipientChipActive: { backgroundColor: '#49305E', borderColor: colors.roomPrimary },
-  recipientText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  sendGiftBtn: {
-    backgroundColor: colors.gold, borderRadius: 12, paddingVertical: 13,
-    alignItems: 'center', marginTop: 14,
-  },
-  sendGiftDisabled: { opacity: 0.4 },
-  sendGiftText: { color: '#fff', fontSize: 14, fontWeight: '800' },
-  giftsHeadingCopy: { flex: 1 },
-  giftsSubtitle: { color: colors.roomMuted, fontSize: 11, marginTop: 4 },
-  giftBalanceCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderRadius: 15, backgroundColor: '#21182D', borderWidth: 1, borderColor: '#382B45' },
-  giftBalanceTitle: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  giftBalanceLabel: { color: colors.roomMuted, fontSize: 10 },
-  giftBalanceValue: { color: colors.gold, fontSize: 15, fontWeight: '900', marginTop: 4 },
-  giftList: { maxHeight: 168 },
-  giftSearchWrap: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 11, marginBottom: 8, borderRadius: 12, backgroundColor: '#17111F', borderWidth: 1, borderColor: '#382B45' },
-  giftSearchInput: { flex: 1, color: colors.roomText, fontSize: 12, paddingVertical: 8, textAlign: 'right' },
-  giftLoading: { marginVertical: 24 },
-  giftError: { color: colors.danger, fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 9 },
-  giftIconActive: { backgroundColor: '#4B3360' },
-  giftSelectionSummary: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 9, padding: 11, borderRadius: 12, backgroundColor: '#21182D' },
-  giftSelectionText: { color: colors.roomText, fontSize: 12, fontWeight: '700' },
-  giftSelectionPrice: { color: colors.gold, fontSize: 12, fontWeight: '900' },
-  giftUnaffordable: { color: colors.danger },
-  giftConfirmCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, backgroundColor: '#21182D', borderWidth: 1, borderColor: '#49365C' },
-  giftConfirmEmoji: { fontSize: 36 },
-  giftConfirmCopy: { flex: 1 },
-  giftConfirmName: { color: colors.roomText, fontSize: 14, fontWeight: '800' },
-  giftConfirmRecipient: { color: colors.roomMuted, fontSize: 11, marginTop: 4 },
-  giftConfirmPrice: { color: colors.gold, fontSize: 12, fontWeight: '900' },
-  giftPaymentSummary: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 6, marginTop: 12, padding: 12, borderRadius: 13, backgroundColor: '#17111F' },
-  giftPaymentLabel: { width: '48%', color: colors.roomMuted, fontSize: 11 },
-  giftPaymentValue: { width: '48%', color: colors.roomText, fontSize: 11, fontWeight: '700', textAlign: 'right' },
-  emojiTray: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 7, backgroundColor: colors.roomSurface, borderTopWidth: 1, borderTopColor: colors.roomElevated },
-  emojiTrayTitle: { color: colors.roomMuted, fontSize: 10, fontWeight: '700', marginBottom: 8, textAlign: 'right' },
-  emojiGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 5 },
-  emojiChoice: { minWidth: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.roomElevated },
-  emojiChoiceText: { fontSize: 21 },
-  emojiToggle: { width: 36, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.roomElevated },
-  emojiToggleActive: { backgroundColor: '#3A2B48' },
-  chatContainer: { flex: 1, paddingHorizontal: 14, paddingTop: 13, paddingBottom: 5 },
+  voiceChipText: { color: colors.inkDark, fontFamily: fonts.bold, fontSize: 9, lineHeight: 13 },
+  voiceChipTextDim: { color: colors.roomMuted, fontFamily: fonts.bold, fontSize: 9, lineHeight: 13 },
+
+  chatContainer: { flex: 1, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 2 },
   chatHeading: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 2,
-    paddingBottom: 10,
+    paddingBottom: 8,
   },
   chatAccent: { backgroundColor: colors.roomPrimary },
-  chatHeadingHint: { color: colors.roomMuted, fontSize: 10, textAlign: 'right' },
-  chatList: { gap: 5, paddingBottom: 8 },
+  chatHeadingHint: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 9, lineHeight: 14, textAlign: 'right' },
+  chatList: { gap: 3, paddingBottom: 6 },
   chatListEmpty: { flexGrow: 1, justifyContent: 'center' },
-  chatEmpty: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 20 },
+  chatEmpty: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 18 },
   chatEmptyIcon: {
-    width: 44, height: 44, borderRadius: 16,
+    width: 46, height: 46, borderRadius: 16,
     backgroundColor: colors.goldSoft,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 10,
+    borderWidth: 1, borderColor: colors.goldLine,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 9,
   },
-  chatEmptyTitle: { color: colors.roomText, fontSize: 14, fontWeight: '800', textAlign: 'center' },
-  chatEmptyHint: { color: colors.roomMuted, fontSize: 11, marginTop: 4, textAlign: 'center' },
-  messageItem: { flexDirection: 'row', alignItems: 'flex-end', gap: 7, maxWidth: '90%', marginBottom: 7 },
+  chatEmptyTitle: { color: colors.roomText, fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, textAlign: 'center' },
+  chatEmptyHint: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 10, lineHeight: 16, marginTop: 3, textAlign: 'center' },
+
+  messageItem: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, maxWidth: '90%', marginBottom: 6 },
   ownMessageItem: { alignSelf: 'flex-end' },
   otherMessageItem: { alignSelf: 'flex-start' },
   messageAvatar: {
-    width: 29, height: 29, borderRadius: 11,
-    backgroundColor: '#342443',
+    width: 28, height: 28, borderRadius: 10,
+    backgroundColor: colors.glassLine,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#4A345E',
+    borderWidth: 1, borderColor: colors.borderSoft,
   },
-  ownMessageAvatar: { backgroundColor: '#54306F', borderColor: '#7D49A2' },
-  messageAvatarText: { color: colors.roomText, fontSize: 12, fontWeight: '800' },
+  ownMessageAvatar: { backgroundColor: colors.primaryHaze, borderColor: colors.primaryGlow },
+  messageAvatarText: { color: colors.roomText, fontFamily: fonts.bold, fontSize: 11 },
   messageBubble: {
     maxWidth: '88%',
-    minWidth: 92,
+    minWidth: 90,
     paddingHorizontal: 11,
-    paddingTop: 8,
-    paddingBottom: 9,
-    borderRadius: 16,
+    paddingTop: 7,
+    paddingBottom: 8,
+    borderRadius: 15,
     borderWidth: 1,
   },
   ownMessageBubble: {
-    backgroundColor: '#2A1938',
-    borderColor: '#57356D',
+    backgroundColor: colors.primaryHaze,
+    borderColor: colors.primaryGlow,
     borderBottomRightRadius: 5,
   },
   otherMessageBubble: {
-    backgroundColor: colors.roomSurface,
-    borderColor: '#30243D',
+    backgroundColor: colors.glass,
+    borderColor: colors.glassLine,
     borderBottomLeftRadius: 5,
   },
   messageMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  messageUser: { color: colors.roomTeal, fontSize: 11, fontWeight: '700', flexShrink: 1, textAlign: 'right' },
-  ownMessageUser: { color: '#D5A7F2' },
-  messageTime: { color: '#8D819B', fontSize: 9 },
-  messageText: { color: colors.roomText, fontSize: 14, marginTop: 4, lineHeight: 21, textAlign: 'right' },
+  messageUser: { color: colors.roomTeal, fontFamily: fonts.semibold, fontSize: 10, lineHeight: 15, flexShrink: 1, textAlign: 'right' },
+  ownMessageUser: { color: colors.primaryLight },
+  messageTime: { color: colors.textMuted, fontFamily: fonts.regular, fontSize: 8, lineHeight: 13 },
+  messageText: { color: colors.roomText, fontFamily: fonts.regular, marginTop: 3, lineHeight: 21, textAlign: 'right' },
   pendingMessage: { opacity: 0.65 },
-  pendingLabel: { color: colors.roomMuted, fontSize: 10, marginTop: 2 },
+  pendingLabel: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 9, marginTop: 2 },
   systemMessage: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2430,69 +2478,112 @@ const styles = StyleSheet.create({
     gap: 9,
     alignSelf: 'center',
     maxWidth: '94%',
-    paddingVertical: 5,
+    paddingVertical: 4,
     paddingHorizontal: 4,
   },
-  systemMessageRule: { flex: 1, height: 1, backgroundColor: '#382B45' },
+  systemMessageRule: { flex: 1, height: 1, backgroundColor: colors.glass },
   systemMessageText: {
-    color: '#C8B2D6',
-    backgroundColor: '#21182D',
+    color: colors.textSecondary,
+    backgroundColor: colors.surfaceGlass,
     borderWidth: 1,
-    borderColor: '#382B45',
-    borderRadius: 14,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-    fontSize: 11,
-    fontWeight: '600',
+    borderColor: colors.borderSoft,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    fontFamily: fonts.medium,
+    fontSize: 10,
+    lineHeight: 16,
     textAlign: 'center',
     overflow: 'hidden',
   },
+
+  seatRequestBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingTop: 6,
+  },
+  seatRequestBtn: {
+    backgroundColor: colors.gold,
+    borderRadius: radius.sm,
+    paddingHorizontal: 20,
+    paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  seatRequestBtnText: { color: colors.inkGold, fontFamily: fonts.bold, fontSize: 12, lineHeight: 18 },
+  seatRequestPending: { color: colors.roomMuted, fontFamily: fonts.medium, fontSize: 11, flex: 1, textAlign: 'right' },
+  seatRequestCancel: { backgroundColor: colors.surfaceGlass, borderRadius: radius.sm, paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1, borderColor: colors.borderSoft },
+  seatRequestCancelText: { color: colors.roomText, fontFamily: fonts.semibold, fontSize: 11 },
+
+  emojiTray: {
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 7,
+    backgroundColor: colors.bar,
+    borderTopWidth: 1,
+    borderTopColor: colors.glassLine,
+  },
+  emojiTrayTitle: { color: colors.roomMuted, fontFamily: fonts.semibold, fontSize: 10, marginBottom: 8, textAlign: 'right' },
+  emojiGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 5 },
+  emojiChoice: { minWidth: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.surfaceGlass },
+  emojiChoiceText: { fontSize: 21 },
+
   inputBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    backgroundColor: colors.roomSurface,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    backgroundColor: colors.bar,
     borderTopWidth: 1,
-    borderTopColor: colors.roomElevated,
-    gap: 8,
+    borderTopColor: colors.glassLine,
+    gap: 7,
   },
   giftBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#D99A2520',
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    backgroundColor: colors.goldHaze,
+    borderWidth: 1,
+    borderColor: colors.goldLine,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  emojiToggle: { width: 36, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.surfaceGlass },
+  emojiToggleActive: { backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.borderStrong },
   messageInput: {
     flex: 1,
-    backgroundColor: colors.roomElevated,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    backgroundColor: colors.glass,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
     color: colors.roomText,
-    fontSize: 14,
+    fontFamily: fonts.regular,
+    fontSize: 13,
     textAlign: 'right',
     borderWidth: 1,
-    borderColor: '#352644',
+    borderColor: colors.borderSoft,
   },
   sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: colors.roomPrimary,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 3,
   },
-  sendBtnIdle: { opacity: 0.72 },
+  sendBtnIdle: { opacity: 0.55 },
+
   micControls: {
     flexDirection: 'row',
-    padding: 12,
-    backgroundColor: colors.roomSurface,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    backgroundColor: colors.bar,
     borderTopWidth: 1,
-    borderTopColor: colors.roomElevated,
+    borderTopColor: colors.glassLine,
     gap: 8,
   },
   micBtn: {
@@ -2502,120 +2593,207 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: radius.sm,
   },
   micMuted: { backgroundColor: colors.danger },
   micActive: { backgroundColor: colors.roomTeal },
-  micText: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  controlDisabled: { opacity: 0.65 },
+  micText: { color: colors.inkDark, fontFamily: fonts.bold, fontSize: 13 },
+  controlDisabled: { opacity: 0.6 },
   leaveSeatBtn: {
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: colors.roomElevated,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceGlass,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
   },
-  leaveSeatText: { color: colors.roomMuted, fontSize: 14 },
+  leaveSeatText: { color: colors.roomMuted, fontFamily: fonts.medium, fontSize: 13 },
+
   giftsModal: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     top: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: colors.overlay,
     justifyContent: 'flex-end',
   },
-  giftCelebration: {
-    position: 'absolute',
-    top: '35%',
-    alignSelf: 'center',
-    minWidth: 220,
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 18,
-    borderRadius: 24,
-    backgroundColor: '#281A35',
-    borderWidth: 1,
-    borderColor: colors.gold,
-    zIndex: 10,
-    elevation: 12,
-  },
-  giftCelebrationEmoji: { fontSize: 56 },
-  giftCelebrationTitle: { color: colors.gold, fontSize: 17, fontWeight: '900', marginTop: 4 },
-  giftCelebrationSubtitle: { color: colors.roomText, fontSize: 12, fontWeight: '700', marginTop: 5 },
   giftsContent: {
-    backgroundColor: colors.roomSurface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.sheet,
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.borderStrong,
     padding: 16,
-    maxHeight: '70%',
+    maxHeight: '74%',
   },
   giftsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
-  giftsTitle: { color: colors.roomText, fontSize: 18, fontWeight: 'bold' },
-  giftsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+  giftsHeadingCopy: { flex: 1 },
+  giftsTitle: { color: colors.roomText, fontFamily: fonts.bold, fontSize: 17, lineHeight: 26, textAlign: 'right' },
+  giftsSubtitle: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 10, marginTop: 2, textAlign: 'right' },
+  giftBalanceCard: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    padding: 12, borderRadius: radius.md,
+    backgroundColor: colors.goldHaze,
+    borderWidth: 1, borderColor: colors.goldLine,
   },
+  giftBalanceTitle: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  giftBalanceLabel: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 10 },
+  giftBalanceValue: { color: colors.gold, fontFamily: fonts.black, fontSize: 16, lineHeight: 22, marginTop: 2 },
+  stepHint: { color: colors.textSecondary, fontFamily: fonts.semibold, fontSize: 11, marginTop: 12, marginBottom: 7, textAlign: 'right' },
+  noRecipients: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 11, lineHeight: 18, textAlign: 'center', paddingVertical: 8 },
+  giftSearchWrap: {
+    minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 11, marginBottom: 8, borderRadius: radius.sm,
+    backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.borderSoft,
+  },
+  giftSearchInput: { flex: 1, color: colors.roomText, fontFamily: fonts.regular, fontSize: 12, paddingVertical: 8, textAlign: 'right' },
+  giftList: { maxHeight: 170 },
+  giftsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   giftCard: {
     width: 80,
-    backgroundColor: colors.roomElevated,
-    borderRadius: 12,
-    padding: 10,
+    backgroundColor: colors.glass,
+    borderRadius: radius.sm,
+    padding: 9,
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: 'transparent',
   },
-  giftCardActive: { borderColor: colors.gold },
+  giftCardActive: { borderColor: colors.gold, backgroundColor: colors.goldHaze },
   giftIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  giftIconActive: { backgroundColor: colors.goldHaze, borderRadius: 12 },
   giftIconText: { fontSize: 24 },
-  giftName: { color: colors.roomText, fontSize: 11, marginTop: 4 },
-  giftPrice: { color: colors.gold, fontSize: 12, fontWeight: 'bold', marginTop: 2 },
-  balanceText: { color: colors.roomMuted, fontSize: 12, textAlign: 'center', marginTop: 16 },
+  giftName: { color: colors.roomText, fontFamily: fonts.medium, fontSize: 10, lineHeight: 16, marginTop: 3, textAlign: 'center' },
+  giftPrice: { color: colors.gold, fontFamily: fonts.bold, fontSize: 11, lineHeight: 16, marginTop: 1 },
+  giftLoading: { marginVertical: 22 },
+  giftError: { color: colors.danger, fontFamily: fonts.regular, fontSize: 10, lineHeight: 17, textAlign: 'center', marginTop: 8 },
+  recipientsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  recipientChip: {
+    backgroundColor: colors.glass, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 8,
+    borderWidth: 1, borderColor: colors.borderSoft,
+  },
+  recipientChipActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
+  recipientText: { color: colors.roomText, fontFamily: fonts.semibold, fontSize: 11 },
+  giftSelectionSummary: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginTop: 9, padding: 11, borderRadius: radius.sm,
+    backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.borderSoft,
+  },
+  giftSelectionText: { color: colors.roomText, fontFamily: fonts.semibold, fontSize: 11 },
+  giftSelectionPrice: { color: colors.gold, fontFamily: fonts.black, fontSize: 12 },
+  giftUnaffordable: { color: colors.danger },
+  giftConfirmCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.md,
+    backgroundColor: colors.goldHaze, borderWidth: 1, borderColor: colors.goldLine,
+  },
+  giftConfirmEmoji: { fontSize: 36 },
+  giftConfirmCopy: { flex: 1 },
+  giftConfirmName: { color: colors.roomText, fontFamily: fonts.bold, fontSize: 13, textAlign: 'right' },
+  giftConfirmRecipient: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 10, marginTop: 2, textAlign: 'right' },
+  giftConfirmPrice: { color: colors.gold, fontFamily: fonts.black, fontSize: 12 },
+  giftPaymentSummary: {
+    flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 6,
+    marginTop: 12, padding: 12, borderRadius: radius.sm,
+    backgroundColor: colors.glassFaint, borderWidth: 1, borderColor: colors.borderSoft,
+  },
+  giftPaymentLabel: { width: '48%', color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 10, textAlign: 'right' },
+  giftPaymentValue: { width: '48%', color: colors.roomText, fontFamily: fonts.semibold, fontSize: 11, textAlign: 'right' },
+  sendGiftBtn: {
+    backgroundColor: colors.gold, borderRadius: radius.sm, paddingVertical: 13,
+    alignItems: 'center', marginTop: 14, borderWidth: 1, borderColor: colors.borderLight,
+  },
+  sendGiftDisabled: { opacity: 0.4 },
+  sendGiftText: { color: colors.inkGold, fontFamily: fonts.bold, fontSize: 13 },
+  balanceText: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 10, lineHeight: 17, textAlign: 'center', marginTop: 12 },
   giftFundingOptions: { flexDirection: 'row', gap: 8, marginTop: 10 },
-  giftFundingOption: { flex: 1, paddingVertical: 9, paddingHorizontal: 5, borderRadius: 10, backgroundColor: '#1F2937', borderWidth: 1, borderColor: '#374151' },
-  giftFundingOptionActive: { borderColor: colors.roomPrimary, backgroundColor: '#2D1B3F' },
-  giftFundingText: { color: '#E5E7EB', fontSize: 10, textAlign: 'center', fontWeight: '700' },
-  inviteModalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.68)' },
-  inviteModal: { maxHeight: '72%', padding: 18, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: colors.roomSurface },
+  giftFundingOption: { flex: 1, paddingVertical: 9, paddingHorizontal: 5, borderRadius: radius.xs, backgroundColor: colors.surfaceGlass, borderWidth: 1, borderColor: colors.borderSoft },
+  giftFundingOptionActive: { borderColor: colors.roomPrimary, backgroundColor: colors.primarySoft },
+  giftFundingText: { color: colors.textSecondary, fontFamily: fonts.semibold, fontSize: 10, textAlign: 'center' },
+
+  giftCelebration: {
+    position: 'absolute',
+    top: '33%',
+    alignSelf: 'center',
+    minWidth: 230,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 18,
+    borderRadius: radius.xl,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    zIndex: 10,
+    ...shadow.raised,
+    shadowColor: colors.gold,
+    shadowOpacity: 0.4,
+  },
+  giftCelebrationEmoji: { fontSize: 54 },
+  giftCelebrationTitle: { color: colors.gold, fontFamily: fonts.black, fontSize: 17, lineHeight: 26, marginTop: 2 },
+  giftCelebrationSubtitle: { color: colors.roomText, fontFamily: fonts.semibold, fontSize: 11, lineHeight: 18, marginTop: 3, textAlign: 'center' },
+
+  inviteModalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.overlay },
+  inviteModal: {
+    maxHeight: '72%', padding: 18,
+    borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl,
+    backgroundColor: colors.sheet, borderWidth: 1, borderBottomWidth: 0, borderColor: colors.borderStrong,
+  },
   inviteModalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  inviteModalTitle: { color: colors.roomText, fontSize: 17, fontWeight: '700' },
-  inviteLoading: { marginVertical: 28 },
-  inviteFriendRow: { minHeight: 62, flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.roomElevated },
-  inviteFriendAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.roomElevated },
-  inviteFriendInitial: { color: colors.roomPrimary, fontSize: 15, fontWeight: '800' },
+  inviteModalTitle: { color: colors.roomText, fontFamily: fonts.bold, fontSize: 16, lineHeight: 25 },
+  inviteLoading: { marginVertical: 26 },
+  inviteFriendRow: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.glass },
+  inviteFriendAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceGlass, borderWidth: 1, borderColor: colors.borderSoft },
+  inviteFriendInitial: { color: colors.roomPrimary, fontFamily: fonts.bold, fontSize: 15 },
   inviteFriendCopy: { flex: 1 },
-  inviteFriendName: { color: colors.roomText, fontSize: 14, fontWeight: '600' },
-  inviteFriendUsername: { color: colors.roomMuted, fontSize: 11, marginTop: 3 },
-  inviteEmpty: { color: colors.roomMuted, fontSize: 13, lineHeight: 20, textAlign: 'center', paddingVertical: 26 },
-  manageModalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
-  manageModal: { backgroundColor: colors.roomSurface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 16, maxHeight: '75%' },
-  manageModalTitle: { color: colors.roomText, fontSize: 17, fontWeight: '800', marginBottom: 14, textAlign: 'right' },
-  manageRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.roomElevated },
-  manageRowText: { color: colors.roomText, fontSize: 14, flex: 1 },
-  manageCloseRow: { borderBottomWidth: 0 },
-  passwordOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center' },
-  passwordModal: { backgroundColor: colors.roomSurface, borderRadius: 20, padding: 20, width: '88%', maxWidth: 420 },
-  passwordInput: { backgroundColor: colors.roomElevated, borderWidth: 1, borderColor: '#352644', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, color: colors.roomText, fontSize: 14, textAlign: 'right', marginBottom: 16 },
+  inviteFriendName: { color: colors.roomText, fontFamily: fonts.semibold, fontSize: 13, textAlign: 'right' },
+  inviteFriendUsername: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 10, marginTop: 2, textAlign: 'right' },
+  inviteEmpty: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 12, lineHeight: 20, textAlign: 'center', paddingVertical: 24 },
+
+  manageModalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.overlay },
+  manageModal: {
+    backgroundColor: colors.sheet,
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
+    borderWidth: 1, borderBottomWidth: 0, borderColor: colors.borderStrong,
+    padding: 16,
+    maxHeight: '78%',
+  },
+  manageModalTitle: { color: colors.roomText, fontFamily: fonts.bold, fontSize: 16, lineHeight: 25, marginBottom: 12, textAlign: 'right' },
+  manageRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: colors.glass },
+  manageRowText: { color: colors.roomText, fontFamily: fonts.medium, fontSize: 13, flex: 1, textAlign: 'right' },
+  manageCloseRow: { borderBottomWidth: 0, justifyContent: 'center' },
+
+  passwordOverlay: { flex: 1, backgroundColor: colors.overlayStrong, justifyContent: 'center', alignItems: 'center' },
+  passwordModal: {
+    backgroundColor: colors.sheet, borderRadius: radius.lg, padding: 20, width: '88%', maxWidth: 420,
+    borderWidth: 1, borderColor: colors.borderStrong,
+  },
+  passwordInput: {
+    backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.borderSoft,
+    borderRadius: radius.sm, paddingHorizontal: 14, paddingVertical: 12,
+    color: colors.roomText, fontFamily: fonts.regular, fontSize: 13, textAlign: 'right', marginBottom: 16,
+  },
   passwordActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
   passwordCancel: { paddingHorizontal: 18, paddingVertical: 10 },
-  passwordCancelText: { color: colors.roomMuted, fontSize: 14 },
-  passwordConfirm: { backgroundColor: colors.roomPrimary, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 10 },
-  passwordConfirmText: { color: '#fff', fontSize: 14, fontWeight: '800' },
-  requestRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.roomElevated },
-  requestRowName: { color: colors.roomText, fontSize: 14 },
-  requestRowTime: { color: colors.roomMuted, fontSize: 11 },
-  rejectBtn: { backgroundColor: colors.roomElevated, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
-  rejectText: { color: colors.roomText, fontSize: 13, fontWeight: '800' },
-  auditRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.roomElevated },
-  auditAction: { color: colors.roomText, fontSize: 13, fontWeight: '700' },
-  auditActor: { color: colors.roomMuted, fontSize: 13 },
-  auditTime: { color: colors.roomMuted, fontSize: 11 },
-  listenersChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.roomElevated, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
+  passwordCancelText: { color: colors.roomMuted, fontFamily: fonts.medium, fontSize: 13 },
+  passwordConfirm: { backgroundColor: colors.roomPrimary, borderRadius: radius.sm, paddingHorizontal: 24, paddingVertical: 10 },
+  passwordConfirmText: { color: colors.text, fontFamily: fonts.bold, fontSize: 13 },
+
+  requestRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.glass },
+  requestRowName: { color: colors.roomText, fontFamily: fonts.medium, fontSize: 13 },
+  requestRowTime: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 10 },
+  rejectBtn: { backgroundColor: colors.surfaceGlass, borderRadius: radius.xs, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: colors.borderSoft, marginTop: 4 },
+  rejectText: { color: colors.danger, fontFamily: fonts.bold, fontSize: 12 },
+  auditRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.glass },
+  auditAction: { color: colors.roomText, fontFamily: fonts.semibold, fontSize: 12, flex: 1, textAlign: 'right' },
+  auditActor: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 11 },
+  auditTime: { color: colors.textMuted, fontFamily: fonts.regular, fontSize: 9 },
+
   requestBadge: {
     position: 'absolute',
     top: -4,
@@ -2627,15 +2805,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: colors.inkDanger,
   },
-  requestBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
-  seatRequestBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: colors.roomSurface },
-  seatRequestBtn: { backgroundColor: colors.gold, borderRadius: 14, paddingHorizontal: 20, paddingVertical: 10 },
-  seatRequestBtnText: { color: '#25140A', fontWeight: '800', fontSize: 13 },
-  seatRequestPending: { color: colors.roomMuted, fontSize: 12, flex: 1, textAlign: 'right' },
-  seatRequestCancel: { backgroundColor: colors.roomElevated, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8 },
-  seatRequestCancelText: { color: colors.roomText, fontSize: 12, fontWeight: '700' },
-  attendeeRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.roomElevated, gap: 10 },
-  attendeeRole: { color: colors.roomMuted, fontSize: 11 },
-  attendeeSelf: { color: colors.roomPrimary, fontSize: 11, fontWeight: '800' },
+  requestBadgeText: { color: colors.text, fontFamily: fonts.bold, fontSize: 9 },
+
+  attendeeRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.glass, gap: 10 },
+  attendeeRole: { color: colors.roomMuted, fontFamily: fonts.regular, fontSize: 10, marginTop: 2, textAlign: 'right' },
+  attendeeSelf: { color: colors.roomPrimary, fontFamily: fonts.bold, fontSize: 10 },
 });

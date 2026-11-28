@@ -73,9 +73,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 14,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceGlass,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderSoft,
   },
   badge: {
     position: 'absolute',
@@ -91,5 +91,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.background,
   },
-  badgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900' },
+  badgeText: { color: colors.text, fontSize: 9, fontWeight: '900' },
 });
