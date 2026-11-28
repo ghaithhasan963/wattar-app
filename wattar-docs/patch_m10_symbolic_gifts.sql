@@ -8,6 +8,11 @@ ALTER TABLE public.gifts
 COMMENT ON COLUMN public.gifts.is_symbolic IS 'هدية رمزية: لا تُشترى بالذهب ولا تولّد عملات؛ تُكتسب وتُنقل بين الحقائب.';
 COMMENT ON COLUMN public.gifts.earn_source IS 'مصدر اكتساب الهدية الرمزية (للعرض/القواعد).';
 
+-- السماح بسعر 0 للهدايا الرمزية فقط
+ALTER TABLE public.gifts DROP CONSTRAINT IF EXISTS gifts_store_price_ratio_valid;
+ALTER TABLE public.gifts ADD CONSTRAINT gifts_store_price_ratio_valid
+  CHECK (((is_symbolic AND price_gold >= 0) OR (price_gold > 0)) AND (recipient_diamond_ratio >= (1)::numeric) AND (recipient_diamond_ratio <= (100)::numeric));
+
 -- مخزون حقيبة الهدايا الرمزية لكل مستخدم
 CREATE TABLE IF NOT EXISTS public.user_gift_bag (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
