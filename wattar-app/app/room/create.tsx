@@ -1,5 +1,5 @@
-/**
- * Wattar App — صفحة إنشاء غرفة صوتية جديدة
+﻿/**
+ * Wattar App â€” طµظپط­ط© ط¥ظ†ط´ط§ط، ط؛ط±ظپط© طµظˆطھظٹط© ط¬ط¯ظٹط¯ط©
  */
 import React, { useEffect, useState } from 'react';
 import {
@@ -9,7 +9,7 @@ import { useRouter } from 'expo-router';
 import { supabase, callFunction } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 import { Mic, Lock, Globe } from 'lucide-react-native';
-import { colors } from '@/lib/theme';
+import { colors, fonts } from '@/lib/theme';
 
 export default function CreateRoomScreen() {
   const router = useRouter();
@@ -24,7 +24,7 @@ export default function CreateRoomScreen() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // خيارات المقاعد يحددها الأدمن (M6.2) — القراءة من الإعدادات العامة
+    // ط®ظٹط§ط±ط§طھ ط§ظ„ظ…ظ‚ط§ط¹ط¯ ظٹط­ط¯ط¯ظ‡ط§ ط§ظ„ط£ط¯ظ…ظ† (M6.2) â€” ط§ظ„ظ‚ط±ط§ط،ط© ظ…ظ† ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط¹ط§ظ…ط©
     supabase
       .from('admin_settings')
       .select('value')
@@ -49,21 +49,21 @@ export default function CreateRoomScreen() {
   const handleCreate = async () => {
     if (loading) return;
     if (!profile?.id) {
-      Alert.alert('تعذر إنشاء الغرفة', 'لم يكتمل تحميل حسابك. أعد فتح الصفحة وحاول مرة أخرى.');
+      Alert.alert('طھط¹ط°ط± ط¥ظ†ط´ط§ط، ط§ظ„ط؛ط±ظپط©', 'ظ„ظ… ظٹظƒطھظ…ظ„ طھط­ظ…ظٹظ„ ط­ط³ط§ط¨ظƒ. ط£ط¹ط¯ ظپطھط­ ط§ظ„طµظپط­ط© ظˆط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
       return;
     }
     if (!name.trim()) {
-      Alert.alert('تنبيه', 'أدخل اسم الغرفة');
+      Alert.alert('طھظ†ط¨ظٹظ‡', 'ط£ط¯ط®ظ„ ط§ط³ظ… ط§ظ„ط؛ط±ظپط©');
       return;
     }
     if (isPrivate && !password) {
-      Alert.alert('تنبيه', 'أدخل كلمة مرور للغرفة الخاصة');
+      Alert.alert('طھظ†ط¨ظٹظ‡', 'ط£ط¯ط®ظ„ ظƒظ„ظ…ط© ظ…ط±ظˆط± ظ„ظ„ط؛ط±ظپط© ط§ظ„ط®ط§طµط©');
       return;
     }
 
     setLoading(true);
     try {
-      // M6.6: الإنشاء عبر دالة خادمية — كلمة المرور تُخزَّن مشفرة ولا تُرسل نصاً صريحاً للقاعدة
+      // M6.6: ط§ظ„ط¥ظ†ط´ط§ط، ط¹ط¨ط± ط¯ط§ظ„ط© ط®ط§ط¯ظ…ظٹط© â€” ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± طھظڈط®ط²ظژظ‘ظ† ظ…ط´ظپط±ط© ظˆظ„ط§ طھظڈط±ط³ظ„ ظ†طµط§ظ‹ طµط±ظٹط­ط§ظ‹ ظ„ظ„ظ‚ط§ط¹ط¯ط©
       const { data: roomId, error } = await supabase.rpc('create_wattar_room', {
         p_name: name.trim(),
         p_description: description.trim() || null,
@@ -76,51 +76,51 @@ export default function CreateRoomScreen() {
       if (error) throw error;
       router.replace(`/room/${roomId}`);
     } catch (err: any) {
-      Alert.alert('خطأ', err.message);
+      Alert.alert('ط®ط·ط£', err.message);
     } finally {
       setLoading(false);
     }
   };
 
   const categories = [
-    { id: 'chat', label: 'دردشة', icon: '💬' },
-    { id: 'music', label: 'موسيقى', icon: '🎵' },
-    { id: 'games', label: 'ألعاب', icon: '🎮' },
-    { id: 'serious', label: 'جاد', icon: '🧠' },
-    { id: 'sleep', label: 'نوم', icon: '😴' },
+    { id: 'chat', label: 'ط¯ط±ط¯ط´ط©', icon: 'ًں’¬' },
+    { id: 'music', label: 'ظ…ظˆط³ظٹظ‚ظ‰', icon: 'ًںژµ' },
+    { id: 'games', label: 'ط£ظ„ط¹ط§ط¨', icon: 'ًںژ®' },
+    { id: 'serious', label: 'ط¬ط§ط¯', icon: 'ًں§ ' },
+    { id: 'sleep', label: 'ظ†ظˆظ…', icon: 'ًںک´' },
   ];
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>إنشاء غرفة جديدة</Text>
-        <Text style={styles.subtitle}>أنشئ غرفتك وادعو أصدقاءك</Text>
+        <Text style={styles.title}>ط¥ظ†ط´ط§ط، ط؛ط±ظپط© ط¬ط¯ظٹط¯ط©</Text>
+        <Text style={styles.subtitle}>ط£ظ†ط´ط¦ ط؛ط±ظپطھظƒ ظˆط§ط¯ط¹ظˆ ط£طµط¯ظ‚ط§ط،ظƒ</Text>
       </View>
 
       <View style={styles.formCard}>
-        <Text style={styles.label}>اسم الغرفة *</Text>
+        <Text style={styles.label}>ط§ط³ظ… ط§ظ„ط؛ط±ظپط© *</Text>
         <TextInput
           style={styles.input}
           value={name}
           onChangeText={setName}
-          placeholder="مثال: جلسة مسائية"
-          placeholderTextColor="#666"
+          placeholder="ظ…ط«ط§ظ„: ط¬ظ„ط³ط© ظ…ط³ط§ط¦ظٹط©"
+          placeholderTextColor={colors.textMuted}
           maxLength={100}
         />
 
-        <Text style={styles.label}>الوصف (اختياري)</Text>
+        <Text style={styles.label}>ط§ظ„ظˆطµظپ (ط§ط®طھظٹط§ط±ظٹ)</Text>
         <TextInput
           style={[styles.input, styles.textarea]}
           value={description}
           onChangeText={setDescription}
-          placeholder="عن ماذا الغرفة؟"
-          placeholderTextColor="#666"
+          placeholder="ط¹ظ† ظ…ط§ط°ط§ ط§ظ„ط؛ط±ظپط©طں"
+          placeholderTextColor={colors.textMuted}
           multiline
           numberOfLines={3}
           maxLength={200}
         />
 
-        <Text style={styles.label}>عدد المقاعد</Text>
+        <Text style={styles.label}>ط¹ط¯ط¯ ط§ظ„ظ…ظ‚ط§ط¹ط¯</Text>
         <View style={styles.seatsRow}>
           {seatOptions.map(n => (
             <TouchableOpacity
@@ -128,13 +128,13 @@ export default function CreateRoomScreen() {
               style={[styles.seatBtn, seatCount === n && styles.seatBtnActive]}
               onPress={() => setSeatCount(n)}
             >
-              <Mic size={18} color={seatCount === n ? '#fff' : '#9CA3AF'} />
-              <Text style={[styles.seatText, seatCount === n && styles.seatTextActive]}>{n} مقاعد</Text>
+              <Mic size={18} color={seatCount === n ? colors.text : colors.textMuted} />
+              <Text style={[styles.seatText, seatCount === n && styles.seatTextActive]}>{n} ظ…ظ‚ط§ط¹ط¯</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <Text style={styles.label}>التصنيف</Text>
+        <Text style={styles.label}>ط§ظ„طھطµظ†ظٹظپ</Text>
         <View style={styles.categoriesRow}>
           {categories.map(c => (
             <TouchableOpacity
@@ -148,33 +148,33 @@ export default function CreateRoomScreen() {
           ))}
         </View>
 
-        <Text style={styles.label}>نوع الغرفة</Text>
+        <Text style={styles.label}>ظ†ظˆط¹ ط§ظ„ط؛ط±ظپط©</Text>
         <View style={styles.typeRow}>
           <TouchableOpacity
             style={[styles.typeBtn, !isPrivate && styles.typeBtnActive]}
             onPress={() => setIsPrivate(false)}
           >
-            <Globe size={18} color={!isPrivate ? '#fff' : '#9CA3AF'} />
-            <Text style={[styles.typeText, !isPrivate && styles.typeTextActive]}>عامة</Text>
+            <Globe size={18} color={!isPrivate ? colors.text : colors.textMuted} />
+            <Text style={[styles.typeText, !isPrivate && styles.typeTextActive]}>ط¹ط§ظ…ط©</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.typeBtn, isPrivate && styles.typeBtnActive]}
             onPress={() => setIsPrivate(true)}
           >
-            <Lock size={18} color={isPrivate ? '#fff' : '#9CA3AF'} />
-            <Text style={[styles.typeText, isPrivate && styles.typeTextActive]}>خاصة</Text>
+            <Lock size={18} color={isPrivate ? colors.text : colors.textMuted} />
+            <Text style={[styles.typeText, isPrivate && styles.typeTextActive]}>ط®ط§طµط©</Text>
           </TouchableOpacity>
         </View>
 
         {isPrivate && (
           <>
-            <Text style={styles.label}>كلمة المرور</Text>
+            <Text style={styles.label}>ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</Text>
             <TextInput
               style={styles.input}
               value={password}
               onChangeText={setPassword}
-              placeholder="••••"
-              placeholderTextColor="#666"
+              placeholder="â€¢â€¢â€¢â€¢"
+              placeholderTextColor={colors.textMuted}
               secureTextEntry
             />
           </>
@@ -186,7 +186,7 @@ export default function CreateRoomScreen() {
           disabled={loading}
         >
           <Text style={styles.createButtonText}>
-            {loading ? 'جاري الإنشاء...' : 'إنشاء الغرفة'}
+            {loading ? 'ط¬ط§ط±ظٹ ط§ظ„ط¥ظ†ط´ط§ط،...' : 'ط¥ظ†ط´ط§ط، ط§ظ„ط؛ط±ظپط©'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -197,7 +197,7 @@ export default function CreateRoomScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   header: { padding: 16, paddingTop: 60, paddingBottom: 24 },
-  title: { color: colors.text, fontSize: 24, fontWeight: 'bold' },
+  title: { color: colors.text, fontSize: 24, fontFamily: fonts.bold },
   subtitle: { color: colors.textSecondary, fontSize: 14, marginTop: 4 },
   formCard: { padding: 16, gap: 12 },
   label: { color: colors.textSecondary, fontSize: 13, marginBottom: 4 },
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   },
   seatBtnActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   seatText: { color: colors.textSecondary, fontSize: 14 },
-  seatTextActive: { color: '#fff', fontWeight: '600' },
+  seatTextActive: { color: colors.text, fontFamily: fonts.semibold },
   categoriesRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   catBtn: {
     flexDirection: 'row',
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   catBtnActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   catIcon: { fontSize: 14 },
   catText: { color: colors.textSecondary, fontSize: 12 },
-  catTextActive: { color: '#fff' },
+  catTextActive: { color: colors.text },
   typeRow: { flexDirection: 'row', gap: 8 },
   typeBtn: {
     flex: 1,
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   },
   typeBtnActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   typeText: { color: colors.textSecondary, fontSize: 14 },
-  typeTextActive: { color: '#fff', fontWeight: '600' },
+  typeTextActive: { color: colors.text, fontFamily: fonts.semibold },
   createButton: {
     backgroundColor: colors.primary,
     height: 52,
@@ -269,5 +269,5 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   createButtonDisabled: { opacity: 0.5 },
-  createButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  createButtonText: { color: colors.text, fontSize: 16, fontFamily: fonts.bold },
 });

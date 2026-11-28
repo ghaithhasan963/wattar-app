@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,7 +14,7 @@ import {
 import { useRouter } from 'expo-router';
 import { ArrowRight, Check, Clock3, Flag, Send, Shield, Users } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
-import { colors } from '@/lib/theme';
+import { colors, fonts } from '@/lib/theme';
 
 interface AgentGroup {
   group_id: string;
@@ -47,16 +47,16 @@ interface GroupMember {
 }
 
 const palette = {
-  background: '#090611',
-  surface: '#171128',
-  elevated: '#211638',
-  border: '#352449',
-  text: '#F8F3FF',
-  muted: '#B2A6C3',
-  primary: '#B44BFF',
-  gold: '#F4BD55',
-  success: '#43D69A',
-  danger: '#FF718E',
+  background: colors.background,
+  surface: colors.surface,
+  elevated: colors.surfaceElevated,
+  border: colors.border,
+  text: colors.text,
+  muted: colors.textSecondary,
+  primary: colors.primary,
+  gold: colors.gold,
+  success: colors.success,
+  danger: colors.danger,
 } as const;
 
 export default function AgentGroupScreen() {
@@ -122,9 +122,9 @@ export default function AgentGroupScreen() {
         setMembers([]);
       }
     } catch (loadError: unknown) {
-      const message = loadError instanceof Error ? loadError.message : 'تعذر تحميل مجموعة الوكيل.';
+      const message = loadError instanceof Error ? loadError.message : 'طھط¹ط°ط± طھط­ظ…ظٹظ„ ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظˆظƒظٹظ„.';
       setError(message);
-      if (showLoading) Alert.alert('تعذر تحميل المجموعة', message);
+      if (showLoading) Alert.alert('طھط¹ط°ط± طھط­ظ…ظٹظ„ ط§ظ„ظ…ط¬ظ…ظˆط¹ط©', message);
     } finally {
       if (showLoading) setLoading(false);
     }
@@ -147,10 +147,10 @@ export default function AgentGroupScreen() {
         p_agent_id: agentId,
       });
       if (requestError) throw requestError;
-      Alert.alert('تم إرسال الطلب', 'بانتظار موافقة الوكيل أو الإدارة.');
+      Alert.alert('طھظ… ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨', 'ط¨ط§ظ†طھط¸ط§ط± ظ…ظˆط§ظپظ‚ط© ط§ظ„ظˆظƒظٹظ„ ط£ظˆ ط§ظ„ط¥ط¯ط§ط±ط©.');
       await loadScreen();
     } catch (requestError: unknown) {
-      Alert.alert('تعذر إرسال الطلب', requestError instanceof Error ? requestError.message : 'حاول مرة أخرى.');
+      Alert.alert('طھط¹ط°ط± ط¥ط±ط³ط§ظ„ ط§ظ„ط·ظ„ط¨', requestError instanceof Error ? requestError.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
     } finally {
       setBusy(false);
     }
@@ -166,7 +166,7 @@ export default function AgentGroupScreen() {
       if (reviewError) throw reviewError;
       await loadScreen();
     } catch (reviewError: unknown) {
-      Alert.alert('تعذر تحديث الطلب', reviewError instanceof Error ? reviewError.message : 'حاول مرة أخرى.');
+      Alert.alert('طھط¹ط°ط± طھط­ط¯ظٹط« ط§ظ„ط·ظ„ط¨', reviewError instanceof Error ? reviewError.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
     } finally {
       setBusy(false);
     }
@@ -182,25 +182,25 @@ export default function AgentGroupScreen() {
       if (moderationError) throw moderationError;
       await loadScreen();
     } catch (moderationError: unknown) {
-      Alert.alert('تعذر تنفيذ الإجراء', moderationError instanceof Error ? moderationError.message : 'حاول مرة أخرى.');
+      Alert.alert('طھط¹ط°ط± طھظ†ظپظٹط° ط§ظ„ط¥ط¬ط±ط§ط،', moderationError instanceof Error ? moderationError.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
     } finally {
       setBusy(false);
     }
   };
 
   const reportMessage = (message: GroupMessage) => {
-    Alert.alert('الإبلاغ عن الرسالة', 'سيصل البلاغ إلى فريق الإشراف.', [
-      { text: 'إلغاء', style: 'cancel' },
+    Alert.alert('ط§ظ„ط¥ط¨ظ„ط§ط؛ ط¹ظ† ط§ظ„ط±ط³ط§ظ„ط©', 'ط³ظٹطµظ„ ط§ظ„ط¨ظ„ط§ط؛ ط¥ظ„ظ‰ ظپط±ظٹظ‚ ط§ظ„ط¥ط´ط±ط§ظپ.', [
+      { text: 'ط¥ظ„ط؛ط§ط،', style: 'cancel' },
       {
-        text: 'إبلاغ',
+        text: 'ط¥ط¨ظ„ط§ط؛',
         style: 'destructive',
         onPress: async () => {
           const { error: reportError } = await supabase.rpc('report_agent_group_message', {
             p_message_id: message.message_id,
-            p_reason: 'محتوى غير مناسب',
+            p_reason: 'ظ…ط­طھظˆظ‰ ط؛ظٹط± ظ…ظ†ط§ط³ط¨',
           });
-          if (reportError) Alert.alert('تعذر إرسال البلاغ', reportError.message);
-          else Alert.alert('تم استلام البلاغ', 'سيراجعه فريق Wattar.');
+          if (reportError) Alert.alert('طھط¹ط°ط± ط¥ط±ط³ط§ظ„ ط§ظ„ط¨ظ„ط§ط؛', reportError.message);
+          else Alert.alert('طھظ… ط§ط³طھظ„ط§ظ… ط§ظ„ط¨ظ„ط§ط؛', 'ط³ظٹط±ط§ط¬ط¹ظ‡ ظپط±ظٹظ‚ Wattar.');
         },
       },
     ]);
@@ -218,7 +218,7 @@ export default function AgentGroupScreen() {
       setDraft('');
       await loadScreen(false);
     } catch (sendError: unknown) {
-      Alert.alert('تعذر إرسال الرسالة', sendError instanceof Error ? sendError.message : 'حاول مرة أخرى.');
+      Alert.alert('طھط¹ط°ط± ط¥ط±ط³ط§ظ„ ط§ظ„ط±ط³ط§ظ„ط©', sendError instanceof Error ? sendError.message : 'ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
     } finally {
       setBusy(false);
     }
@@ -239,8 +239,8 @@ export default function AgentGroupScreen() {
         </TouchableOpacity>
         <View style={styles.titleIcon}><Users size={20} color={palette.gold} /></View>
         <View style={styles.headerCopy}>
-          <Text style={styles.title}>مجموعة الوكيل</Text>
-          <Text style={styles.subtitle}>مجموعة خاصة ومحادثة بإشراف الوكيل</Text>
+          <Text style={styles.title}>ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظˆظƒظٹظ„</Text>
+          <Text style={styles.subtitle}>ظ…ط¬ظ…ظˆط¹ط© ط®ط§طµط© ظˆظ…ط­ط§ط¯ط«ط© ط¨ط¥ط´ط±ط§ظپ ط§ظ„ظˆظƒظٹظ„</Text>
         </View>
       </View>
 
@@ -256,9 +256,9 @@ export default function AgentGroupScreen() {
               <View style={styles.groupIcon}><Shield size={19} color={palette.gold} /></View>
               <View style={styles.headerCopy}>
                 <Text style={styles.cardTitle}>{selectedGroup.group_name}</Text>
-                <Text style={styles.meta}>بإشراف {selectedGroup.agent_name}</Text>
+                <Text style={styles.meta}>ط¨ط¥ط´ط±ط§ظپ {selectedGroup.agent_name}</Text>
               </View>
-              <View style={styles.privateBadge}><Text style={styles.privateText}>خاصة</Text></View>
+              <View style={styles.privateBadge}><Text style={styles.privateText}>ط®ط§طµط©</Text></View>
             </View>
 
             <View style={styles.messageList}>
@@ -275,12 +275,12 @@ export default function AgentGroupScreen() {
                     <Text style={styles.messageText}>{message.body}</Text>
                   </View>
                   {!selectedGroup.is_agent ? (
-                    <TouchableOpacity onPress={() => reportMessage(message)} accessibilityLabel="الإبلاغ عن الرسالة">
+                    <TouchableOpacity onPress={() => reportMessage(message)} accessibilityLabel="ط§ظ„ط¥ط¨ظ„ط§ط؛ ط¹ظ† ط§ظ„ط±ط³ط§ظ„ط©">
                       <Flag size={16} color={palette.muted} />
                     </TouchableOpacity>
                   ) : null}
                 </View>
-              )) : <Text style={styles.empty}>لا توجد رسائل بعد. ابدأ الحديث مع مجموعتك.</Text>}
+              )) : <Text style={styles.empty}>ظ„ط§ طھظˆط¬ط¯ ط±ط³ط§ط¦ظ„ ط¨ط¹ط¯. ط§ط¨ط¯ط£ ط§ظ„ط­ط¯ظٹط« ظ…ط¹ ظ…ط¬ظ…ظˆط¹طھظƒ.</Text>}
             </View>
 
             <View style={styles.composer}>
@@ -288,7 +288,7 @@ export default function AgentGroupScreen() {
                 style={styles.input}
                 value={draft}
                 onChangeText={setDraft}
-                placeholder="اكتب رسالة للمجموعة..."
+                placeholder="ط§ظƒطھط¨ ط±ط³ط§ظ„ط© ظ„ظ„ظ…ط¬ظ…ظˆط¹ط©..."
                 placeholderTextColor={palette.muted}
                 maxLength={2000}
                 multiline
@@ -298,9 +298,9 @@ export default function AgentGroupScreen() {
                 onPress={sendMessage}
                 disabled={!draft.trim() || busy}
                 accessibilityRole="button"
-                accessibilityLabel="إرسال الرسالة"
+                accessibilityLabel="ط¥ط±ط³ط§ظ„ ط§ظ„ط±ط³ط§ظ„ط©"
               >
-                {busy ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Send size={17} color="#FFFFFF" />}
+                {busy ? <ActivityIndicator size="small" color={colors.text} /> : <Send size={17} color={colors.text} />}
               </TouchableOpacity>
             </View>
           </View>
@@ -310,16 +310,16 @@ export default function AgentGroupScreen() {
           <View style={styles.statusCard}>
             <Clock3 size={20} color={palette.gold} />
             <View style={styles.headerCopy}>
-              <Text style={styles.cardTitle}>طلبك قيد المراجعة</Text>
-              <Text style={styles.meta}>ستظهر المجموعة بعد موافقة الوكيل أو الإدارة.</Text>
+              <Text style={styles.cardTitle}>ط·ظ„ط¨ظƒ ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©</Text>
+              <Text style={styles.meta}>ط³طھط¸ظ‡ط± ط§ظ„ظ…ط¬ظ…ظˆط¹ط© ط¨ط¹ط¯ ظ…ظˆط§ظپظ‚ط© ط§ظ„ظˆظƒظٹظ„ ط£ظˆ ط§ظ„ط¥ط¯ط§ط±ط©.</Text>
             </View>
           </View>
         ) : null}
 
         {!hasActiveGroup ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>اختر وكيلًا للانضمام</Text>
-            <Text style={styles.sectionHint}>المحفظة والشحن يتاحان بعد قبول طلبك من وكيل نشط.</Text>
+            <Text style={styles.sectionTitle}>ط§ط®طھط± ظˆظƒظٹظ„ظ‹ط§ ظ„ظ„ط§ظ†ط¶ظ…ط§ظ…</Text>
+            <Text style={styles.sectionHint}>ط§ظ„ظ…ط­ظپط¸ط© ظˆط§ظ„ط´ط­ظ† ظٹطھط§ط­ط§ظ† ط¨ط¹ط¯ ظ‚ط¨ظˆظ„ ط·ظ„ط¨ظƒ ظ…ظ† ظˆظƒظٹظ„ ظ†ط´ط·.</Text>
             {availableGroups.map((group) => {
               const isPending = group.membership_status === 'pending' || myPendingAgentIds.has(group.agent_id);
               const isActive = group.membership_status === 'active';
@@ -328,37 +328,37 @@ export default function AgentGroupScreen() {
                   <View style={styles.groupIcon}><Users size={18} color={palette.primary} /></View>
                   <View style={styles.headerCopy}>
                     <Text style={styles.cardTitle}>{group.agent_name}</Text>
-                    <Text style={styles.meta}>{group.group_name} · مجموعة خاصة</Text>
+                    <Text style={styles.meta}>{group.group_name} آ· ظ…ط¬ظ…ظˆط¹ط© ط®ط§طµط©</Text>
                   </View>
                   {isActive ? (
-                    <Text style={styles.activeText}>عضو</Text>
+                    <Text style={styles.activeText}>ط¹ط¶ظˆ</Text>
                   ) : (
                     <TouchableOpacity
                       style={[styles.requestButton, (isPending || busy) && styles.disabled]}
                       onPress={() => requestMembership(group.agent_id)}
                       disabled={isPending || busy}
                     >
-                      <Text style={styles.requestText}>{isPending ? 'قيد المراجعة' : 'طلب انضمام'}</Text>
+                      <Text style={styles.requestText}>{isPending ? 'ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©' : 'ط·ظ„ط¨ ط§ظ†ط¶ظ…ط§ظ…'}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
               );
             })}
             {!availableGroups.length && !loading ? (
-              <Text style={styles.empty}>لا يوجد وكلاء نشطون متاحون حاليًا.</Text>
+              <Text style={styles.empty}>ظ„ط§ ظٹظˆط¬ط¯ ظˆظƒظ„ط§ط، ظ†ط´ط·ظˆظ† ظ…طھط§ط­ظˆظ† ط­ط§ظ„ظٹظ‹ط§.</Text>
             ) : null}
           </View>
         ) : null}
 
         {selectedGroup?.is_agent ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>إدارة الأعضاء والطلبات</Text>
+            <Text style={styles.sectionTitle}>ط¥ط¯ط§ط±ط© ط§ظ„ط£ط¹ط¶ط§ط، ظˆط§ظ„ط·ظ„ط¨ط§طھ</Text>
             {members.map((member) => (
               <View key={member.membership_id} style={styles.memberRow}>
                 <View style={styles.headerCopy}>
                   <Text style={styles.cardTitle}>{member.display_name || member.username}</Text>
                   <Text style={styles.meta}>
-                    {member.membership_status === 'pending' ? 'طلب انضمام جديد' : `@${member.username}`}
+                    {member.membership_status === 'pending' ? 'ط·ظ„ط¨ ط§ظ†ط¶ظ…ط§ظ… ط¬ط¯ظٹط¯' : `@${member.username}`}
                   </Text>
                 </View>
                 {member.membership_status === 'pending' ? (
@@ -367,7 +367,7 @@ export default function AgentGroupScreen() {
                       <Check size={18} color={palette.success} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => reviewMembership(member.membership_id, false)} disabled={busy} style={styles.iconAction}>
-                      <Text style={styles.decline}>رفض</Text>
+                      <Text style={styles.decline}>ط±ظپط¶</Text>
                     </TouchableOpacity>
                   </>
                 ) : (
@@ -377,23 +377,23 @@ export default function AgentGroupScreen() {
                       disabled={busy}
                       style={styles.iconAction}
                     >
-                      <Text style={styles.decline}>{member.muted_until ? 'إلغاء الكتم' : 'كتم 24س'}</Text>
+                      <Text style={styles.decline}>{member.muted_until ? 'ط¥ظ„ط؛ط§ط، ط§ظ„ظƒطھظ…' : 'ظƒطھظ… 24ط³'}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={() => Alert.alert('إزالة العضو؟', 'سيحتاج إلى طلب جديد للانضمام مرة أخرى.', [
-                        { text: 'إلغاء', style: 'cancel' },
-                        { text: 'إزالة', style: 'destructive', onPress: () => { void moderateMember(member, 'remove'); } },
+                      onPress={() => Alert.alert('ط¥ط²ط§ظ„ط© ط§ظ„ط¹ط¶ظˆطں', 'ط³ظٹط­طھط§ط¬ ط¥ظ„ظ‰ ط·ظ„ط¨ ط¬ط¯ظٹط¯ ظ„ظ„ط§ظ†ط¶ظ…ط§ظ… ظ…ط±ط© ط£ط®ط±ظ‰.', [
+                        { text: 'ط¥ظ„ط؛ط§ط،', style: 'cancel' },
+                        { text: 'ط¥ط²ط§ظ„ط©', style: 'destructive', onPress: () => { void moderateMember(member, 'remove'); } },
                       ])}
                       disabled={busy}
                       style={styles.iconAction}
                     >
-                      <Text style={styles.decline}>إزالة</Text>
+                      <Text style={styles.decline}>ط¥ط²ط§ظ„ط©</Text>
                     </TouchableOpacity>
                   </>
                 )}
               </View>
             ))}
-            {!members.length ? <Text style={styles.empty}>لا توجد طلبات أو أعضاء لعرضهم.</Text> : null}
+            {!members.length ? <Text style={styles.empty}>ظ„ط§ طھظˆط¬ط¯ ط·ظ„ط¨ط§طھ ط£ظˆ ط£ط¹ط¶ط§ط، ظ„ط¹ط±ط¶ظ‡ظ….</Text> : null}
           </View>
         ) : null}
       </ScrollView>
@@ -405,26 +405,26 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: palette.background },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingTop: 54, paddingBottom: 16 },
   backButton: { width: 38, height: 38, borderRadius: 13, backgroundColor: palette.surface, alignItems: 'center', justifyContent: 'center' },
-  titleIcon: { width: 44, height: 44, borderRadius: 15, backgroundColor: '#28153D', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#56306D' },
+  titleIcon: { width: 44, height: 44, borderRadius: 15, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.borderStrong },
   headerCopy: { flex: 1 },
-  title: { color: palette.text, fontSize: 21, fontWeight: '800', textAlign: 'right' },
+  title: { color: palette.text, fontSize: 21, fontFamily: fonts.bold, textAlign: 'right' },
   subtitle: { color: palette.muted, fontSize: 12, marginTop: 3, textAlign: 'right' },
   content: { paddingHorizontal: 14, paddingBottom: 40, gap: 16 },
   card: { backgroundColor: palette.surface, borderRadius: 20, borderWidth: 1, borderColor: palette.border, padding: 14 },
   groupHeading: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: palette.border },
   groupIcon: { width: 40, height: 40, borderRadius: 14, backgroundColor: palette.elevated, alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { color: palette.text, fontSize: 14, fontWeight: '700', textAlign: 'right' },
+  cardTitle: { color: palette.text, fontSize: 14, fontFamily: fonts.semibold, textAlign: 'right' },
   meta: { color: palette.muted, fontSize: 11, marginTop: 3, textAlign: 'right' },
-  privateBadge: { backgroundColor: '#302312', borderRadius: 10, paddingHorizontal: 9, paddingVertical: 5 },
-  privateText: { color: palette.gold, fontSize: 10, fontWeight: '700' },
+  privateBadge: { backgroundColor: colors.goldSoft, borderRadius: 10, paddingHorizontal: 9, paddingVertical: 5 },
+  privateText: { color: palette.gold, fontSize: 10, fontFamily: fonts.semibold },
   messageList: { gap: 12, paddingVertical: 14 },
   messageRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
   avatar: { width: 34, height: 34, borderRadius: 17 },
   avatarFallback: { backgroundColor: palette.elevated, alignItems: 'center', justifyContent: 'center' },
-  avatarLetter: { color: palette.gold, fontWeight: '700' },
+  avatarLetter: { color: palette.gold, fontFamily: fonts.semibold },
   messageBody: { flex: 1, backgroundColor: palette.elevated, borderRadius: 13, padding: 10 },
   messageTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 },
-  sender: { color: palette.gold, fontSize: 11, fontWeight: '700' },
+  sender: { color: palette.gold, fontSize: 11, fontFamily: fonts.semibold },
   time: { color: palette.muted, fontSize: 9 },
   messageText: { color: palette.text, fontSize: 13, lineHeight: 19, textAlign: 'right' },
   composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 9, borderTopWidth: 1, borderTopColor: palette.border, paddingTop: 12 },
@@ -432,16 +432,16 @@ const styles = StyleSheet.create({
   sendButton: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.primary },
   disabled: { opacity: 0.5 },
   section: { backgroundColor: palette.surface, borderRadius: 20, borderWidth: 1, borderColor: palette.border, padding: 14, gap: 10 },
-  sectionTitle: { color: palette.text, fontSize: 15, fontWeight: '800', textAlign: 'right' },
+  sectionTitle: { color: palette.text, fontSize: 15, fontFamily: fonts.bold, textAlign: 'right' },
   sectionHint: { color: palette.muted, fontSize: 12, lineHeight: 18, textAlign: 'right', marginBottom: 4 },
   agentCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 11, borderRadius: 15, backgroundColor: palette.elevated },
   requestButton: { backgroundColor: palette.primary, paddingHorizontal: 11, paddingVertical: 9, borderRadius: 11 },
-  requestText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
-  activeText: { color: palette.success, fontSize: 11, fontWeight: '700' },
+  requestText: { color: colors.text, fontSize: 11, fontFamily: fonts.semibold },
+  activeText: { color: palette.success, fontSize: 11, fontFamily: fonts.semibold },
   statusCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, backgroundColor: palette.surface, borderRadius: 17, borderWidth: 1, borderColor: palette.border },
   memberRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: palette.border },
   iconAction: { padding: 7, minHeight: 34, justifyContent: 'center' },
-  decline: { color: palette.danger, fontSize: 10, fontWeight: '700' },
+  decline: { color: palette.danger, fontSize: 10, fontFamily: fonts.semibold },
   empty: { color: palette.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', paddingVertical: 18 },
   error: { color: palette.danger, fontSize: 12, textAlign: 'center' },
 });
